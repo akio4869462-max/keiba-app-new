@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>競馬アプリ</title>
+</head>
+<body>
+<h1>本日の開催レース</h1>
+
+<p th:text="'取得したレース数: ' + ${#lists.size(races)}"></p>
+
+<div th:each="race : ${races}">
+    <h3 th:text="${race.venue} + ' ' + ${race.raceNumber} + 'R : ' + ${race.raceName}">レース名</h3>
+    <p th:text="'発走時刻: ' + ${race.raceTime}">時刻</p>
+</div>
+</body>
+</html>
