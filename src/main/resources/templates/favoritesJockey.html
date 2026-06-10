@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>お気に入り騎手一覧</title>
+</head>
+<body>
+
+<h1>お気に入り騎手一覧</h1>
+
+<ul>
+    <li th:each="horse : ${favoritesJockey}">
+
+        <span th:text="${horse.jockeyName}"></span>
+
+        <form th:action="@{/favoriteJockey/delete}"
+              method="post"
+              style="display:inline;">
+
+            <input type="hidden"
+                   name="id"
+                   th:value="${horse.id}" />
+
+            <button type="submit">
+                削除
+            </button>
+
+        </form>
+
+    </li>
+</ul>
+
+<a href="/races">レース一覧へ戻る</a>
+
+</body>
+</html>

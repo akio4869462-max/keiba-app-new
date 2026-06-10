@@ -19,6 +19,39 @@ public class RaceService {
         return fetchAllRaces();
     }
 
+    private List<RaceInfo> createDummyRaces() {
+
+        List<Horse> horses = new ArrayList<>();
+
+        horses.add(new Horse(
+                "1",
+                "1",
+                "イクイノックス",
+                "ルメール",
+                "57",
+                1.8));
+
+        horses.add(new Horse(
+                "1",
+                "2",
+                "ドウデュース",
+                "武豊",
+                "57",
+                3.5));
+
+        List<RaceInfo> races = new ArrayList<>();
+
+        races.add(
+                new RaceInfo(
+                        11,
+                        "東京",
+                        "ダミーダービー",
+                        LocalTime.of(15, 40),
+                        horses));
+
+        return races;
+    }
+
     // ...ここに fetchAllRaces() や WebScraper クラスの中身を移植
     public List<RaceInfo> fetchAllRaces() {
         List<RaceInfo> allRaces = new ArrayList<>();
@@ -36,6 +69,7 @@ public class RaceService {
         try{
             Document topDoc = WebScraper.getHTML("https://sports.yahoo.co.jp/keiba/");
             Elements raceListLinks = topDoc.select(".hr-raceProgress__link");
+            System.out.println("開催場数 = " + raceListLinks.size());
 
             for (Element link : raceListLinks) {
                 String listUrl = link.attr("abs:href"); // 例: https://sports.yahoo.co.jp/keiba/race/list/26050302
@@ -112,6 +146,11 @@ public class RaceService {
             System.out.println("開催一覧の取得でエラーが発生しました: " + e.getMessage());
             e.printStackTrace(); // 本番稼働時はコメントアウトしてもOKです
         }
+        if (allRaces.isEmpty()) {
+            System.out.println("ダミーデータを使用します");
+            return createDummyRaces();
+        }
+
         return allRaces;
     }
 }

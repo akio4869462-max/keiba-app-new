@@ -1,0 +1,133 @@
+package org.example.keibaapp;
+
+import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
+
+import java.util.List;
+
+@Service
+public class RaceNotificationService {
+
+    private final FavoriteHorseRepository horseRepository;
+    private final FavoriteJockeyRepository jockeyRepository;
+    private final RaceService raceService;
+    private final DiscordNotificationService discordNotificationService;
+    private final NotificationHistoryRepository historyRepository;
+    private final NotificationJockeyHistoryRepository historyJockeyRepository;
+
+    public RaceNotificationService(
+            FavoriteHorseRepository horseRepository,
+            FavoriteJockeyRepository jockeyRepository,
+            RaceService raceService,
+            DiscordNotificationService discordNotificationService,
+            NotificationHistoryRepository historyRepository,
+            NotificationJockeyHistoryRepository historyJockeyRepository) {
+
+        this.horseRepository = horseRepository;
+        this.jockeyRepository = jockeyRepository;
+        this.raceService = raceService;
+        this.discordNotificationService = discordNotificationService;
+        this.historyRepository = historyRepository;
+        this.historyJockeyRepository = historyJockeyRepository;
+    }
+
+    public void checkFavorites() {
+
+//        System.out.println("===== お気に入り馬 =====");
+//
+//        for (FavoriteHorse horse : horseRepository.findAll()) {
+//            System.out.println(horse.getHorseName());
+//        }
+//
+//        System.out.println("===== お気に入り騎手 =====");
+//
+//        for (FavoriteJockey jockey : jockeyRepository.findAll()) {
+//            System.out.println(jockey.getJockeyName());
+//        }
+        List<RaceInfo> races = raceService.getRaces();
+
+        for (FavoriteHorse favorite
+                : horseRepository.findAll()) {
+
+            for (RaceInfo race : races) {
+
+                for (Horse horse : race.getHorses()) {
+
+                    if (favorite.getHorseName()
+                            .equals(horse.getName())) {
+
+                        if (historyRepository
+                                .findByHorseNameAndRaceName(
+                                        horse.getName(),
+                                        race.getRaceName())
+                                .isPresent()) {
+
+                            System.out.println(
+                                    "通知済みのためスキップ: "
+                                            + horse.getName());
+
+                            continue;
+                        }
+
+                        String message =
+                                "【出走通知】" + horse.getName()
+                                        + " が " + race.getVenue()
+                                        + " " + race.getRaceNum()
+                                        + "R に出走します！";
+
+                        System.out.println(message);
+
+                        discordNotificationService.sendMessage(message);
+                        historyRepository.save(new NotificationHistory(horse.getName(), race.getRaceName()));
+                    }
+                }
+            }
+        }
+
+        for (FavoriteJockey favorite
+                : jockeyRepository.findAll()) {
+
+            for (RaceInfo race : races) {
+
+                for (Horse horse : race.getHorses()) {
+
+                    if (favorite.getJockeyName()
+                            .equals(horse.getJockeyName())) {
+
+                        if (historyJockeyRepository
+                                .findByJockeyNameAndRaceName(
+                                        horse.getJockeyName(),
+                                        race.getRaceName())
+                                .isPresent()) {
+
+                            System.out.println(
+                                    "通知済みのためスキップ: "
+                                            + horse.getJockeyName());
+
+                            continue;
+                        }
+
+                        String message =
+                                "【出走通知】" + horse.getJockeyName()
+                                        + " が " + race.getVenue()
+                                        + " " + race.getRaceNum()
+                                        + "R で" + horse.getName()
+                                        + "に騎乗します！";
+
+                        System.out.println(message);
+
+                        discordNotificationService.sendMessage(message);
+                        historyJockeyRepository.save(new NotificationJockeyHistory(horse.getJockeyName(), race.getRaceName()));
+                    }
+                }
+            }
+        }
+    }
+
+//    @Scheduled(cron = "0 0 8 * * *")
+    @Scheduled(cron = "0 0 17 * * *")
+    public void scheduledCheck() {
+        System.out.println("定期通知チェックを実行します");
+        checkFavorites();
+    }
+}

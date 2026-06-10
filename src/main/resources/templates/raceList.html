@@ -7,11 +7,71 @@
 <body>
 <h1>本日の開催レース</h1>
 
+<a href="/favorites">
+    お気に入り馬一覧
+</a>
+
+<a href="/favoritesJockey">
+    お気に入り騎手一覧
+</a>
+
+<hr>
+
 <p th:text="'取得したレース数: ' + ${#lists.size(races)}"></p>
 
 <div th:each="race : ${races}">
-    <h3 th:text="${race.venue} + ' ' + ${race.raceNumber} + 'R : ' + ${race.raceName}">レース名</h3>
-    <p th:text="'発走時刻: ' + ${race.raceTime}">時刻</p>
+
+    <h3 th:text="${race.venue} + ' ' + ${race.raceNum} + 'R : ' + ${race.raceName}">
+    </h3>
+
+    <p th:text="'発走時刻: ' + ${race.raceTime}"></p>
+
+    <table border="1">
+        <tr>
+            <th>馬番</th>
+            <th>馬名</th>
+            <th>騎手</th>
+            <th>オッズ</th>
+        </tr>
+
+        <tr th:each="horse : ${race.horses}">
+            <td th:text="${horse.umaban}"></td>
+            <td>
+                <span th:text="${horse.name}"></span>
+                <form th:action="@{/favorite/add}"
+                      method="post"
+                      style="display:inline;">
+
+                    <input type="hidden"
+                           name="horseName"
+                           th:value="${horse.name}" />
+
+                    <button type="submit">
+                        ★登録
+                    </button>
+                </form>
+            </td>
+            <td>
+                <span th:text="${horse.jockeyName}"></span>
+                <form th:action="@{/favoriteJockey/add}"
+                      method="post"
+                      style="display:inline;">
+
+                    <input type="hidden"
+                           name="jockeyName"
+                           th:value="${horse.jockeyName}" />
+
+                    <button type="submit">
+                        ★登録
+                    </button>
+                </form>
+            </td>
+            <td th:text="${horse.odds}"></td>
+        </tr>
+    </table>
+
+    <hr>
+
 </div>
 </body>
 </html>
