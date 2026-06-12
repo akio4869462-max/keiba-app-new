@@ -3,17 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <title>競馬アプリ</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
+<div class="container">
 <h1>本日の開催レース</h1>
 
-<a href="/favorites">
-    お気に入り馬一覧
-</a>
-
-<a href="/favoritesJockey">
-    お気に入り騎手一覧
-</a>
+<div class="nav">
+    <a href="/favorites">お気に入り馬一覧</a>
+    <a href="/favoritesJockey">お気に入り騎手一覧</a>
+</div>
 
 <hr>
 
@@ -21,10 +20,13 @@
 
 <div th:each="race : ${races}">
 
-    <h3 th:text="${race.venue} + ' ' + ${race.raceNum} + 'R : ' + ${race.raceName}">
-    </h3>
+    <div class="race-card">
 
-    <p th:text="'発走時刻: ' + ${race.raceTime}"></p>
+        <h2 th:text="${race.venue} + ' ' + ${race.raceNum} + 'R : ' + ${race.raceName}">
+        </h2>
+
+        <p th:text="'発走時刻: ' + ${race.raceTime}">
+        </p>
 
     <table border="1">
         <tr>
@@ -46,7 +48,7 @@
                            name="horseName"
                            th:value="${horse.name}" />
 
-                    <button type="submit">
+                    <button type="submit" class="register-btn">
                         ★登録
                     </button>
                 </form>
@@ -61,17 +63,22 @@
                            name="jockeyName"
                            th:value="${horse.jockeyName}" />
 
-                    <button type="submit">
+                    <button type="submit" class="register-btn">
                         ★登録
                     </button>
                 </form>
             </td>
-            <td th:text="${horse.odds}"></td>
+            <td class="odds"
+                th:text="${horse.odds}">
+            </td>
         </tr>
     </table>
 
+    </div>
+
     <hr>
 
+</div>
 </div>
 </body>
 </html>

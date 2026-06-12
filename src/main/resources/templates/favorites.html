@@ -3,34 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <title>お気に入り馬一覧</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
+<div class="container">
 
-<h1>お気に入り馬一覧</h1>
+    <h1>お気に入り馬一覧</h1>
 
-<ul>
-    <li th:each="horse : ${favorites}">
+    <div class="race-card">
 
-        <span th:text="${horse.horseName}"></span>
+        <table>
+            <thead>
+            <tr>
+                <th>馬名</th>
+                <th>操作</th>
+            </tr>
+            </thead>
 
-        <form th:action="@{/favorite/delete}"
-              method="post"
-              style="display:inline;">
+            <tbody>
+            <tr th:each="horse : ${favorites}">
 
-            <input type="hidden"
-                   name="id"
-                   th:value="${horse.id}" />
+                <td th:text="${horse.horseName}"></td>
 
-            <button type="submit">
-                削除
-            </button>
+                <td>
 
-        </form>
+                    <form
+                            th:action="@{/favorite/delete}"
+                            method="post">
 
-    </li>
-</ul>
+                        <input
+                                type="hidden"
+                                name="id"
+                                th:value="${horse.id}" />
 
-<a href="/races">レース一覧へ戻る</a>
+                        <button
+                                class="delete-btn"
+                                type="submit">
 
+                            削除
+
+                        </button>
+
+                    </form>
+
+                </td>
+
+            </tr>
+            </tbody>
+
+        </table>
+
+    </div>
+
+    <div class="nav">
+        <a href="/races">レース一覧へ戻る</a>
+    </div>
+
+</div>
 </body>
 </html>
