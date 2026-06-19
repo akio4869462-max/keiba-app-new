@@ -40,7 +40,7 @@ public class RaceInfo {
         return raceTime;
     }
 
-    public List<Horse> getHorses() {
-        return horses;
-    }
+    public List<Horse> getHorses() { return horses; }
+
+    public String getDisplayRaceName() { return venue + " " + raceNum + "R " + raceName; }
 }

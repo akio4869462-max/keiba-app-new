@@ -30,19 +30,31 @@
 
     <table border="1">
         <tr>
+            <th>予想順位</th>
             <th>馬番</th>
             <th>馬名</th>
             <th>騎手</th>
             <th>オッズ</th>
+            <th>前走着順</th>
+            <th>予想スコア</th>
+            <th>予想理由</th>
         </tr>
 
-        <tr th:each="horse : ${race.horses}">
+        <tr th:each="horse, stat : ${race.horses}">
+            <td>
+                <span th:if="${stat.index == 0}">🥇1位</span>
+                <span th:if="${stat.index == 1}">🥈2位</span>
+                <span th:if="${stat.index == 2}">🥉3位</span>
+                <span th:if="${stat.index >= 3}"
+                      th:text="${stat.index + 1} + '位'"></span>
+            </td>
             <td th:text="${horse.umaban}"></td>
             <td>
-                <span th:text="${horse.name}"></span>
+                <div class="horse-name" th:text="${horse.name}"></div>
+
                 <form th:action="@{/favorite/add}"
                       method="post"
-                      style="display:inline;">
+                      class="inline-form">
 
                     <input type="hidden"
                            name="horseName"
@@ -54,10 +66,11 @@
                 </form>
             </td>
             <td>
-                <span th:text="${horse.jockeyName}"></span>
+                <div class="jockey-name" th:text="${horse.jockeyName}"></div>
+
                 <form th:action="@{/favoriteJockey/add}"
                       method="post"
-                      style="display:inline;">
+                      class="inline-form">
 
                     <input type="hidden"
                            name="jockeyName"
@@ -71,11 +84,13 @@
             <td class="odds"
                 th:text="${horse.odds}">
             </td>
+            <td th:text="${horse.lastRace != null ? horse.lastRace.displayText : 'データなし'}"></td>
+            <td th:text="${#numbers.formatDecimal(horse.predictionScore, 1, 1)}"></td>
+            <td th:text="${horse.predictionReason}"></td>
         </tr>
     </table>
 
     </div>
-
     <hr>
 
 </div>

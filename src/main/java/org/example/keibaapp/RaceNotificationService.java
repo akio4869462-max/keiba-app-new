@@ -3,6 +3,7 @@ package org.example.keibaapp;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Scheduled;
 
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -33,17 +34,6 @@ public class RaceNotificationService {
 
     public void checkFavorites() {
 
-//        System.out.println("===== お気に入り馬 =====");
-//
-//        for (FavoriteHorse horse : horseRepository.findAll()) {
-//            System.out.println(horse.getHorseName());
-//        }
-//
-//        System.out.println("===== お気に入り騎手 =====");
-//
-//        for (FavoriteJockey jockey : jockeyRepository.findAll()) {
-//            System.out.println(jockey.getJockeyName());
-//        }
         List<RaceInfo> races = raceService.getRaces();
 
         for (FavoriteHorse favorite
@@ -55,6 +45,12 @@ public class RaceNotificationService {
 
                     if (favorite.getHorseName()
                             .equals(horse.getName())) {
+                        LocalTime now = LocalTime.now();
+                        LocalTime notifyTime = race.getRaceTime().minusMinutes(5);
+
+                        if (now.isBefore(notifyTime) || now.isAfter(race.getRaceTime())) {
+                            continue;
+                        }
 
                         if (historyRepository
                                 .findByHorseNameAndRaceName(
@@ -93,6 +89,12 @@ public class RaceNotificationService {
 
                     if (favorite.getJockeyName()
                             .equals(horse.getJockeyName())) {
+                        LocalTime now = LocalTime.now();
+                        LocalTime notifyTime = race.getRaceTime().minusMinutes(5);
+
+                        if (now.isBefore(notifyTime) || now.isAfter(race.getRaceTime())) {
+                            continue;
+                        }
 
                         if (historyJockeyRepository
                                 .findByJockeyNameAndRaceName(
@@ -124,8 +126,8 @@ public class RaceNotificationService {
         }
     }
 
-//    @Scheduled(cron = "0 0 8 * * *")
-    @Scheduled(cron = "0 0 17 * * *")
+    @Scheduled(cron = "0 * * * * *")
+//    @Scheduled(cron = "0 0 17 * * *")
     public void scheduledCheck() {
         System.out.println("定期通知チェックを実行します");
         checkFavorites();

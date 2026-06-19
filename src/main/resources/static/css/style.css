@@ -102,3 +102,12 @@ button {
     cursor: pointer;
     opacity: 0.9;
 }
+
+.inline-form {
+    margin-top: 6px;
+}
+
+.horse-name,
+.jockey-name {
+    font-weight: 500;
+}
