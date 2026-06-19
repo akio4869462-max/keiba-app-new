@@ -89,7 +89,7 @@ public class WebScraper {
         }
     }
 
-    public static HorseDetailInfo getHorseDetailInfo(String horseUrl) {
+    public static HorseDetailInfo getTodayHorseDetailInfo(String horseUrl) {
         try {
             Document doc = getHTML(horseUrl);
 
@@ -99,19 +99,38 @@ public class WebScraper {
                 return HorseDetailInfo.empty();
             }
 
-            Element resultTable = tables.get(4);
-            Elements rows = resultTable.select("tr");
-
-            PastRaceInfo lastRace = parsePastRace(rows, 2);
-            PastRaceInfo secondLastRace = parsePastRace(rows, 3);
-            PastRaceInfo thirdLastRace = parsePastRace(rows, 4);
-            PastRaceInfo actualRace = parsePastRace(rows, 1);
+            Elements rows = tables.get(4).select("tr");
 
             return new HorseDetailInfo(
-                    lastRace,
-                    secondLastRace,
-                    thirdLastRace,
-                    actualRace
+                    parsePastRace(rows, 1),
+                    parsePastRace(rows, 2),
+                    parsePastRace(rows, 3),
+                    PastRaceInfo.empty()
+            );
+
+        } catch (Exception e) {
+            System.out.println("馬詳細情報取得失敗: " + horseUrl + " / " + e.getMessage());
+            return HorseDetailInfo.empty();
+        }
+    }
+
+    public static HorseDetailInfo getHistoricalHorseDetailInfo(String horseUrl) {
+        try {
+            Document doc = getHTML(horseUrl);
+
+            Elements tables = doc.select("table");
+
+            if (tables.size() < 5) {
+                return HorseDetailInfo.empty();
+            }
+
+            Elements rows = tables.get(4).select("tr");
+
+            return new HorseDetailInfo(
+                    parsePastRace(rows, 2),
+                    parsePastRace(rows, 3),
+                    parsePastRace(rows, 4),
+                    parsePastRace(rows, 1)
             );
 
         } catch (Exception e) {
