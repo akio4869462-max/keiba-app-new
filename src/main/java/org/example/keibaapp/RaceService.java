@@ -17,13 +17,20 @@ import java.time.LocalDateTime;
 public class RaceService {
     private List<RaceInfo> cachedRaces;
     private LocalDateTime lastFetchedAt;
+    private String cachedRange;
     private final PredictionService predictionService;
     private final CsvExporter csvExporter;
     private final Map<String, HorseDetailInfo> horseDetailCache = new HashMap<>();
+    private final DummyRaceFactory dummyRaceFactory;
 
-    public RaceService(PredictionService predictionService, CsvExporter csvExporter) {
+    public RaceService(
+            PredictionService predictionService,
+            CsvExporter csvExporter,
+            DummyRaceFactory dummyRaceFactory) {
+
         this.predictionService = predictionService;
         this.csvExporter = csvExporter;
+        this.dummyRaceFactory = dummyRaceFactory;
     }
 
     public List<RaceInfo> fetchTodayRaces() {
@@ -61,26 +68,15 @@ public class RaceService {
 
                 venueCount++;
 
-                Elements raceLinks = listDoc.select("a[href*=/keiba/race/index/]");
-
-                Set<String> raceUrls = new LinkedHashSet<>();
-
-
-                for (Element raceLink : raceLinks) {
-                    String indexUrl = raceLink.attr("abs:href");
-                    String raceUrl = indexUrl.replace("/index/", "/denma/");
-                    raceUrls.add(raceUrl);
-                }
+                Set<String> raceUrls = getRaceUrls(listDoc);
 
                 String venueName = link.text();
 
                 for (String raceUrl : raceUrls) {
                     try {
-                        if (!raceUrl.endsWith("08")
-                                && !raceUrl.endsWith("09")
-                                && !raceUrl.endsWith("10")
-                                && !raceUrl.endsWith("11")
-                                && !raceUrl.endsWith("12")) {
+                        int[] range = getRaceRangeByTime();
+
+                        if (!shouldFetchRace(raceUrl, range[0], range[1])) {
                             continue;
                         }
 
@@ -88,9 +84,11 @@ public class RaceService {
 
                         String raceName = WebScraper.getRaceName(doc);
                         String rawTime = WebScraper.getRaceTime(doc);
+
                         if (rawTime.length() == 4) {
                             rawTime = "0" + rawTime;
                         }
+
                         LocalTime raceTime = LocalTime.parse(rawTime);
 
                         List<Horse> horseList = new ArrayList<>();
@@ -124,7 +122,7 @@ public class RaceService {
         if (allRaces.isEmpty()) {
 //            System.out.println("ダミーデータを使用します");
             System.out.println("実データが取得できませんでした");
-            return createDummyRaces();
+            return dummyRaceFactory.createDummyRaces();
         }
 
         csvExporter.exportPredictions(allRaces);
@@ -154,26 +152,13 @@ public class RaceService {
                 Document listDoc = WebScraper.getHTML(listUrl);
                 System.out.println("開催ページタイトル: " + listDoc.title());
 
-                Elements raceLinks = listDoc.select("a[href*=/keiba/race/index/]");
-
-                Set<String> raceUrls = new LinkedHashSet<>();
-
-                for (Element raceLink : raceLinks) {
-                    String indexUrl = raceLink.attr("abs:href");
-                    String raceUrl = indexUrl.replace("/index/", "/denma/");
-                    raceUrls.add(raceUrl);
-                }
+                Set<String> raceUrls = getRaceUrls(listDoc);
 
                 String venueName = listDoc.title();
 
                 for (String raceUrl : raceUrls) {
                     try {
-                        if (!raceUrl.endsWith("07")
-                                && !raceUrl.endsWith("08")
-                                && !raceUrl.endsWith("09")
-                                && !raceUrl.endsWith("10")
-                                && !raceUrl.endsWith("11")
-                                && !raceUrl.endsWith("12")) {
+                        if (!shouldFetchRace(raceUrl, 7, 12)) {
                             continue;
                         }
 
@@ -223,7 +208,7 @@ public class RaceService {
 
         if (allRaces.isEmpty()) {
             System.out.println("実データが取得できませんでした");
-            return createDummyRaces();
+            return dummyRaceFactory.createDummyRaces();
         }
 
         csvExporter.exportPredictions(allRaces);
@@ -231,9 +216,14 @@ public class RaceService {
     }
 
     public List<RaceInfo> getRaces() {
+
         System.out.println("★ServiceのgetRacesが呼ばれました！");
 
+        int[] range = getRaceRangeByTime();
+        String currentRange = range[0] + "-" + range[1];
+
         if (cachedRaces != null
+                && currentRange.equals(cachedRange)
                 && lastFetchedAt != null
                 && lastFetchedAt.plusMinutes(30).isAfter(LocalDateTime.now())) {
 
@@ -244,128 +234,10 @@ public class RaceService {
         System.out.println("最新データを取得します");
 
         cachedRaces = fetchTodayRaces();
+        cachedRange = currentRange;
         lastFetchedAt = LocalDateTime.now();
 
         return cachedRaces;
-    }
-
-
-    private List<RaceInfo> createDummyRaces() {
-        List<Horse> horses = new ArrayList<>();
-
-        horses.add(new Horse("1", "1", "ダノンデサイル", "戸崎 圭太", "58.0", 7.3));
-        horses.add(new Horse("1", "2", "ミュージアムマイル", "D.レーン", "54.0", 5.3));
-        horses.add(new Horse("2", "3", "シュガークン", "吉村 誠之助", "58.0", 303.2));
-        horses.add(new Horse("2", "4", "ミクニインスパイア", "丹内 祐次", "54.0", 65.3));
-        horses.add(new Horse("3", "5", "クロワデュノール", "北村 友一", "54.0",1.8));
-        horses.add(new Horse("3", "6", "ビザンチンドリーム", "西村 淳也", "58.0", 36.5));
-        horses.add(new Horse("4", "7", "ファミリータイム", "幸 英明", "58.0", 332.8));
-        horses.add(new Horse("4", "8", "タガノデュード", "高杉 吏麒", "58.0", 74.6));
-        horses.add(new Horse("5", "9", "コスモキュランダ", "横山 武史", "58.0", 44.5));
-        horses.add(new Horse("5", "10", "ジューンテイク", "松山 弘平", "58.0", 199.2));
-        horses.add(new Horse("6", "11", "シンエンペラー", "坂井 瑠星", "58.0", 102.4));
-        horses.add(new Horse("6", "12", "マイネルエンペラー", "川田 将雅", "58.0", 132.7));
-        horses.add(new Horse("7", "13", "シェイクユアハート", "古川 吉洋", "58.0", 55.2));
-        horses.add(new Horse("7", "14", "スティンガーグラス", "岩田 望来", "58.0", 125.0));
-        horses.add(new Horse("7", "15", "マイユニバース", "横山 典弘", "54.0", 23.3));
-        horses.add(new Horse("8", "16", "メイショウタバル", "武 豊", "58.0", 4.9));
-        horses.add(new Horse("8", "17", "レガレイラ", "C.ルメール", "56.0", 10.5));
-        horses.add(new Horse("8", "18", "ミステリーウェイ", "松本 大輝", "58.0", 249.3));
-
-        List<RaceInfo> races = new ArrayList<>();
-
-        races.add(new RaceInfo(
-                11,
-                "3回阪神4日",
-                "宝塚記念 GI",
-                LocalTime.of(15, 40),
-                horses
-        ));
-
-        PastRaceInfo[] lastRaces = {
-                new PastRaceInfo("ダミーレース",3, "GI", 4),
-                new PastRaceInfo("ダミーレース",1, "GIII", 2),
-                new PastRaceInfo("ダミーレース",15, "条件戦", 8),
-                new PastRaceInfo("ダミーレース",2, "条件戦", 3),
-                new PastRaceInfo("ダミーレース",1, "GI", 1),
-                new PastRaceInfo("ダミーレース",2, "GII", 5),
-                new PastRaceInfo("ダミーレース",9, "条件戦", 10),
-                new PastRaceInfo("ダミーレース",6, "条件戦", 7),
-                new PastRaceInfo("ダミーレース",7, "GIII", 6),
-                new PastRaceInfo("ダミーレース",4, "条件戦", 4),
-                new PastRaceInfo("ダミーレース",7, "GI", 3),
-                new PastRaceInfo("ダミーレース",5, "GII", 5),
-                new PastRaceInfo("ダミーレース",1, "OP", 2),
-                new PastRaceInfo("ダミーレース",1, "L", 1),
-                new PastRaceInfo("ダミーレース",1, "条件戦", 1),
-                new PastRaceInfo("ダミーレース",2, "GIII", 1),
-                new PastRaceInfo("ダミーレース",4, "GI", 2),
-                new PastRaceInfo("ダミーレース",8, "条件戦", 9)
-        };
-
-        PastRaceInfo[] secondLastRaces = {
-                new PastRaceInfo("ダミーレース",5, "GII", 3),
-                new PastRaceInfo("ダミーレース",2, "GI", 5),
-                new PastRaceInfo("ダミーレース",8, "条件戦", 6),
-                new PastRaceInfo("ダミーレース",1, "条件戦", 2),
-                new PastRaceInfo("ダミーレース",2, "GI", 1),
-                new PastRaceInfo("ダミーレース",6, "GIII", 4),
-                new PastRaceInfo("ダミーレース",12, "条件戦", 12),
-                new PastRaceInfo("ダミーレース",4, "条件戦", 8),
-                new PastRaceInfo("ダミーレース",3, "GIII", 5),
-                new PastRaceInfo("ダミーレース",7, "条件戦", 9),
-                new PastRaceInfo("ダミーレース",3, "GII", 2),
-                new PastRaceInfo("ダミーレース",6, "GIII", 6),
-                new PastRaceInfo("ダミーレース",4, "OP", 3),
-                new PastRaceInfo("ダミーレース",5, "L", 4),
-                new PastRaceInfo("ダミーレース",2, "条件戦", 2),
-                new PastRaceInfo("ダミーレース",1, "GII", 1),
-                new PastRaceInfo("ダミーレース",1, "GI", 3),
-                new PastRaceInfo("ダミーレース",10, "条件戦", 11)
-        };
-
-        PastRaceInfo[] thirdLastRaces = {
-                new PastRaceInfo("ダミーレース",2, "GIII", 2),
-                new PastRaceInfo("ダミーレース",1, "GII", 4),
-                new PastRaceInfo("ダミーレース",10, "条件戦", 10),
-                new PastRaceInfo("ダミーレース",4, "条件戦", 5),
-                new PastRaceInfo("ダミーレース",1, "GIII", 1),
-                new PastRaceInfo("ダミーレース",3, "GII", 3),
-                new PastRaceInfo("ダミーレース",8, "条件戦", 9),
-                new PastRaceInfo("ダミーレース",5, "条件戦", 7),
-                new PastRaceInfo("ダミーレース",6, "GI", 8),
-                new PastRaceInfo("ダミーレース",5, "条件戦", 6),
-                new PastRaceInfo("ダミーレース",2, "GI", 2),
-                new PastRaceInfo("ダミーレース",4, "GII", 4),
-                new PastRaceInfo("ダミーレース",6, "OP", 5),
-                new PastRaceInfo("ダミーレース",2, "L", 2),
-                new PastRaceInfo("ダミーレース",3, "条件戦", 3),
-                new PastRaceInfo("ダミーレース",5, "GI", 6),
-                new PastRaceInfo("ダミーレース",2, "GII", 2),
-                new PastRaceInfo("ダミーレース",12, "条件戦", 12)
-        };
-
-        for (int i = 0; i < horses.size(); i++) {
-            horses.get(i).setLastRace(lastRaces[i]);
-            horses.get(i).setSecondLastRace(secondLastRaces[i]);
-            horses.get(i).setThirdLastRace(thirdLastRaces[i]);
-        }
-
-        for (Horse hors : horses) {
-            hors.setPredictionScore(
-                    predictionService.calculateScore(hors)
-            );
-            hors.setPredictionReason(
-                    predictionService.createReason(hors)
-            );
-        }
-
-        horses.sort(
-                Comparator.comparingDouble(Horse::getPredictionScore)
-                        .reversed()
-        );
-
-        return races;
     }
 
     private double parseOdds(String rawOdds) {
@@ -510,5 +382,36 @@ public class RaceService {
         }
 
         return rows;
+    }
+
+    private boolean shouldFetchRace(String raceUrl, int startRace, int endRace) {
+        int raceNum = getRaceNumber(raceUrl);
+        return raceNum >= startRace && raceNum <= endRace;
+    }
+
+    private int[] getRaceRangeByTime() {
+        LocalTime now = LocalTime.now();
+
+        if (now.isBefore(LocalTime.of(11, 30))) {
+            return new int[]{1, 4};
+        } else if (now.isBefore(LocalTime.of(14, 0))) {
+            return new int[]{5, 8};
+        } else {
+            return new int[]{9, 12};
+        }
+    }
+
+    private Set<String> getRaceUrls(Document listDoc) {
+        Elements raceLinks = listDoc.select("a[href*=/keiba/race/index/]");
+
+        Set<String> raceUrls = new LinkedHashSet<>();
+
+        for (Element raceLink : raceLinks) {
+            String indexUrl = raceLink.attr("abs:href");
+            String raceUrl = indexUrl.replace("/index/", "/denma/");
+            raceUrls.add(raceUrl);
+        }
+
+        return raceUrls;
     }
 }
