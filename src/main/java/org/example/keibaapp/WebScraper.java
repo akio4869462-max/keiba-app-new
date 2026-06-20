@@ -7,7 +7,7 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 
 public class WebScraper {
-
+    private static final int PAST_RACE_TABLE_INDEX = 4;
     // 指定されたURLからHTMLを取得するメソッド（Yahoo!競馬用につなぎます）
     public static Document getHTML(String url) throws IOException {
         IOException lastException = null;
@@ -49,11 +49,6 @@ public class WebScraper {
         return "レース名取得不可";
     }
 
-    // 出馬表の「各馬のデータ行（tr）」を丸ごと取得するメソッド
-    public static Elements getRaceRows(Document doc) {
-        // Yahoo!競馬の出馬表テーブルの中にある、お馬さんごとの行（tr）を全件引っ張ってきます
-        return doc.select(".kb-denmaTable tbody tr");
-    }
     public static String getRaceTime(Document doc) {
         // 日付関連のエリアを取得
         Element dateArea = doc.selectFirst(".hr-predictRaceInfo__date");
@@ -70,6 +65,9 @@ public class WebScraper {
         return "00:00";
     }
 
+    /**
+     * Debug用
+     */
     public static void debugHorsePage(String horseUrl) {
         try {
             Document doc = getHTML(horseUrl);
@@ -91,15 +89,11 @@ public class WebScraper {
 
     public static HorseDetailInfo getTodayHorseDetailInfo(String horseUrl) {
         try {
-            Document doc = getHTML(horseUrl);
+            Elements rows = getHorseResultRows(horseUrl);
 
-            Elements tables = doc.select("table");
-
-            if (tables.size() < 5) {
+            if (rows.isEmpty()) {
                 return HorseDetailInfo.empty();
             }
-
-            Elements rows = tables.get(4).select("tr");
 
             return new HorseDetailInfo(
                     parsePastRace(rows, 1),
@@ -116,15 +110,11 @@ public class WebScraper {
 
     public static HorseDetailInfo getHistoricalHorseDetailInfo(String horseUrl) {
         try {
-            Document doc = getHTML(horseUrl);
+            Elements rows = getHorseResultRows(horseUrl);
 
-            Elements tables = doc.select("table");
-
-            if (tables.size() < 5) {
+            if (rows.isEmpty()) {
                 return HorseDetailInfo.empty();
             }
-
-            Elements rows = tables.get(4).select("tr");
 
             return new HorseDetailInfo(
                     parsePastRace(rows, 2),
@@ -160,20 +150,7 @@ public class WebScraper {
         String raceText = tds.get(1).text();
         String raceName = raceText;
 
-        String grade;
-        if (raceText.contains("GIII")) {
-            grade = "GIII";
-        } else if (raceText.contains("GII")) {
-            grade = "GII";
-        } else if (raceText.contains("GI")) {
-            grade = "GI";
-        } else if (raceText.contains("L")) {
-            grade = "L";
-        } else if (raceText.contains("OP")) {
-            grade = "OP";
-        } else {
-            grade = "条件戦";
-        }
+        String grade = extractGrade(raceText);
 
         int popularity = 0;
         String popularityText = tds.get(5).text();
@@ -184,5 +161,36 @@ public class WebScraper {
         }
 
         return new PastRaceInfo(raceName, rank, grade, popularity);
+    }
+
+    private static Elements getHorseResultRows(String horseUrl) throws IOException {
+        Document doc = getHTML(horseUrl);
+
+        Elements tables = doc.select("table");
+
+        if (tables.size() < 5) {
+            return new Elements();
+        }
+
+        return tables.get(PAST_RACE_TABLE_INDEX).select("tr");
+    }
+
+    private static String extractGrade(String raceText) {
+        if (raceText.contains("GIII")) {
+            return "GIII";
+        }
+        if (raceText.contains("GII")) {
+            return "GII";
+        }
+        if (raceText.contains("GI")) {
+            return "GI";
+        }
+        if (raceText.contains("L")) {
+            return "L";
+        }
+        if (raceText.contains("OP")) {
+            return "OP";
+        }
+        return "条件戦";
     }
 }
