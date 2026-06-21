@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:16
+    container_name: keiba-postgres
+    environment:
+      POSTGRES_DB: keibadb
+      POSTGRES_USER: keiba
+      POSTGRES_PASSWORD: keiba
+    ports:
+      - "5432:5432"
+
+  app:
+    build: .
+    container_name: keiba-app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/keibadb
+      SPRING_DATASOURCE_USERNAME: keiba
+      SPRING_DATASOURCE_PASSWORD: keiba
