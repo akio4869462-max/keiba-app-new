@@ -18,17 +18,19 @@ public class RaceService {
     private String cachedRange;
     private final PredictionService predictionService;
     private final CsvExporter csvExporter;
-    private final Map<String, HorseDetailInfo> horseDetailCache = new HashMap<>();
     private final DummyRaceFactory dummyRaceFactory;
+    private final RaceCacheService raceCacheService;
 
     public RaceService(
             PredictionService predictionService,
             CsvExporter csvExporter,
-            DummyRaceFactory dummyRaceFactory) {
+            DummyRaceFactory dummyRaceFactory,
+            RaceCacheService raceCacheService) {
 
         this.predictionService = predictionService;
         this.csvExporter = csvExporter;
         this.dummyRaceFactory = dummyRaceFactory;
+        this.raceCacheService = raceCacheService;
     }
 
     public List<RaceInfo> fetchTodayRaces() {
@@ -374,7 +376,7 @@ public class RaceService {
                 ? "historical:" + horseUrl
                 : "today:" + horseUrl;
 
-        HorseDetailInfo detail = horseDetailCache.get(cacheKey);
+        HorseDetailInfo detail = raceCacheService.getHorseDetail(cacheKey);
 
         if (detail == null) {
             Thread.sleep(500);
@@ -383,7 +385,7 @@ public class RaceService {
                     ? WebScraper.getHistoricalHorseDetailInfo(horseUrl)
                     : WebScraper.getTodayHorseDetailInfo(horseUrl);
 
-            horseDetailCache.put(cacheKey, detail);
+            raceCacheService.putHorseDetail(cacheKey, detail);
         }
 
         return detail;
