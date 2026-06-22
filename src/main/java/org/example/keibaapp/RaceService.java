@@ -5,7 +5,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.time.LocalTime;
@@ -13,9 +12,6 @@ import java.time.LocalDateTime;
 
 @Service
 public class RaceService {
-    private List<RaceInfo> cachedRaces;
-    private LocalDateTime lastFetchedAt;
-    private String cachedRange;
     private final CsvExporter csvExporter;
     private final DummyRaceFactory dummyRaceFactory;
     private final RaceCacheService raceCacheService;
@@ -188,22 +184,18 @@ public class RaceService {
         int[] range = raceParserService.getRaceRangeByTime();
         String currentRange = range[0] + "-" + range[1];
 
-        if (cachedRaces != null
-                && currentRange.equals(cachedRange)
-                && lastFetchedAt != null
-                && lastFetchedAt.plusMinutes(30).isAfter(LocalDateTime.now())) {
-
+        if (raceCacheService.isRaceCacheValid(currentRange)) {
             System.out.println("キャッシュを使用します");
-            return cachedRaces;
+            return raceCacheService.getCachedRaces();
         }
 
         System.out.println("最新データを取得します");
 
-        cachedRaces = fetchTodayRaces();
-        cachedRange = currentRange;
-        lastFetchedAt = LocalDateTime.now();
+        List<RaceInfo> races = fetchTodayRaces();
 
-        return cachedRaces;
+        raceCacheService.cacheRaces(currentRange, races);
+
+        return races;
     }
 
     private void sortHorsesByScore(List<Horse> horseList) {
