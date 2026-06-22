@@ -20,17 +20,20 @@ public class RaceService {
     private final DummyRaceFactory dummyRaceFactory;
     private final RaceCacheService raceCacheService;
     private final HorseEnrichmentService horseEnrichmentService;
+    private final RaceParserService raceParserService;
 
     public RaceService(
             CsvExporter csvExporter,
             DummyRaceFactory dummyRaceFactory,
             RaceCacheService raceCacheService,
-            HorseEnrichmentService horseEnrichmentService) {
+            HorseEnrichmentService horseEnrichmentService,
+            RaceParserService raceParserService) {
 
         this.csvExporter = csvExporter;
         this.dummyRaceFactory = dummyRaceFactory;
         this.raceCacheService = raceCacheService;
         this.horseEnrichmentService = horseEnrichmentService;
+        this.raceParserService = raceParserService;
     }
 
     public List<RaceInfo> fetchTodayRaces() {
@@ -68,15 +71,15 @@ public class RaceService {
 
                 venueCount++;
 
-                Set<String> raceUrls = getRaceUrls(listDoc);
+                Set<String> raceUrls = raceParserService.getRaceUrls(listDoc);
 
                 String venueName = link.text();
 
                 for (String raceUrl : raceUrls) {
                     try {
-                        int[] range = getRaceRangeByTime();
+                        int[] range = raceParserService.getRaceRangeByTime();
 
-                        if (!shouldFetchRace(raceUrl, range[0], range[1])) {
+                        if (!raceParserService.shouldFetchRace(raceUrl, range[0], range[1])) {
                             continue;
                         }
 
@@ -84,17 +87,17 @@ public class RaceService {
 
                         String raceName = WebScraper.getRaceName(doc);
 
-                        LocalTime raceTime = parseRaceTime(doc);
+                        LocalTime raceTime = raceParserService.parseRaceTime(doc);
 
                         List<Horse> horseList = createTodayHorseList(doc);
 
-                        int raceNum = getRaceNumber(raceUrl);
+                        int raceNum = raceParserService.getRaceNumber(raceUrl);
 
                         allRaces.add(new RaceInfo(raceNum, venueName, raceName, raceTime, horseList));
 //                        System.out.println(i + "R 取得完了");
 
                     } catch (Exception e) {
-                        int raceNum = getRaceNumber(raceUrl);
+                        int raceNum = raceParserService.getRaceNumber(raceUrl);
                         System.out.println(raceNum + "Rの取得に失敗: " + e.getMessage());
 //                        e.printStackTrace(); // 本番稼働時はコメントアウトしてもOKです
                     }
@@ -137,13 +140,13 @@ public class RaceService {
                 Document listDoc = WebScraper.getHTML(listUrl);
                 System.out.println("開催ページタイトル: " + listDoc.title());
 
-                Set<String> raceUrls = getRaceUrls(listDoc);
+                Set<String> raceUrls = raceParserService.getRaceUrls(listDoc);
 
                 String venueName = listDoc.title();
 
                 for (String raceUrl : raceUrls) {
                     try {
-                        if (!shouldFetchRace(raceUrl, 7, 12)) {
+                        if (!raceParserService.shouldFetchRace(raceUrl, 7, 12)) {
                             continue;
                         }
 
@@ -151,15 +154,15 @@ public class RaceService {
 
                         String raceName = WebScraper.getRaceName(doc);
 
-                        LocalTime raceTime = parseRaceTime(doc);
+                        LocalTime raceTime = raceParserService.parseRaceTime(doc);
 
                         List<Horse> horseList = createHistoricalHorseList(doc);
 
-                        int raceNum = getRaceNumber(raceUrl);
+                        int raceNum = raceParserService.getRaceNumber(raceUrl);
                         allRaces.add(new RaceInfo(raceNum, venueName, raceName, raceTime, horseList));
 
                     } catch (Exception e) {
-                        int raceNum = getRaceNumber(raceUrl);
+                        int raceNum = raceParserService.getRaceNumber(raceUrl);
                         System.out.println(raceNum + "Rの取得に失敗: " + e.getMessage());
                     }
                 }
@@ -182,7 +185,7 @@ public class RaceService {
 
         System.out.println("★ServiceのgetRacesが呼ばれました！");
 
-        int[] range = getRaceRangeByTime();
+        int[] range = raceParserService.getRaceRangeByTime();
         String currentRange = range[0] + "-" + range[1];
 
         if (cachedRaces != null
@@ -203,57 +206,6 @@ public class RaceService {
         return cachedRaces;
     }
 
-    private Horse createHorse(Elements tds) {
-
-        String waku = tds.get(0).text().trim();
-        String umaban = tds.get(1).text().trim();
-
-        Element horseLink = tds.get(2).selectFirst("a");
-
-        String name = tds.get(2).text().split("\\s+")[0];
-        String horseUrl = horseLink != null
-                ? horseLink.attr("abs:href")
-                : "";
-
-        String jockeyData = tds.get(3).text().trim();
-
-        String jockeyName =
-                jockeyData.substring(
-                        0,
-                        jockeyData.lastIndexOf(' ')
-                ).trim();
-
-        String weight =
-                jockeyData.substring(
-                        jockeyData.lastIndexOf(' ') + 1
-                );
-
-        double oddsValue =
-                OddsParser.parse(tds.get(7).text().trim());
-
-        Horse horse = new Horse(
-                waku,
-                umaban,
-                name,
-                jockeyName,
-                weight,
-                oddsValue
-        );
-
-        horse.setHorseUrl(horseUrl);
-
-        return horse;
-    }
-
-    private int getRaceNumber(String raceUrl) {
-        String cleanUrl = raceUrl.endsWith("/")
-                ? raceUrl.substring(0, raceUrl.length() - 1)
-                : raceUrl;
-
-        String raceNoText = cleanUrl.substring(cleanUrl.length() - 2);
-        return Integer.parseInt(raceNoText);
-    }
-
     private void sortHorsesByScore(List<Horse> horseList) {
         horseList.sort(
                 Comparator.comparingDouble(Horse::getPredictionScore)
@@ -261,50 +213,9 @@ public class RaceService {
         );
     }
 
-    private Elements getRaceRows(Document doc) {
-        Elements rows = doc.select(".hr-table tbody tr");
-
-        if (rows.isEmpty()) {
-            return doc.select("table tr");
-        }
-
-        return rows;
-    }
-
-    private boolean shouldFetchRace(String raceUrl, int startRace, int endRace) {
-        int raceNum = getRaceNumber(raceUrl);
-        return raceNum >= startRace && raceNum <= endRace;
-    }
-
-    private int[] getRaceRangeByTime() {
-        LocalTime now = LocalTime.now();
-
-        if (now.isBefore(LocalTime.of(11, 30))) {
-            return new int[]{1, 4};
-        } else if (now.isBefore(LocalTime.of(14, 0))) {
-            return new int[]{5, 8};
-        } else {
-            return new int[]{9, 12};
-        }
-    }
-
-    private Set<String> getRaceUrls(Document listDoc) {
-        Elements raceLinks = listDoc.select("a[href*=/keiba/race/index/]");
-
-        Set<String> raceUrls = new LinkedHashSet<>();
-
-        for (Element raceLink : raceLinks) {
-            String indexUrl = raceLink.attr("abs:href");
-            String raceUrl = indexUrl.replace("/index/", "/denma/");
-            raceUrls.add(raceUrl);
-        }
-
-        return raceUrls;
-    }
-
     private List<Horse> createTodayHorseList(Document doc) throws InterruptedException {
         List<Horse> horseList = new ArrayList<>();
-        Elements rows = getRaceRows(doc);
+        Elements rows = raceParserService.getRaceRows(doc);
 
         for (Element row : rows) {
             if (row.selectFirst("th") != null || row.text().contains("枠番")) {
@@ -316,7 +227,7 @@ public class RaceService {
                 continue;
             }
 
-            Horse horse = createHorse(tds);
+            Horse horse = raceParserService.createHorse(tds);
             horseEnrichmentService.enrichTodayHorse(horse);
             horseList.add(horse);
         }
@@ -327,7 +238,7 @@ public class RaceService {
 
     private List<Horse> createHistoricalHorseList(Document doc) throws InterruptedException {
         List<Horse> horseList = new ArrayList<>();
-        Elements rows = getRaceRows(doc);
+        Elements rows = raceParserService.getRaceRows(doc);
 
         for (Element row : rows) {
             if (row.selectFirst("th") != null || row.text().contains("枠番")) {
@@ -339,22 +250,12 @@ public class RaceService {
                 continue;
             }
 
-            Horse horse = createHorse(tds);
+            Horse horse = raceParserService.createHorse(tds);
             horseEnrichmentService.enrichHistoricalHorse(horse);
             horseList.add(horse);
         }
 
         sortHorsesByScore(horseList);
         return horseList;
-    }
-
-    private LocalTime parseRaceTime(Document doc) {
-        String rawTime = WebScraper.getRaceTime(doc);
-
-        if (rawTime.length() == 4) {
-            rawTime = "0" + rawTime;
-        }
-
-        return LocalTime.parse(rawTime);
     }
 }
