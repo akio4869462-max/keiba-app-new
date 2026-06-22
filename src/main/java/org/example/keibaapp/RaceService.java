@@ -16,21 +16,21 @@ public class RaceService {
     private List<RaceInfo> cachedRaces;
     private LocalDateTime lastFetchedAt;
     private String cachedRange;
-    private final PredictionService predictionService;
     private final CsvExporter csvExporter;
     private final DummyRaceFactory dummyRaceFactory;
     private final RaceCacheService raceCacheService;
+    private final HorseEnrichmentService horseEnrichmentService;
 
     public RaceService(
-            PredictionService predictionService,
             CsvExporter csvExporter,
             DummyRaceFactory dummyRaceFactory,
-            RaceCacheService raceCacheService) {
+            RaceCacheService raceCacheService,
+            HorseEnrichmentService horseEnrichmentService) {
 
-        this.predictionService = predictionService;
         this.csvExporter = csvExporter;
         this.dummyRaceFactory = dummyRaceFactory;
         this.raceCacheService = raceCacheService;
+        this.horseEnrichmentService = horseEnrichmentService;
     }
 
     public List<RaceInfo> fetchTodayRaces() {
@@ -39,9 +39,9 @@ public class RaceService {
 
         // 1. トップページから開催場リストを取得
         try{
-            String todayText = LocalDate.now()
-                    .format(DateTimeFormatter.ofPattern("yyyy年M月d日"));
-//            String todayText = ("2026年6月20日");
+//            String todayText = LocalDate.now()
+//                    .format(DateTimeFormatter.ofPattern("yyyy年M月d日"));
+            String todayText = ("2026年6月20日");
 
             Document topDoc = WebScraper.getHTML("https://sports.yahoo.co.jp/keiba/");
             System.out.println("トップページタイトル: " + topDoc.title());
@@ -245,29 +245,6 @@ public class RaceService {
         return horse;
     }
 
-    private void enrichTodayHorse(Horse horse) throws InterruptedException {
-        HorseDetailInfo detail = getHorseDetail(horse.getHorseUrl(), false);
-
-        horse.setLastRace(detail.getLastRace());
-        horse.setSecondLastRace(detail.getSecondLastRace());
-        horse.setThirdLastRace(detail.getThirdLastRace());
-
-        horse.setPredictionScore(predictionService.calculateScore(horse));
-        horse.setPredictionReason(predictionService.createReason(horse));
-    }
-
-    private void enrichHistoricalHorse(Horse horse) throws InterruptedException {
-        HorseDetailInfo detail = getHorseDetail(horse.getHorseUrl(), true);
-
-        horse.setLastRace(detail.getLastRace());
-        horse.setSecondLastRace(detail.getSecondLastRace());
-        horse.setThirdLastRace(detail.getThirdLastRace());
-        horse.setActualRace(detail.getActualRace());
-
-        horse.setPredictionScore(predictionService.calculateScore(horse));
-        horse.setPredictionReason(predictionService.createReason(horse));
-    }
-
     private int getRaceNumber(String raceUrl) {
         String cleanUrl = raceUrl.endsWith("/")
                 ? raceUrl.substring(0, raceUrl.length() - 1)
@@ -340,7 +317,7 @@ public class RaceService {
             }
 
             Horse horse = createHorse(tds);
-            enrichTodayHorse(horse);
+            horseEnrichmentService.enrichTodayHorse(horse);
             horseList.add(horse);
         }
 
@@ -363,32 +340,12 @@ public class RaceService {
             }
 
             Horse horse = createHorse(tds);
-            enrichHistoricalHorse(horse);
+            horseEnrichmentService.enrichHistoricalHorse(horse);
             horseList.add(horse);
         }
 
         sortHorsesByScore(horseList);
         return horseList;
-    }
-
-    private HorseDetailInfo getHorseDetail(String horseUrl, boolean historical) throws InterruptedException {
-        String cacheKey = historical
-                ? "historical:" + horseUrl
-                : "today:" + horseUrl;
-
-        HorseDetailInfo detail = raceCacheService.getHorseDetail(cacheKey);
-
-        if (detail == null) {
-            Thread.sleep(500);
-
-            detail = historical
-                    ? WebScraper.getHistoricalHorseDetailInfo(horseUrl)
-                    : WebScraper.getTodayHorseDetailInfo(horseUrl);
-
-            raceCacheService.putHorseDetail(cacheKey, detail);
-        }
-
-        return detail;
     }
 
     private LocalTime parseRaceTime(Document doc) {
