@@ -8,8 +8,6 @@ import org.jsoup.select.Elements;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
 
@@ -83,28 +81,13 @@ public class RaceService {
                         Document doc = WebScraper.getHTML(raceUrl);
 
                         String raceName = WebScraper.getRaceName(doc);
-                        String rawTime = WebScraper.getRaceTime(doc);
 
-                        if (rawTime.length() == 4) {
-                            rawTime = "0" + rawTime;
-                        }
+                        LocalTime raceTime = parseRaceTime(doc);
 
-                        LocalTime raceTime = LocalTime.parse(rawTime);
+                        List<Horse> horseList = createTodayHorseList(doc);
 
-                        List<Horse> horseList = new ArrayList<>();
-                        Elements rows = getRaceRows(doc);
-
-                        for (Element row : rows) {
-                            if (row.selectFirst("th") != null || row.text().contains("枠番")) continue;
-                            Elements tds = row.select("td");
-                            if (tds.size() < 8) continue;
-
-                            Horse horse = createHorse(tds);
-                            enrichTodayHorse(horse);
-                            horseList.add(horse);
-                        }
-                        sortHorsesByScore(horseList);
                         int raceNum = getRaceNumber(raceUrl);
+
                         allRaces.add(new RaceInfo(raceNum, venueName, raceName, raceTime, horseList));
 //                        System.out.println(i + "R 取得完了");
 
@@ -166,31 +149,9 @@ public class RaceService {
 
                         String raceName = WebScraper.getRaceName(doc);
 
-                        String rawTime = WebScraper.getRaceTime(doc);
-                        if (rawTime.length() == 4) {
-                            rawTime = "0" + rawTime;
-                        }
-                        LocalTime raceTime = LocalTime.parse(rawTime);
+                        LocalTime raceTime = parseRaceTime(doc);
 
-                        List<Horse> horseList = new ArrayList<>();
-                        Elements rows = getRaceRows(doc);
-
-                        for (Element row : rows) {
-                            if (row.selectFirst("th") != null || row.text().contains("枠番")) {
-                                continue;
-                            }
-
-                            Elements tds = row.select("td");
-                            if (tds.size() < 8) {
-                                continue;
-                            }
-
-                            Horse horse = createHorse(tds);
-                            enrichHistoricalHorse(horse);
-                            horseList.add(horse);
-                        }
-
-                        sortHorsesByScore(horseList);
+                        List<Horse> horseList = createHistoricalHorseList(doc);
 
                         int raceNum = getRaceNumber(raceUrl);
                         allRaces.add(new RaceInfo(raceNum, venueName, raceName, raceTime, horseList));
@@ -240,41 +201,6 @@ public class RaceService {
         return cachedRaces;
     }
 
-    private double parseOdds(String rawOdds) {
-
-        double oddsValue = 999.9;
-
-        Pattern pattern = Pattern.compile("\\(([^)]+)\\)");
-        Matcher matcher = pattern.matcher(rawOdds);
-
-        try {
-            if (matcher.find()) {
-                String match = matcher.group(1);
-
-                if (!match.equals("****")) {
-                    oddsValue = Double.parseDouble(match);
-                }
-
-            } else {
-
-                String cleanNum =
-                        rawOdds.replaceAll("[^0-9.]", "");
-
-                if (!cleanNum.isEmpty()
-                        && !cleanNum.equals("****")) {
-
-                    oddsValue =
-                            Double.parseDouble(cleanNum);
-                }
-            }
-
-        } catch (NumberFormatException e) {
-            oddsValue = 999.9;
-        }
-
-        return oddsValue;
-    }
-
     private Horse createHorse(Elements tds) {
 
         String waku = tds.get(0).text().trim();
@@ -301,7 +227,7 @@ public class RaceService {
                 );
 
         double oddsValue =
-                parseOdds(tds.get(7).text().trim());
+                OddsParser.parse(tds.get(7).text().trim());
 
         Horse horse = new Horse(
                 waku,
@@ -318,16 +244,7 @@ public class RaceService {
     }
 
     private void enrichTodayHorse(Horse horse) throws InterruptedException {
-        String horseUrl = horse.getHorseUrl();
-        String cacheKey = "today:" + horseUrl;
-
-        HorseDetailInfo detail = horseDetailCache.get(cacheKey);
-
-        if (detail == null) {
-            Thread.sleep(500);
-            detail = WebScraper.getTodayHorseDetailInfo(horseUrl);
-            horseDetailCache.put(cacheKey, detail);
-        }
+        HorseDetailInfo detail = getHorseDetail(horse.getHorseUrl(), false);
 
         horse.setLastRace(detail.getLastRace());
         horse.setSecondLastRace(detail.getSecondLastRace());
@@ -338,16 +255,7 @@ public class RaceService {
     }
 
     private void enrichHistoricalHorse(Horse horse) throws InterruptedException {
-        String horseUrl = horse.getHorseUrl();
-        String cacheKey = "historical:" + horseUrl;
-
-        HorseDetailInfo detail = horseDetailCache.get(cacheKey);
-
-        if (detail == null) {
-            Thread.sleep(500);
-            detail = WebScraper.getHistoricalHorseDetailInfo(horseUrl);
-            horseDetailCache.put(cacheKey, detail);
-        }
+        HorseDetailInfo detail = getHorseDetail(horse.getHorseUrl(), true);
 
         horse.setLastRace(detail.getLastRace());
         horse.setSecondLastRace(detail.getSecondLastRace());
@@ -413,5 +321,81 @@ public class RaceService {
         }
 
         return raceUrls;
+    }
+
+    private List<Horse> createTodayHorseList(Document doc) throws InterruptedException {
+        List<Horse> horseList = new ArrayList<>();
+        Elements rows = getRaceRows(doc);
+
+        for (Element row : rows) {
+            if (row.selectFirst("th") != null || row.text().contains("枠番")) {
+                continue;
+            }
+
+            Elements tds = row.select("td");
+            if (tds.size() < 8) {
+                continue;
+            }
+
+            Horse horse = createHorse(tds);
+            enrichTodayHorse(horse);
+            horseList.add(horse);
+        }
+
+        sortHorsesByScore(horseList);
+        return horseList;
+    }
+
+    private List<Horse> createHistoricalHorseList(Document doc) throws InterruptedException {
+        List<Horse> horseList = new ArrayList<>();
+        Elements rows = getRaceRows(doc);
+
+        for (Element row : rows) {
+            if (row.selectFirst("th") != null || row.text().contains("枠番")) {
+                continue;
+            }
+
+            Elements tds = row.select("td");
+            if (tds.size() < 8) {
+                continue;
+            }
+
+            Horse horse = createHorse(tds);
+            enrichHistoricalHorse(horse);
+            horseList.add(horse);
+        }
+
+        sortHorsesByScore(horseList);
+        return horseList;
+    }
+
+    private HorseDetailInfo getHorseDetail(String horseUrl, boolean historical) throws InterruptedException {
+        String cacheKey = historical
+                ? "historical:" + horseUrl
+                : "today:" + horseUrl;
+
+        HorseDetailInfo detail = horseDetailCache.get(cacheKey);
+
+        if (detail == null) {
+            Thread.sleep(500);
+
+            detail = historical
+                    ? WebScraper.getHistoricalHorseDetailInfo(horseUrl)
+                    : WebScraper.getTodayHorseDetailInfo(horseUrl);
+
+            horseDetailCache.put(cacheKey, detail);
+        }
+
+        return detail;
+    }
+
+    private LocalTime parseRaceTime(Document doc) {
+        String rawTime = WebScraper.getRaceTime(doc);
+
+        if (rawTime.length() == 4) {
+            rawTime = "0" + rawTime;
+        }
+
+        return LocalTime.parse(rawTime);
     }
 }
