@@ -64,7 +64,7 @@ class PredictionServiceTest {
         horse.setSecondLastRace(PastRaceInfo.empty());
         horse.setThirdLastRace(PastRaceInfo.empty());
 
-        String reason = predictionService.createReason(horse);
+        String reason = predictionService.createReason(horse, "2000m");
 
         assertTrue(reason.contains("オッズ評価"));
         assertTrue(reason.contains("前走"));

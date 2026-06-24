@@ -40,7 +40,9 @@ public class HorseEnrichmentService {
         return detail;
     }
 
-    public void enrichTodayHorse(Horse horse) throws InterruptedException {
+    public void enrichTodayHorse(
+            Horse horse,
+            String currentDistance) throws InterruptedException {
 
         HorseDetailInfo detail =
                 getHorseDetail(horse.getHorseUrl(), false);
@@ -50,14 +52,15 @@ public class HorseEnrichmentService {
         horse.setThirdLastRace(detail.getThirdLastRace());
 
         horse.setPredictionScore(
-                predictionService.calculateScore(horse));
+                predictionService.calculateScore(horse, currentDistance));
 
         horse.setPredictionReason(
-                predictionService.createReason(horse));
+                predictionService.createReason(horse, currentDistance));
     }
 
-    public void enrichHistoricalHorse(Horse horse)
-            throws InterruptedException {
+    public void enrichHistoricalHorse(
+            Horse horse,
+            String currentDistance) throws InterruptedException {
 
         HorseDetailInfo detail =
                 getHorseDetail(horse.getHorseUrl(), true);
@@ -68,9 +71,9 @@ public class HorseEnrichmentService {
         horse.setActualRace(detail.getActualRace());
 
         horse.setPredictionScore(
-                predictionService.calculateScore(horse));
+                predictionService.calculateScore(horse, currentDistance));
 
         horse.setPredictionReason(
-                predictionService.createReason(horse));
+                predictionService.createReason(horse, currentDistance));
     }
 }

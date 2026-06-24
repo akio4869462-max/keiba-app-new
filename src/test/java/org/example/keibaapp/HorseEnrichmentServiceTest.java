@@ -29,7 +29,7 @@ class HorseEnrichmentServiceTest {
                 detail
         );
 
-        service.enrichTodayHorse(horse);
+        service.enrichTodayHorse(horse, "2000m");
 
         assertNotNull(horse.getLastRace());
         assertNotNull(horse.getSecondLastRace());
@@ -61,7 +61,7 @@ class HorseEnrichmentServiceTest {
                 detail
         );
 
-        service.enrichHistoricalHorse(horse);
+        service.enrichHistoricalHorse(horse, "2000m");
 
         assertNotNull(horse.getActualRace());
         assertEquals(4, horse.getActualRace().getRank());

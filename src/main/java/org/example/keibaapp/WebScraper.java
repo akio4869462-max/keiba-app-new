@@ -227,10 +227,10 @@ public class WebScraper {
     }
 
     public static String getRaceDistance(Document doc) {
-        Element dateArea = doc.selectFirst(".hr-predictRaceInfo__date");
+        Element raceInfo = doc.selectFirst(".hr-predictRaceInfo");
 
-        if (dateArea != null) {
-            String text = dateArea.text();
+        if (raceInfo != null) {
+            String text = raceInfo.text();
 
             java.util.regex.Pattern pattern =
                     java.util.regex.Pattern.compile("(\\d{3,4})m");
@@ -247,17 +247,17 @@ public class WebScraper {
     }
 
     public static String getRaceCourse(Document doc) {
-        Element dateArea = doc.selectFirst(".hr-predictRaceInfo__date");
+        Element raceInfo = doc.selectFirst(".hr-predictRaceInfo");
 
-        if (dateArea != null) {
-            String text = dateArea.text();
+        if (raceInfo != null) {
+            String text = raceInfo.text();
 
             if (text.contains("芝")) {
                 return "芝";
             }
 
-            if (text.contains("ダ")) {
-                return "ダ";
+            if (text.contains("ダート")) {
+                return "ダート";
             }
         }
 

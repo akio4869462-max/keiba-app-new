@@ -39,9 +39,9 @@ public class RaceService {
 
         // 1. トップページから開催場リストを取得
         try{
-            String todayText = LocalDate.now()
-                    .format(DateTimeFormatter.ofPattern("yyyy年M月d日"));
-//            String todayText = ("2026年6月20日");
+//            String todayText = LocalDate.now()
+//                    .format(DateTimeFormatter.ofPattern("yyyy年M月d日"));
+            String todayText = ("2026年6月20日");
 
             Document topDoc = WebScraper.getHTML("https://sports.yahoo.co.jp/keiba/");
             System.out.println("トップページタイトル: " + topDoc.title());
@@ -86,13 +86,15 @@ public class RaceService {
 
                         LocalTime raceTime = raceParserService.parseRaceTime(doc);
 
-                        List<Horse> horseList = createTodayHorseList(doc);
-
                         int raceNum = raceParserService.getRaceNumber(raceUrl);
 
                         String course = WebScraper.getRaceCourse(doc);
 
                         String distance = WebScraper.getRaceDistance(doc);
+
+                        System.out.println("今回距離=" + distance);
+
+                        List<Horse> horseList = createTodayHorseList(doc, distance);
 
                         allRaces.add(new RaceInfo(
                                 raceNum,
@@ -165,13 +167,13 @@ public class RaceService {
 
                         LocalTime raceTime = raceParserService.parseRaceTime(doc);
 
-                        List<Horse> horseList = createHistoricalHorseList(doc);
-
                         int raceNum = raceParserService.getRaceNumber(raceUrl);
 
                         String course = WebScraper.getRaceCourse(doc);
 
                         String distance = WebScraper.getRaceDistance(doc);
+
+                        List<Horse> horseList = createHistoricalHorseList(doc, distance);
 
                         allRaces.add(new RaceInfo(
                                 raceNum,
@@ -231,7 +233,9 @@ public class RaceService {
         );
     }
 
-    private List<Horse> createTodayHorseList(Document doc) throws InterruptedException {
+    private List<Horse> createTodayHorseList(
+            Document doc,
+            String currentDistance) throws InterruptedException {
         List<Horse> horseList = new ArrayList<>();
         Elements rows = raceParserService.getRaceRows(doc);
 
@@ -246,7 +250,7 @@ public class RaceService {
             }
 
             Horse horse = raceParserService.createHorse(tds);
-            horseEnrichmentService.enrichTodayHorse(horse);
+            horseEnrichmentService.enrichTodayHorse(horse, currentDistance);
             horseList.add(horse);
         }
 
@@ -254,7 +258,9 @@ public class RaceService {
         return horseList;
     }
 
-    private List<Horse> createHistoricalHorseList(Document doc) throws InterruptedException {
+    private List<Horse> createHistoricalHorseList(
+            Document doc,
+            String currentDistance) throws InterruptedException {
         List<Horse> horseList = new ArrayList<>();
         Elements rows = raceParserService.getRaceRows(doc);
 
@@ -269,7 +275,7 @@ public class RaceService {
             }
 
             Horse horse = raceParserService.createHorse(tds);
-            horseEnrichmentService.enrichHistoricalHorse(horse);
+            horseEnrichmentService.enrichHistoricalHorse(horse, currentDistance);
             horseList.add(horse);
         }
 

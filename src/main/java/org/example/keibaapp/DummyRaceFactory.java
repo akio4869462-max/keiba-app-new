@@ -119,8 +119,8 @@ public class DummyRaceFactory {
             horse.setSecondLastRace(secondLastRaces[i]);
             horse.setThirdLastRace(thirdLastRaces[i]);
 
-            horse.setPredictionScore(predictionService.calculateScore(horse));
-            horse.setPredictionReason(predictionService.createReason(horse));
+            horse.setPredictionScore(predictionService.calculateScore(horse,"2000m"));
+            horse.setPredictionReason(predictionService.createReason(horse, "2000m"));
         }
 
         horses.sort(
