@@ -39,7 +39,7 @@ public class DummyRaceFactory {
         horses.add(new Horse("8", "18", "ミステリーウェイ", "松本 大輝", "58.0", 249.3));
         List<RaceInfo> races = new ArrayList<>();
 
-        new RaceInfo(
+        races.add(new RaceInfo(
                 1,
                 "東京",
                 "ダミーレース",
@@ -47,7 +47,7 @@ public class DummyRaceFactory {
                 "芝",
                 "2000m",
                 horses
-        );
+        ));
 
         PastRaceInfo[] lastRaces = {
                 new PastRaceInfo("ダミーレース",3, "GI", 4),
@@ -112,7 +112,13 @@ public class DummyRaceFactory {
                 new PastRaceInfo("ダミーレース",12, "条件戦", 12)
         };
 
-        for (Horse horse : horses) {
+        for (int i = 0; i < horses.size(); i++) {
+            Horse horse = horses.get(i);
+
+            horse.setLastRace(lastRaces[i]);
+            horse.setSecondLastRace(secondLastRaces[i]);
+            horse.setThirdLastRace(thirdLastRaces[i]);
+
             horse.setPredictionScore(predictionService.calculateScore(horse));
             horse.setPredictionReason(predictionService.createReason(horse));
         }
