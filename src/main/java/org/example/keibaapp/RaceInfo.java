@@ -10,17 +10,23 @@ public class RaceInfo {
     String raceName;
     LocalTime raceTime;
     List<Horse> horses;
+    String course;
+    String distance;
 
     RaceInfo(int raceNum,
              String venue,
              String raceName,
              LocalTime raceTime,
+             String course,
+             String distance,
              List<Horse> horses) {
 
         this.raceNum = raceNum;
         this.raceName = raceName;
         this.venue = venue;
         this.raceTime = raceTime;
+        this.course = course;
+        this.distance = distance;
         this.horses = horses;
     }
 
@@ -40,7 +46,19 @@ public class RaceInfo {
         return raceTime;
     }
 
-    public List<Horse> getHorses() { return horses; }
+    public List<Horse> getHorses() {
+        return horses;
+    }
 
-    public String getDisplayRaceName() { return venue + " " + raceNum + "R " + raceName; }
+    public String getDisplayRaceName() {
+        return venue + " " + raceNum + "R " + raceName;
+    }
+
+    public String getCourse() {
+        return course;
+    }
+
+    public String getDistance() {
+        return distance;
+    }
 }

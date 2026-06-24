@@ -29,16 +29,51 @@ public class PastRaceInfo {
         return popularity;
     }
 
-    public String getRaceName() { return raceName; }
+    public String getRaceName() {
+        return raceName;
+    }
 
     public String getDisplayText() {
         if (rank == 0) {
             return "データなし";
         }
-        return raceName + " " + rank + "着 (" + popularity + "人気)";
+
+        String courseText = course != null ? course : "";
+        String distanceText = distance != null ? distance : "";
+
+        return raceName + " "
+                + courseText
+                + distanceText
+                + " "
+                + rank + "着 ("
+                + popularity + "人気)";
     }
 
     public static PastRaceInfo empty() {
         return new PastRaceInfo("データなし",0, "データなし", 0);
+    }
+
+    public String getCourse() {
+        return course;
+    }
+
+    public void setCourse(String course) {
+        this.course = course;
+    }
+
+    public String getDistance() {
+        return distance;
+    }
+
+    public void setDistance(String distance) {
+        this.distance = distance;
+    }
+
+    public int getFieldSize() {
+        return fieldSize;
+    }
+
+    public void setFieldSize(int fieldSize) {
+        this.fieldSize = fieldSize;
     }
 }

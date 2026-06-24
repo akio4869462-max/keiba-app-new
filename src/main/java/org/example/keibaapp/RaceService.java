@@ -90,7 +90,19 @@ public class RaceService {
 
                         int raceNum = raceParserService.getRaceNumber(raceUrl);
 
-                        allRaces.add(new RaceInfo(raceNum, venueName, raceName, raceTime, horseList));
+                        String course = WebScraper.getRaceCourse(doc);
+
+                        String distance = WebScraper.getRaceDistance(doc);
+
+                        allRaces.add(new RaceInfo(
+                                raceNum,
+                                venueName,
+                                raceName,
+                                raceTime,
+                                course,
+                                distance,
+                                horseList
+                        ));
 //                        System.out.println(i + "R 取得完了");
 
                     } catch (Exception e) {
@@ -156,7 +168,20 @@ public class RaceService {
                         List<Horse> horseList = createHistoricalHorseList(doc);
 
                         int raceNum = raceParserService.getRaceNumber(raceUrl);
-                        allRaces.add(new RaceInfo(raceNum, venueName, raceName, raceTime, horseList));
+
+                        String course = WebScraper.getRaceCourse(doc);
+
+                        String distance = WebScraper.getRaceDistance(doc);
+
+                        allRaces.add(new RaceInfo(
+                                raceNum,
+                                venueName,
+                                raceName,
+                                raceTime,
+                                course,
+                                distance,
+                                horseList
+                        ));
 
                     } catch (Exception e) {
                         int raceNum = raceParserService.getRaceNumber(raceUrl);

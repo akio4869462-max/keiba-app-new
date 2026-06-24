@@ -39,13 +39,15 @@ public class DummyRaceFactory {
         horses.add(new Horse("8", "18", "ミステリーウェイ", "松本 大輝", "58.0", 249.3));
         List<RaceInfo> races = new ArrayList<>();
 
-        races.add(new RaceInfo(
-                11,
-                "3回阪神4日",
-                "宝塚記念 GI",
-                LocalTime.of(15, 40),
+        new RaceInfo(
+                1,
+                "東京",
+                "ダミーレース",
+                LocalTime.of(10, 0),
+                "芝",
+                "2000m",
                 horses
-        ));
+        );
 
         PastRaceInfo[] lastRaces = {
                 new PastRaceInfo("ダミーレース",3, "GI", 4),

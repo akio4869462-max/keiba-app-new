@@ -160,7 +160,13 @@ public class WebScraper {
             popularity = Integer.parseInt(popularityValue);
         }
 
-        return new PastRaceInfo(raceName, rank, grade, popularity);
+        PastRaceInfo pastRace =
+                new PastRaceInfo(raceName, rank, grade, popularity);
+
+        pastRace.setDistance(extractDistance(raceText));
+        pastRace.setCourse(extractCourse(raceText));
+
+        return pastRace;
     }
 
     private static Elements getHorseResultRows(String horseUrl) throws IOException {
@@ -192,5 +198,69 @@ public class WebScraper {
             return "OP";
         }
         return "条件戦";
+    }
+
+    private static String extractDistance(String raceText) {
+        java.util.regex.Pattern pattern =
+                java.util.regex.Pattern.compile("(\\d{3,4})m");
+
+        java.util.regex.Matcher matcher =
+                pattern.matcher(raceText);
+
+        if (matcher.find()) {
+            return matcher.group(1) + "m";
+        }
+
+        return "";
+    }
+
+    private static String extractCourse(String raceText) {
+        if (raceText.contains("芝")) {
+            return "芝";
+        }
+
+        if (raceText.contains("ダ")) {
+            return "ダ";
+        }
+
+        return "";
+    }
+
+    public static String getRaceDistance(Document doc) {
+        Element dateArea = doc.selectFirst(".hr-predictRaceInfo__date");
+
+        if (dateArea != null) {
+            String text = dateArea.text();
+
+            java.util.regex.Pattern pattern =
+                    java.util.regex.Pattern.compile("(\\d{3,4})m");
+
+            java.util.regex.Matcher matcher =
+                    pattern.matcher(text);
+
+            if (matcher.find()) {
+                return matcher.group(1) + "m";
+            }
+        }
+
+        return "";
+    }
+
+    public static String getRaceCourse(Document doc) {
+        Element dateArea = doc.selectFirst(".hr-predictRaceInfo__date");
+
+        if (dateArea != null) {
+            String text = dateArea.text();
+
+            if (text.contains("芝")) {
+                return "芝";
+            }
+
+            if (text.contains("ダ")) {
+                return "ダ";
+            }
+        }
+
+        return "";
     }
 }

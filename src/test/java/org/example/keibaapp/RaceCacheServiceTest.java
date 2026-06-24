@@ -42,6 +42,8 @@ class RaceCacheServiceTest {
                 "東京",
                 "テストレース",
                 LocalTime.of(15, 40),
+                "芝",
+                "2000m",
                 List.of()
         );
 
@@ -62,6 +64,8 @@ class RaceCacheServiceTest {
                 "東京",
                 "テストレース",
                 LocalTime.of(15, 40),
+                "芝",
+                "2000m",
                 List.of()
         );
 
