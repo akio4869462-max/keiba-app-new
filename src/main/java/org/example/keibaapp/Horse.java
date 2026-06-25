@@ -16,6 +16,7 @@ public class Horse {
     private PastRaceInfo actualRace;
     private int actualRank;
     private String aiPrompt;
+    private String aiComment;
 
     public int getActualRank() {
         return actualRank;
@@ -116,5 +117,13 @@ public class Horse {
 
     public void setAiPrompt(String aiPrompt) {
         this.aiPrompt = aiPrompt;
+    }
+
+    public String getAiComment() {
+        return aiComment;
+    }
+
+    public void setAiComment(String aiComment) {
+        this.aiComment = aiComment;
     }
 }
