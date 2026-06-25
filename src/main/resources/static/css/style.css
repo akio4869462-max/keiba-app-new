@@ -140,3 +140,9 @@ th, td {
 .past-races div {
     margin-bottom: 6px;
 }
+
+.ai-comment {
+    white-space: pre-line;
+    min-width: 360px;
+    line-height: 1.6;
+}

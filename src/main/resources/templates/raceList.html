@@ -40,6 +40,7 @@
                 <th>前走着順</th>
                 <th>予想スコア</th>
                 <th>予想理由</th>
+                <th>AIコメント</th>
             </tr>
 
             <tr th:each="horse, stat : ${race.horses}">
@@ -50,7 +51,9 @@
                     <span th:if="${stat.index >= 3}"
                           th:text="${stat.index + 1} + '位'"></span>
                 </td>
+
                 <td th:text="${horse.umaban}"></td>
+
                 <td>
                     <div class="horse-name" th:text="${horse.name}"></div>
 
@@ -67,6 +70,7 @@
                         </button>
                     </form>
                 </td>
+
                 <td>
                     <div class="jockey-name" th:text="${horse.jockeyName}"></div>
 
@@ -83,17 +87,25 @@
                         </button>
                     </form>
                 </td>
+
                 <td class="odds"
                     th:text="${horse.odds}">
                 </td>
+
                 <td class="past-races">
                     <div th:text="${horse.lastRace != null ? horse.lastRace.displayText : 'データなし'}"></div>
                     <div th:text="${horse.secondLastRace != null ? horse.secondLastRace.displayText : 'データなし'}"></div>
                     <div th:text="${horse.thirdLastRace != null ? horse.thirdLastRace.displayText : 'データなし'}"></div>
                 </td>
+
                 <td th:text="${#numbers.formatDecimal(horse.predictionScore, 1, 1)}"></td>
+
                 <td class="prediction-reason"
                     th:text="${horse.predictionReason}"></td>
+
+                <td class="ai-comment"
+                    th:text="${horse.aiComment != null ? horse.aiComment : 'AI未実行'}">
+                </td>
             </tr>
         </table>
         ---</div>
