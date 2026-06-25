@@ -11,12 +11,14 @@ class HorseEnrichmentServiceTest {
         PredictionService predictionService = new PredictionService();
         RaceCacheService raceCacheService = new RaceCacheService();
         AiPromptService aiPromptService = new AiPromptService();
+        AiService aiService = new AiService();
 
         HorseEnrichmentService service =
                 new HorseEnrichmentService(
                         predictionService,
                         raceCacheService,
-                        aiPromptService
+                        aiPromptService,
+                        aiService
                 );
 
         Horse horse = new Horse("1", "1", "テストホース", "テスト騎手", "57.0", 5.0);
@@ -48,12 +50,14 @@ class HorseEnrichmentServiceTest {
         PredictionService predictionService = new PredictionService();
         RaceCacheService raceCacheService = new RaceCacheService();
         AiPromptService aiPromptService = new AiPromptService();
+        AiService aiService = new AiService();
 
         HorseEnrichmentService service =
                 new HorseEnrichmentService(
                         predictionService,
                         raceCacheService,
-                        aiPromptService
+                        aiPromptService,
+                        aiService
                 );
 
         Horse horse = new Horse("1", "1", "テストホース", "テスト騎手", "57.0", 5.0);

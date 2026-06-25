@@ -8,16 +8,19 @@ public class HorseEnrichmentService {
     private final PredictionService predictionService;
     private final RaceCacheService raceCacheService;
     private final AiPromptService aiPromptService;
+    private final AiService aiService;
     private static final boolean DEBUG_AI_PROMPT = true;
 
     public HorseEnrichmentService(
             PredictionService predictionService,
             RaceCacheService raceCacheService,
-            AiPromptService aiPromptService) {
+            AiPromptService aiPromptService,
+            AiService aiService) {
 
         this.predictionService = predictionService;
         this.raceCacheService = raceCacheService;
         this.aiPromptService = aiPromptService;
+        this.aiService = aiService;
     }
 
     public HorseDetailInfo getHorseDetail(
