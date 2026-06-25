@@ -109,7 +109,13 @@ button {
 
 table {
     border-collapse: collapse;
-    min-width: 1700px;
+    width: 100%;
+    margin-top: 12px;
+}
+
+.table-wrapper table {
+    border-collapse: collapse;
+    min-width: 1400px;
     margin-top: 12px;
 }
 
