@@ -5,11 +5,8 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.time.LocalTime;
-import java.time.LocalDateTime;
 
 @Service
 public class RaceService {
@@ -94,7 +91,7 @@ public class RaceService {
 
                         System.out.println("今回距離=" + distance);
 
-                        List<Horse> horseList = createTodayHorseList(doc, distance);
+                        List<Horse> horseList = createTodayHorseList(doc, course, distance);
 
                         allRaces.add(new RaceInfo(
                                 raceNum,
@@ -157,7 +154,7 @@ public class RaceService {
 
                 for (String raceUrl : raceUrls) {
                     try {
-                        if (!raceParserService.shouldFetchRace(raceUrl, 7, 12)) {
+                        if (!raceParserService.shouldFetchRace(raceUrl, 9, 11)) {
                             continue;
                         }
 
@@ -173,7 +170,7 @@ public class RaceService {
 
                         String distance = WebScraper.getRaceDistance(doc);
 
-                        List<Horse> horseList = createHistoricalHorseList(doc, distance);
+                        List<Horse> horseList = createHistoricalHorseList(doc, course,distance);
 
                         allRaces.add(new RaceInfo(
                                 raceNum,
@@ -219,7 +216,8 @@ public class RaceService {
 
         System.out.println("最新データを取得します");
 
-        List<RaceInfo> races = fetchTodayRaces();
+//        List<RaceInfo> races = fetchTodayRaces();
+        List<RaceInfo> races = fetchHistoricalRaces();
 
         raceCacheService.cacheRaces(currentRange, races);
 
@@ -235,6 +233,7 @@ public class RaceService {
 
     private List<Horse> createTodayHorseList(
             Document doc,
+            String currentCourse,
             String currentDistance) throws InterruptedException {
         List<Horse> horseList = new ArrayList<>();
         Elements rows = raceParserService.getRaceRows(doc);
@@ -250,7 +249,7 @@ public class RaceService {
             }
 
             Horse horse = raceParserService.createHorse(tds);
-            horseEnrichmentService.enrichTodayHorse(horse, currentDistance);
+            horseEnrichmentService.enrichTodayHorse(horse, currentCourse, currentDistance);
             horseList.add(horse);
         }
 
@@ -260,6 +259,7 @@ public class RaceService {
 
     private List<Horse> createHistoricalHorseList(
             Document doc,
+            String currentCourse,
             String currentDistance) throws InterruptedException {
         List<Horse> horseList = new ArrayList<>();
         Elements rows = raceParserService.getRaceRows(doc);
@@ -275,7 +275,7 @@ public class RaceService {
             }
 
             Horse horse = raceParserService.createHorse(tds);
-            horseEnrichmentService.enrichHistoricalHorse(horse, currentDistance);
+            horseEnrichmentService.enrichHistoricalHorse(horse, currentCourse, currentDistance);
             horseList.add(horse);
         }
 

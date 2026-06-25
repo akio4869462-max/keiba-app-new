@@ -69,7 +69,11 @@ public class PredictionService {
                 + String.format("%.1f", score);
     }
 
-    public String createReason(Horse horse, String currentDistance) {
+    public String createReason(
+            Horse horse,
+            String currentCourse,
+            String currentDistance) {
+
         StringBuilder reason = new StringBuilder();
 
         if (horse.getOdds() > 0 && horse.getOdds() < 999.9) {
@@ -84,17 +88,27 @@ public class PredictionService {
         distanceScore += calculateDistanceScore(currentDistance, horse.getSecondLastRace()) * 0.6;
         distanceScore += calculateDistanceScore(currentDistance, horse.getThirdLastRace()) * 0.3;
 
-        reason.append(" / 距離適性 +")
+        double courseScore = 0;
+        courseScore += calculateCourseScore(currentCourse, horse.getLastRace());
+        courseScore += calculateCourseScore(currentCourse, horse.getSecondLastRace()) * 0.6;
+        courseScore += calculateCourseScore(currentCourse, horse.getThirdLastRace()) * 0.3;
+
+        reason.append("\n距離適性 +")
                 .append(String.format("%.1f", distanceScore));
 
-        reason.append(" / ");
+        reason.append("\nコース適性 +")
+                .append(String.format("%.1f", courseScore));
+
+        reason.append("\n");
         reason.append(createPastRaceReason("前走: ", horse.getLastRace(), 1.0));
 
-        reason.append(" / ");
+        reason.append("\n");
         reason.append(createPastRaceReason("2走前: ", horse.getSecondLastRace(), 0.6));
 
-        reason.append(" / ");
+        reason.append("\n");
         reason.append(createPastRaceReason("3走前: ", horse.getThirdLastRace(), 0.3));
+
+//        System.out.println(reason);
 
         return reason.toString();
     }
@@ -115,12 +129,20 @@ public class PredictionService {
         return score;
     }
 
-    public double calculateScore(Horse horse, String currentDistance) {
+    public double calculateScore(
+            Horse horse,
+            String currentCourse,
+            String currentDistance) {
+
         double score = calculateScore(horse);
 
         score += calculateDistanceScore(currentDistance, horse.getLastRace());
         score += calculateDistanceScore(currentDistance, horse.getSecondLastRace()) * 0.6;
         score += calculateDistanceScore(currentDistance, horse.getThirdLastRace()) * 0.3;
+
+        score += calculateCourseScore(currentCourse, horse.getLastRace());
+        score += calculateCourseScore(currentCourse, horse.getSecondLastRace()) * 0.6;
+        score += calculateCourseScore(currentCourse, horse.getThirdLastRace()) * 0.3;
 
         return score;
     }
@@ -163,6 +185,26 @@ public class PredictionService {
 
         if (diff <= 400) {
             return 1;
+        }
+
+        return 0;
+    }
+
+    private double calculateCourseScore(String currentCourse, PastRaceInfo pastRace) {
+        if (pastRace == null || pastRace.getRank() == 0) {
+            return 0;
+        }
+
+        if (currentCourse == null || currentCourse.isBlank()) {
+            return 0;
+        }
+
+        if (pastRace.getCourse() == null || pastRace.getCourse().isBlank()) {
+            return 0;
+        }
+
+        if (currentCourse.equals(pastRace.getCourse())) {
+            return 3;
         }
 
         return 0;

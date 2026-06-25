@@ -38,13 +38,7 @@ public class PastRaceInfo {
             return "データなし";
         }
 
-        String courseText = course != null ? course : "";
-        String distanceText = distance != null ? distance : "";
-
         return raceName + " "
-                + courseText
-                + distanceText
-                + " "
                 + rank + "着 ("
                 + popularity + "人気)";
     }

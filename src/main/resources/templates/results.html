@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>予想結果検証</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <h1>予想結果検証</h1>
+    <div class="race-card">
+        <h2>検証サマリー</h2>
+        <p th:text="'検証レース数: ' + ${raceCount}"></p>
+        <p th:text="'予想1位勝率: ' + ${#numbers.formatDecimal(top1WinRate, 1, 1)} + '%'"></p>
+        <p th:text="'予想1位複勝率: ' + ${#numbers.formatDecimal(top1Top3Rate, 1, 1)} + '%'"></p>
+        <p th:text="'予想TOP3複勝率: ' + ${#numbers.formatDecimal(top3Top3Rate, 1, 1)} + '%'"></p>
+    </div>
+
+    <div class="nav">
+        <a href="/races">レース一覧へ戻る</a>
+    </div>
+
+    <div th:each="race : ${races}" class="race-card">
+        <h2 th:text="${race.displayRaceName}"></h2>
+
+        <div class="table-wrapper">
+            <table>
+                <tr>
+                    <th>予想順位</th>
+                    <th>馬名</th>
+                    <th>予想スコア</th>
+                    <th>実際の着順</th>
+                    <th>判定</th>
+                </tr>
+
+                <tr th:each="horse, stat : ${race.horses}">
+                    <td th:text="${stat.index + 1} + '位'"></td>
+                    <td th:text="${horse.name}"></td>
+                    <td th:text="${#numbers.formatDecimal(horse.predictionScore, 1, 1)}"></td>
+                    <td th:text="${horse.actualRace != null ? horse.actualRace.rank + '着' : '不明'}"></td>
+                    <td>
+                        <span th:if="${horse.actualRace != null and stat.index == 0 and horse.actualRace.rank == 1}">
+                            ◎ 単勝的中
+                        </span>
+                                            <span th:if="${horse.actualRace != null and stat.index < 3 and horse.actualRace.rank <= 3 and !(stat.index == 0 and horse.actualRace.rank == 1)}">
+                            ○ 複勝圏
+                        </span>
+                                            <span th:if="${horse.actualRace == null or horse.actualRace.rank > 3}">
+                            -
+                        </span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -28,67 +28,74 @@
         <p th:text="'発走時刻: ' + ${race.raceTime}">
         </p>
 
-    <table border="1">
-        <tr>
-            <th>予想順位</th>
-            <th>馬番</th>
-            <th>馬名</th>
-            <th>騎手</th>
-            <th>オッズ</th>
-            <th>前走着順</th>
-            <th>予想スコア</th>
-            <th>予想理由</th>
-        </tr>
+        <div class="table-wrapper">
+            <table border="1">
+            <tr>
+                <th>予想順位</th>
+                <th>馬番</th>
+                <th>馬名</th>
+                <th>騎手</th>
+                <th>オッズ</th>
+                <th>前走着順</th>
+                <th>予想スコア</th>
+                <th>予想理由</th>
+            </tr>
 
-        <tr th:each="horse, stat : ${race.horses}">
-            <td>
-                <span th:if="${stat.index == 0}">🥇1位</span>
-                <span th:if="${stat.index == 1}">🥈2位</span>
-                <span th:if="${stat.index == 2}">🥉3位</span>
-                <span th:if="${stat.index >= 3}"
-                      th:text="${stat.index + 1} + '位'"></span>
-            </td>
-            <td th:text="${horse.umaban}"></td>
-            <td>
-                <div class="horse-name" th:text="${horse.name}"></div>
+            <tr th:each="horse, stat : ${race.horses}">
+                <td>
+                    <span th:if="${stat.index == 0}">🥇1位</span>
+                    <span th:if="${stat.index == 1}">🥈2位</span>
+                    <span th:if="${stat.index == 2}">🥉3位</span>
+                    <span th:if="${stat.index >= 3}"
+                          th:text="${stat.index + 1} + '位'"></span>
+                </td>
+                <td th:text="${horse.umaban}"></td>
+                <td>
+                    <div class="horse-name" th:text="${horse.name}"></div>
 
-                <form th:action="@{/favorite/add}"
-                      method="post"
-                      class="inline-form">
+                    <form th:action="@{/favorite/add}"
+                          method="post"
+                          class="inline-form">
 
-                    <input type="hidden"
-                           name="horseName"
-                           th:value="${horse.name}" />
+                        <input type="hidden"
+                               name="horseName"
+                               th:value="${horse.name}" />
 
-                    <button type="submit" class="register-btn">
-                        ★登録
-                    </button>
-                </form>
-            </td>
-            <td>
-                <div class="jockey-name" th:text="${horse.jockeyName}"></div>
+                        <button type="submit" class="register-btn">
+                            ★登録
+                        </button>
+                    </form>
+                </td>
+                <td>
+                    <div class="jockey-name" th:text="${horse.jockeyName}"></div>
 
-                <form th:action="@{/favoriteJockey/add}"
-                      method="post"
-                      class="inline-form">
+                    <form th:action="@{/favoriteJockey/add}"
+                          method="post"
+                          class="inline-form">
 
-                    <input type="hidden"
-                           name="jockeyName"
-                           th:value="${horse.jockeyName}" />
+                        <input type="hidden"
+                               name="jockeyName"
+                               th:value="${horse.jockeyName}" />
 
-                    <button type="submit" class="register-btn">
-                        ★登録
-                    </button>
-                </form>
-            </td>
-            <td class="odds"
-                th:text="${horse.odds}">
-            </td>
-            <td th:text="${horse.lastRace != null ? horse.lastRace.displayText : 'データなし'}"></td>
-            <td th:text="${#numbers.formatDecimal(horse.predictionScore, 1, 1)}"></td>
-            <td th:text="${horse.predictionReason}"></td>
-        </tr>
-    </table>
+                        <button type="submit" class="register-btn">
+                            ★登録
+                        </button>
+                    </form>
+                </td>
+                <td class="odds"
+                    th:text="${horse.odds}">
+                </td>
+                <td class="past-races">
+                    <div th:text="${horse.lastRace != null ? horse.lastRace.displayText : 'データなし'}"></div>
+                    <div th:text="${horse.secondLastRace != null ? horse.secondLastRace.displayText : 'データなし'}"></div>
+                    <div th:text="${horse.thirdLastRace != null ? horse.thirdLastRace.displayText : 'データなし'}"></div>
+                </td>
+                <td th:text="${#numbers.formatDecimal(horse.predictionScore, 1, 1)}"></td>
+                <td class="prediction-reason"
+                    th:text="${horse.predictionReason}"></td>
+            </tr>
+        </table>
+        ---</div>
 
     </div>
     <hr>
