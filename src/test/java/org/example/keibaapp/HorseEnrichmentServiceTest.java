@@ -10,9 +10,14 @@ class HorseEnrichmentServiceTest {
     void enrichTodayHorse_shouldSetPastRacesAndPrediction() throws InterruptedException {
         PredictionService predictionService = new PredictionService();
         RaceCacheService raceCacheService = new RaceCacheService();
+        AiPromptService aiPromptService = new AiPromptService();
 
         HorseEnrichmentService service =
-                new HorseEnrichmentService(predictionService, raceCacheService);
+                new HorseEnrichmentService(
+                        predictionService,
+                        raceCacheService,
+                        aiPromptService
+                );
 
         Horse horse = new Horse("1", "1", "テストホース", "テスト騎手", "57.0", 5.0);
         horse.setHorseUrl("https://example.com/horse/1");
@@ -42,9 +47,14 @@ class HorseEnrichmentServiceTest {
     void enrichHistoricalHorse_shouldSetActualRace() throws InterruptedException {
         PredictionService predictionService = new PredictionService();
         RaceCacheService raceCacheService = new RaceCacheService();
+        AiPromptService aiPromptService = new AiPromptService();
 
         HorseEnrichmentService service =
-                new HorseEnrichmentService(predictionService, raceCacheService);
+                new HorseEnrichmentService(
+                        predictionService,
+                        raceCacheService,
+                        aiPromptService
+                );
 
         Horse horse = new Horse("1", "1", "テストホース", "テスト騎手", "57.0", 5.0);
         horse.setHorseUrl("https://example.com/horse/2");

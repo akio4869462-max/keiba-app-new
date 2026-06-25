@@ -67,7 +67,8 @@ public class RaceService {
 
                 Set<String> raceUrls = raceParserService.getRaceUrls(listDoc);
 
-                String venueName = link.text();
+                String venueName =
+                        raceParserService.extractVenueName(listDoc.title());
 
                 for (String raceUrl : raceUrls) {
                     try {
@@ -93,7 +94,7 @@ public class RaceService {
 
                         List<Horse> horseList = createTodayHorseList(doc, course, distance);
 
-                        allRaces.add(new RaceInfo(
+                        RaceInfo raceInfo = new RaceInfo(
                                 raceNum,
                                 venueName,
                                 raceName,
@@ -101,7 +102,11 @@ public class RaceService {
                                 course,
                                 distance,
                                 horseList
-                        ));
+                        );
+
+                        horseEnrichmentService.enrichAiPrompt(raceInfo);
+
+                        allRaces.add(raceInfo);
 //                        System.out.println(i + "R 取得完了");
 
                     } catch (Exception e) {
@@ -150,7 +155,8 @@ public class RaceService {
 
                 Set<String> raceUrls = raceParserService.getRaceUrls(listDoc);
 
-                String venueName = listDoc.title();
+                String venueName =
+                        raceParserService.extractVenueName(listDoc.title());
 
                 for (String raceUrl : raceUrls) {
                     try {
@@ -172,7 +178,7 @@ public class RaceService {
 
                         List<Horse> horseList = createHistoricalHorseList(doc, course,distance);
 
-                        allRaces.add(new RaceInfo(
+                        RaceInfo raceInfo = new RaceInfo(
                                 raceNum,
                                 venueName,
                                 raceName,
@@ -180,7 +186,11 @@ public class RaceService {
                                 course,
                                 distance,
                                 horseList
-                        ));
+                        );
+
+                        horseEnrichmentService.enrichAiPrompt(raceInfo);
+
+                        allRaces.add(raceInfo);
 
                     } catch (Exception e) {
                         int raceNum = raceParserService.getRaceNumber(raceUrl);

@@ -7,13 +7,17 @@ public class HorseEnrichmentService {
 
     private final PredictionService predictionService;
     private final RaceCacheService raceCacheService;
+    private final AiPromptService aiPromptService;
+    private static final boolean DEBUG_AI_PROMPT = true;
 
     public HorseEnrichmentService(
             PredictionService predictionService,
-            RaceCacheService raceCacheService) {
+            RaceCacheService raceCacheService,
+            AiPromptService aiPromptService) {
 
         this.predictionService = predictionService;
         this.raceCacheService = raceCacheService;
+        this.aiPromptService = aiPromptService;
     }
 
     public HorseDetailInfo getHorseDetail(
@@ -44,7 +48,6 @@ public class HorseEnrichmentService {
             Horse horse,
             String currentCourse,
             String currentDistance) throws InterruptedException {
-
         HorseDetailInfo detail =
                 getHorseDetail(horse.getHorseUrl(), false);
 
@@ -57,13 +60,17 @@ public class HorseEnrichmentService {
 
         horse.setPredictionReason(
                 predictionService.createReason(horse, currentCourse, currentDistance));
+
+//        horse.setAiPrompt(
+//                aiPromptService.createPrompt(
+//                        race,
+//                        horse));
     }
 
     public void enrichHistoricalHorse(
             Horse horse,
             String currentCourse,
             String currentDistance) throws InterruptedException {
-
         HorseDetailInfo detail =
                 getHorseDetail(horse.getHorseUrl(), true);
 
@@ -77,5 +84,23 @@ public class HorseEnrichmentService {
 
         horse.setPredictionReason(
                 predictionService.createReason(horse, currentCourse, currentDistance));
+
+//        horse.setAiPrompt(
+//                aiPromptService.createPrompt(
+//                        race,
+//                        horse));
+    }
+
+    public void enrichAiPrompt(RaceInfo race) {
+        for (Horse horse : race.getHorses()) {
+            horse.setAiPrompt(
+                    aiPromptService.createPrompt(race, horse)
+            );
+            if (DEBUG_AI_PROMPT) {
+                System.out.println("========== AI PROMPT ==========");
+                System.out.println(horse.getAiPrompt());
+                System.out.println("===============================");
+            }
+        }
     }
 }

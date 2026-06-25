@@ -77,7 +77,7 @@ public class PredictionService {
         StringBuilder reason = new StringBuilder();
 
         if (horse.getOdds() > 0 && horse.getOdds() < 999.9) {
-            reason.append("オッズ評価 +")
+            reason.append("・オッズ評価 +")
                     .append(String.format("%.1f", 50 / horse.getOdds()));
         } else {
             reason.append("オッズ評価なし");
@@ -93,19 +93,19 @@ public class PredictionService {
         courseScore += calculateCourseScore(currentCourse, horse.getSecondLastRace()) * 0.6;
         courseScore += calculateCourseScore(currentCourse, horse.getThirdLastRace()) * 0.3;
 
-        reason.append("\n距離適性 +")
+        reason.append("\n・距離適性 +")
                 .append(String.format("%.1f", distanceScore));
 
-        reason.append("\nコース適性 +")
+        reason.append("\n・コース適性 +")
                 .append(String.format("%.1f", courseScore));
 
-        reason.append("\n");
+        reason.append("\n・");
         reason.append(createPastRaceReason("前走: ", horse.getLastRace(), 1.0));
 
-        reason.append("\n");
+        reason.append("\n・");
         reason.append(createPastRaceReason("2走前: ", horse.getSecondLastRace(), 0.6));
 
-        reason.append("\n");
+        reason.append("\n・");
         reason.append(createPastRaceReason("3走前: ", horse.getThirdLastRace(), 0.3));
 
 //        System.out.println(reason);

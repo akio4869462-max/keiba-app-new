@@ -120,4 +120,22 @@ public class RaceParserService {
             return new int[]{9, 12};
         }
     }
+
+    public String extractVenueName(String text) {
+        if (text == null || text.isBlank()) {
+            return "";
+        }
+
+        java.util.regex.Pattern pattern =
+                java.util.regex.Pattern.compile("(函館|福島|新潟|東京|中山|中京|京都|阪神|小倉)競馬場");
+
+        java.util.regex.Matcher matcher =
+                pattern.matcher(text);
+
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+
+        return text;
+    }
 }
