@@ -99,6 +99,11 @@ public class HorseEnrichmentService {
             horse.setAiPrompt(
                     aiPromptService.createPrompt(race, horse)
             );
+
+            horse.setAiComment(
+                    aiService.createComment(horse)
+            );
+
             if (DEBUG_AI_PROMPT) {
                 System.out.println("========== AI PROMPT ==========");
                 System.out.println(horse.getAiPrompt());
