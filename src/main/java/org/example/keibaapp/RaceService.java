@@ -226,8 +226,8 @@ public class RaceService {
 
         System.out.println("最新データを取得します");
 
-//        List<RaceInfo> races = fetchTodayRaces();
-        List<RaceInfo> races = fetchHistoricalRaces();
+        List<RaceInfo> races = fetchTodayRaces();
+//        List<RaceInfo> races = fetchHistoricalRaces();
 
         raceCacheService.cacheRaces(currentRange, races);
 
