@@ -5,6 +5,8 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.time.LocalTime;
 
@@ -36,9 +38,9 @@ public class RaceService {
 
         // 1. トップページから開催場リストを取得
         try{
-//            String todayText = LocalDate.now()
-//                    .format(DateTimeFormatter.ofPattern("yyyy年M月d日"));
-            String todayText = ("2026年6月20日");
+            String todayText = LocalDate.now()
+                    .format(DateTimeFormatter.ofPattern("yyyy年M月d日"));
+//            String todayText = ("2026年6月20日");
 
             Document topDoc = WebScraper.getHTML("https://sports.yahoo.co.jp/keiba/");
             System.out.println("トップページタイトル: " + topDoc.title());
