@@ -109,21 +109,17 @@ public class RaceService {
                         horseEnrichmentService.enrichAiPrompt(raceInfo);
 
                         allRaces.add(raceInfo);
-//                        System.out.println(i + "R 取得完了");
 
                     } catch (Exception e) {
                         int raceNum = raceParserService.getRaceNumber(raceUrl);
                         System.out.println(raceNum + "Rの取得に失敗: " + e.getMessage());
-//                        e.printStackTrace(); // 本番稼働時はコメントアウトしてもOKです
                     }
                 }
             }
         } catch (Exception e) {
             System.out.println("開催一覧の取得でエラーが発生しました: " + e.getMessage());
-//            e.printStackTrace(); // 本番稼働時はコメントアウトしてもOKです
         }
         if (allRaces.isEmpty()) {
-//            System.out.println("ダミーデータを使用します");
             System.out.println("実データが取得できませんでした");
             return dummyRaceFactory.createDummyRaces();
         }
@@ -219,7 +215,19 @@ public class RaceService {
         System.out.println("★ServiceのgetRacesが呼ばれました！");
 
         int[] range = raceParserService.getRaceRangeByTime();
+
+        // DEBUG
+        System.out.println(
+                "取得対象レース="
+                        + range[0]
+                        + "R～"
+                        + range[1]
+                        + "R");
+
         String currentRange = range[0] + "-" + range[1];
+
+        // DEBUG
+        System.out.println("キャッシュキー=" + currentRange);
 
         if (raceCacheService.isRaceCacheValid(currentRange)) {
             System.out.println("キャッシュを使用します");
@@ -243,25 +251,26 @@ public class RaceService {
         );
     }
 
-    private List<Horse> createTodayHorseList(
-            Document doc,
-            String currentCourse,
-            String currentDistance) throws InterruptedException {
+    public List<Horse> buildHorseList(Document doc,
+                                    String currentCourse,
+                                    String currentDistance,
+                                    boolean isHistorical) throws InterruptedException {
         List<Horse> horseList = new ArrayList<>();
         Elements rows = raceParserService.getRaceRows(doc);
 
         for (Element row : rows) {
-            if (row.selectFirst("th") != null || row.text().contains("枠番")) {
-                continue;
-            }
-
+            if (row.selectFirst("th") != null || row.text().contains("枠番")) continue;
             Elements tds = row.select("td");
-            if (tds.size() < 8) {
-                continue;
-            }
+            if (tds.size() < 8) continue;
 
             Horse horse = raceParserService.createHorse(tds);
-            horseEnrichmentService.enrichTodayHorse(horse, currentCourse, currentDistance);
+
+            if (isHistorical) {
+                horseEnrichmentService.enrichHistoricalHorse(horse, currentCourse, currentDistance);
+            } else {
+                horseEnrichmentService.enrichTodayHorse(horse, currentCourse, currentDistance);
+            }
+
             horseList.add(horse);
         }
 
@@ -269,29 +278,17 @@ public class RaceService {
         return horseList;
     }
 
+    private List<Horse> createTodayHorseList(
+            Document doc,
+            String currentCourse,
+            String currentDistance) throws InterruptedException {
+        return buildHorseList(doc, currentCourse, currentDistance, false);
+    }
+
     private List<Horse> createHistoricalHorseList(
             Document doc,
             String currentCourse,
             String currentDistance) throws InterruptedException {
-        List<Horse> horseList = new ArrayList<>();
-        Elements rows = raceParserService.getRaceRows(doc);
-
-        for (Element row : rows) {
-            if (row.selectFirst("th") != null || row.text().contains("枠番")) {
-                continue;
-            }
-
-            Elements tds = row.select("td");
-            if (tds.size() < 8) {
-                continue;
-            }
-
-            Horse horse = raceParserService.createHorse(tds);
-            horseEnrichmentService.enrichHistoricalHorse(horse, currentCourse, currentDistance);
-            horseList.add(horse);
-        }
-
-        sortHorsesByScore(horseList);
-        return horseList;
+        return buildHorseList(doc, currentCourse, currentDistance, true);
     }
 }

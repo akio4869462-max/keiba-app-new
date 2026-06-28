@@ -1,9 +1,45 @@
 package org.example.keibaapp;
 
+import org.springframework.data.geo.Distance;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class PredictionService {
+    private static final Map<Integer, Integer> RANK_SCORES = Map.of(
+            1, 25,
+            2, 18,
+            3, 1
+    );
+
+    private static final Map<String, Integer> GRADE_SCORES = Map.of(
+            "GI", 30,
+            "GII", 20,
+            "GIII", 12,
+            "L", 7,
+            "OP", 5
+    );
+
+    private static final Map<Integer, Integer> POP_SCORES = Map.of(
+            1, 10,
+            2, 8,
+            3, 6
+    );
+
+    private List<PastRaceInfo> getRaceHistory(Horse horse) {
+        return List.of(
+                horse.getLastRace(),
+                horse.getSecondLastRace(),
+                horse.getThirdLastRace()
+        );
+    }
+
+    private static final List<Double> WEIGHTS = List.of(1.0, 0.6, 0.3);
+
+    private static final List<String> RACE_LABELS = List.of("前走: ", "2走前: ", "3走前: ");
+
     private double calculatePastRaceScore(PastRaceInfo race, double weight) {
         if (race == null || race.getRank() == 0) {
             return 0;
@@ -11,41 +47,18 @@ public class PredictionService {
 
         double score = 0;
 
+
         int rank = race.getRank();
 
-        if (rank == 1) {
-            score += 25;
-        } else if (rank == 2) {
-            score += 18;
-        } else if (rank == 3) {
-            score += 10;
-        } else if (rank >= 4 && rank <= 5) {
-            score += 5;
-        }
+        score += RANK_SCORES.getOrDefault(rank, rank <= 5 ? 5 : 0);
 
         String grade = race.getGrade();
 
-        if ("GI".equals(grade)) {
-            score += 30;
-        } else if ("GII".equals(grade)) {
-            score += 20;
-        } else if ("GIII".equals(grade)) {
-            score += 12;
-        } else if ("L".equals(grade)) {
-            score += 7;
-        } else if ("OP".equals(grade)) {
-            score += 5;
-        }
+        score += GRADE_SCORES.getOrDefault(grade, 0);
 
         int popularity = race.getPopularity();
 
-        if (popularity == 1) {
-            score += 10;
-        } else if (popularity <= 3 && popularity > 0) {
-            score += 7;
-        } else if (popularity <= 5 && popularity > 0) {
-            score += 4;
-        }
+        score += POP_SCORES.getOrDefault(popularity, popularity <= 5 ? 4 : 0);
 
         return score * weight;
     }
@@ -84,14 +97,18 @@ public class PredictionService {
         }
 
         double distanceScore = 0;
-        distanceScore += calculateDistanceScore(currentDistance, horse.getLastRace());
-        distanceScore += calculateDistanceScore(currentDistance, horse.getSecondLastRace()) * 0.6;
-        distanceScore += calculateDistanceScore(currentDistance, horse.getThirdLastRace()) * 0.3;
+
+        List<PastRaceInfo> races = getRaceHistory(horse);
+
+        for (int i = 0; i < races.size(); i++) {
+            distanceScore += calculateDistanceScore(currentDistance, races.get(i)) * WEIGHTS.get(i);
+        }
 
         double courseScore = 0;
-        courseScore += calculateCourseScore(currentCourse, horse.getLastRace());
-        courseScore += calculateCourseScore(currentCourse, horse.getSecondLastRace()) * 0.6;
-        courseScore += calculateCourseScore(currentCourse, horse.getThirdLastRace()) * 0.3;
+
+        for (int i = 0; i < races.size(); i++) {
+            courseScore += calculateCourseScore(currentCourse, races.get(i)) * WEIGHTS.get(i);
+        }
 
         reason.append("\n・距離適性 +")
                 .append(String.format("%.1f", distanceScore));
@@ -99,16 +116,10 @@ public class PredictionService {
         reason.append("\n・コース適性 +")
                 .append(String.format("%.1f", courseScore));
 
-        reason.append("\n・");
-        reason.append(createPastRaceReason("前走: ", horse.getLastRace(), 1.0));
-
-        reason.append("\n・");
-        reason.append(createPastRaceReason("2走前: ", horse.getSecondLastRace(), 0.6));
-
-        reason.append("\n・");
-        reason.append(createPastRaceReason("3走前: ", horse.getThirdLastRace(), 0.3));
-
-//        System.out.println(reason);
+        for(int i=0;i<races.size();i++){
+            reason.append("\n・");
+            reason.append(createPastRaceReason(RACE_LABELS.get(i), races.get(i), WEIGHTS.get(i)));
+        }
 
         return reason.toString();
     }
@@ -118,13 +129,13 @@ public class PredictionService {
 
         if (horse.getOdds() > 0 && horse.getOdds() < 999.9) {
             score += 50 / horse.getOdds();
-//            score += 20 / horse.getOdds();
-//            score += 0;
         }
 
-        score += calculatePastRaceScore(horse.getLastRace(), 1.0);
-        score += calculatePastRaceScore(horse.getSecondLastRace(), 0.6);
-        score += calculatePastRaceScore(horse.getThirdLastRace(), 0.3);
+        List<PastRaceInfo> races = getRaceHistory(horse);
+
+        for (int i = 0; i < races.size(); i++) {
+            score += calculatePastRaceScore(races.get(i), WEIGHTS.get(i));
+        }
 
         return score;
     }
@@ -136,13 +147,15 @@ public class PredictionService {
 
         double score = calculateScore(horse);
 
-        score += calculateDistanceScore(currentDistance, horse.getLastRace());
-        score += calculateDistanceScore(currentDistance, horse.getSecondLastRace()) * 0.6;
-        score += calculateDistanceScore(currentDistance, horse.getThirdLastRace()) * 0.3;
+        List<PastRaceInfo> races = getRaceHistory(horse);
 
-        score += calculateCourseScore(currentCourse, horse.getLastRace());
-        score += calculateCourseScore(currentCourse, horse.getSecondLastRace()) * 0.6;
-        score += calculateCourseScore(currentCourse, horse.getThirdLastRace()) * 0.3;
+        for (int i = 0; i < races.size(); i++) {
+            score += calculateCourseScore(currentCourse, races.get(i)) * WEIGHTS.get(i);
+        }
+
+        for (int i = 0; i < races.size(); i++) {
+            score += calculateDistanceScore(currentDistance, races.get(i)) * WEIGHTS.get(i);
+        }
 
         return score;
     }

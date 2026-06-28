@@ -47,6 +47,21 @@ public class HorseEnrichmentService {
         return detail;
     }
 
+    private void applyRaceDetail(
+            Horse horse,          // setする対象
+            HorseDetailInfo detail,  // setする内容の元データ
+            String currentCourse,    // スコア計算に必要
+            String currentDistance   // スコア計算に必要
+    ) {
+        horse.setLastRace(detail.getLastRace());
+        horse.setSecondLastRace(detail.getSecondLastRace());
+        horse.setThirdLastRace(detail.getThirdLastRace());
+        horse.setPredictionScore(
+                predictionService.calculateScore(horse, currentCourse, currentDistance));
+        horse.setPredictionReason(
+                predictionService.createReason(horse, currentCourse, currentDistance));
+    }
+
     public void enrichTodayHorse(
             Horse horse,
             String currentCourse,
@@ -54,15 +69,7 @@ public class HorseEnrichmentService {
         HorseDetailInfo detail =
                 getHorseDetail(horse.getHorseUrl(), false);
 
-        horse.setLastRace(detail.getLastRace());
-        horse.setSecondLastRace(detail.getSecondLastRace());
-        horse.setThirdLastRace(detail.getThirdLastRace());
-
-        horse.setPredictionScore(
-                predictionService.calculateScore(horse, currentCourse, currentDistance));
-
-        horse.setPredictionReason(
-                predictionService.createReason(horse, currentCourse, currentDistance));
+        applyRaceDetail(horse, detail, currentCourse, currentDistance);
 
 //        horse.setAiPrompt(
 //                aiPromptService.createPrompt(
@@ -77,16 +84,8 @@ public class HorseEnrichmentService {
         HorseDetailInfo detail =
                 getHorseDetail(horse.getHorseUrl(), true);
 
-        horse.setLastRace(detail.getLastRace());
-        horse.setSecondLastRace(detail.getSecondLastRace());
-        horse.setThirdLastRace(detail.getThirdLastRace());
         horse.setActualRace(detail.getActualRace());
-
-        horse.setPredictionScore(
-                predictionService.calculateScore(horse, currentCourse, currentDistance));
-
-        horse.setPredictionReason(
-                predictionService.createReason(horse, currentCourse, currentDistance));
+        applyRaceDetail(horse, detail,currentCourse, currentDistance);
 
 //        horse.setAiPrompt(
 //                aiPromptService.createPrompt(

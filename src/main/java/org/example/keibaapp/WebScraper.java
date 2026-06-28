@@ -5,9 +5,15 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import java.io.IOException;
+import java.util.List;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 public class WebScraper {
     private static final int PAST_RACE_TABLE_INDEX = 4;
+    private static final Pattern DISTANCE_PATTERN = Pattern.compile("(\\d{3,4})m");
+    private static final List<String> GRADES = List.of("GIII", "GII", "GI", "L", "OP");
+
     // 指定されたURLからHTMLを取得するメソッド（Yahoo!競馬用につなぎます）
     public static Document getHTML(String url) throws IOException {
         IOException lastException = null;
@@ -63,28 +69,6 @@ public class WebScraper {
             }
         }
         return "00:00";
-    }
-
-    /**
-     * Debug用
-     */
-    public static void debugHorsePage(String horseUrl) {
-        try {
-            Document doc = getHTML(horseUrl);
-
-            System.out.println("馬詳細タイトル: " + doc.title());
-
-            Elements tables = doc.select("table");
-            System.out.println("テーブル数: " + tables.size());
-
-            for (int i = 0; i < tables.size(); i++) {
-                System.out.println("===== table " + i + " =====");
-                System.out.println(tables.get(i).text());
-            }
-
-        } catch (Exception e) {
-            System.out.println("馬詳細ページ取得失敗: " + e.getMessage());
-        }
     }
 
     public static HorseDetailInfo getTodayHorseDetailInfo(String horseUrl) {
@@ -182,30 +166,16 @@ public class WebScraper {
     }
 
     private static String extractGrade(String raceText) {
-        if (raceText.contains("GIII")) {
-            return "GIII";
-        }
-        if (raceText.contains("GII")) {
-            return "GII";
-        }
-        if (raceText.contains("GI")) {
-            return "GI";
-        }
-        if (raceText.contains("L")) {
-            return "L";
-        }
-        if (raceText.contains("OP")) {
-            return "OP";
+        for (String grade : GRADES) {
+            if (raceText.contains(grade)) {
+                return grade;
+            }
         }
         return "条件戦";
     }
 
     private static String extractDistance(String raceText) {
-        java.util.regex.Pattern pattern =
-                java.util.regex.Pattern.compile("(\\d{3,4})m");
-
-        java.util.regex.Matcher matcher =
-                pattern.matcher(raceText);
+        Matcher matcher = DISTANCE_PATTERN.matcher(raceText);
 
         if (matcher.find()) {
             return matcher.group(1) + "m";
@@ -232,11 +202,7 @@ public class WebScraper {
         if (raceInfo != null) {
             String text = raceInfo.text();
 
-            java.util.regex.Pattern pattern =
-                    java.util.regex.Pattern.compile("(\\d{3,4})m");
-
-            java.util.regex.Matcher matcher =
-                    pattern.matcher(text);
+            Matcher matcher = DISTANCE_PATTERN.matcher(text);
 
             if (matcher.find()) {
                 return matcher.group(1) + "m";

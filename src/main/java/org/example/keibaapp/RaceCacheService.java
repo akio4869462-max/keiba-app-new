@@ -3,15 +3,14 @@ package org.example.keibaapp;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class RaceCacheService {
 
-    private final Map<String, HorseDetailInfo> horseDetailCache
-            = new HashMap<>();
+    private final Map<String, HorseDetailInfo> horseDetailCache = new ConcurrentHashMap<>();
 
     private List<RaceInfo> cachedRaces;
     private LocalDateTime lastFetchedAt;

@@ -6,11 +6,15 @@ import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class RaceParserService {
+    private static final Pattern VENUE_PATTERN = Pattern.compile("(函館|...)競馬場");
 
     public Set<String> getRaceUrls(Document listDoc) {
         Elements raceLinks =
@@ -110,8 +114,7 @@ public class RaceParserService {
     }
 
     public int[] getRaceRangeByTime() {
-        LocalTime now = LocalTime.now();
-
+        LocalTime now = LocalTime.now(ZoneId.of("Asia/Tokyo"));
         if (now.isBefore(LocalTime.of(11, 30))) {
             return new int[]{1, 4};
         } else if (now.isBefore(LocalTime.of(14, 0))) {
@@ -125,12 +128,8 @@ public class RaceParserService {
         if (text == null || text.isBlank()) {
             return "";
         }
-
-        java.util.regex.Pattern pattern =
-                java.util.regex.Pattern.compile("(函館|福島|新潟|東京|中山|中京|京都|阪神|小倉)競馬場");
-
-        java.util.regex.Matcher matcher =
-                pattern.matcher(text);
+        Matcher matcher =
+                VENUE_PATTERN.matcher(text);
 
         if (matcher.find()) {
             return matcher.group(1);

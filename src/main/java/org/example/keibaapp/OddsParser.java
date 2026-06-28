@@ -4,12 +4,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class OddsParser {
+    private static final Pattern ODDS_PATTERN = Pattern.compile("\\(([^)]+)\\)");
 
     public static double parse(String rawOdds) {
         double oddsValue = 999.9;
 
-        Pattern pattern = Pattern.compile("\\(([^)]+)\\)");
-        Matcher matcher = pattern.matcher(rawOdds);
+        Matcher matcher = ODDS_PATTERN.matcher(rawOdds);
 
         try {
             if (matcher.find()) {
