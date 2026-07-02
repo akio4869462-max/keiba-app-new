@@ -220,7 +220,7 @@ public class PredictionService {
         if (currentCourse.equals(pastRace.getCourse()) && pastRace.getRank() <= 3) {
             return 3;
         } else if (!currentCourse.equals(pastRace.getCourse()) && pastRace.getRank() > 3) {
-            return 3;
+            return 5;
         }
 
         return 0;
