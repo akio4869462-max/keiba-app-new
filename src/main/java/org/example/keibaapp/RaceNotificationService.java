@@ -3,6 +3,8 @@ package org.example.keibaapp;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Scheduled;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -127,9 +129,14 @@ public class RaceNotificationService {
     }
 
     @Scheduled(cron = "0 * * * * *")
-//    @Scheduled(cron = "0 0 17 * * *")
     public void scheduledCheck() {
-        System.out.println("定期通知チェックを実行します");
-        checkFavorites();
+        DayOfWeek day = LocalDate.now().getDayOfWeek();
+        LocalTime time = LocalTime.now();
+
+        if ((day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY)
+                && (time.isAfter(LocalTime.of(9, 0)) && time.isBefore(LocalTime.of(17, 0)))) {
+            System.out.println("定期通知チェックを実行します");
+            checkFavorites();
+        }
     }
 }
