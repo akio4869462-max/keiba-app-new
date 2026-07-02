@@ -22,11 +22,6 @@ public class PredictionService {
             "OP", 5
     );
 
-    private static final Map<Integer, Integer> POP_SCORES = Map.of(
-            1, 10,
-            2, 8,
-            3, 6
-    );
 
     private List<PastRaceInfo> getRaceHistory(Horse horse) {
         return List.of(
@@ -55,10 +50,6 @@ public class PredictionService {
         String grade = race.getGrade();
 
         score += GRADE_SCORES.getOrDefault(grade, 0);
-
-        int popularity = race.getPopularity();
-
-        score += POP_SCORES.getOrDefault(popularity, popularity <= 5 ? 4 : 0);
 
         return score * weight;
     }
