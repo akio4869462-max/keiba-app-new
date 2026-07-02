@@ -189,16 +189,16 @@ public class PredictionService {
 
         int diff = Math.abs(current - past);
 
-        if (diff == 0) {
+        if (diff == 0 && pastRace.getRank() <= 3) {
             return 5;
         }
 
-        if (diff <= 200) {
+        if (diff <= 200 && pastRace.getRank() <= 3) {
             return 3;
         }
 
-        if (diff <= 400) {
-            return 1;
+        if (diff > 200 && pastRace.getRank() > 3) {
+            return 3;
         }
 
         return 0;
