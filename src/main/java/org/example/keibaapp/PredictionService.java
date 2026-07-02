@@ -127,10 +127,6 @@ public class PredictionService {
     public double calculateScore(Horse horse) {
         double score = 0;
 
-        if (horse.getOdds() > 0 && horse.getOdds() < 999.9) {
-            score += 50 / horse.getOdds();
-        }
-
         List<PastRaceInfo> races = getRaceHistory(horse);
 
         for (int i = 0; i < races.size(); i++) {
@@ -138,6 +134,20 @@ public class PredictionService {
         }
 
         return score;
+    }
+
+    public double calculateExpectedValue(Horse horse, List<Horse> allHorse) {
+        double totalScore = 0;
+
+        for (Horse h : allHorse) {
+            totalScore += calculateScore(h);
+        }
+
+        if (totalScore == 0 || horse.getOdds() <= 0 || horse.getOdds() >= 999.9) {
+            return 0;
+        }
+
+        return horse.getOdds() * calculateScore(horse) / totalScore;
     }
 
     public double calculateScore(
