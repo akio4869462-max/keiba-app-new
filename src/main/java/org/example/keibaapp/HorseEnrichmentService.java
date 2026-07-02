@@ -1,6 +1,7 @@
 package org.example.keibaapp;
 
 import org.springframework.stereotype.Service;
+import java.util.List;
 
 @Service
 public class HorseEnrichmentService {
@@ -58,6 +59,25 @@ public class HorseEnrichmentService {
         horse.setThirdLastRace(detail.getThirdLastRace());
         horse.setPredictionScore(
                 predictionService.calculateScore(horse, currentCourse, currentDistance));
+        horse.setPredictionReason(
+                predictionService.createReason(horse, currentCourse, currentDistance));
+    }
+
+    public void fetchHorseDetail(Horse horse, boolean isHistorical) throws InterruptedException {
+        HorseDetailInfo detail = getHorseDetail(horse.getHorseUrl(), isHistorical);
+
+        horse.setLastRace(detail.getLastRace());
+        horse.setSecondLastRace(detail.getSecondLastRace());
+        horse.setThirdLastRace(detail.getThirdLastRace());
+    }
+
+    public void applyScore(
+            Horse horse,
+            List<Horse> allHorses,
+            String currentCourse,
+            String currentDistance) {
+        horse.setPredictionScore(
+                predictionService.calculateExpectedValue(horse, allHorses));
         horse.setPredictionReason(
                 predictionService.createReason(horse, currentCourse, currentDistance));
     }
