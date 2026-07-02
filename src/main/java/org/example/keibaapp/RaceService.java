@@ -265,13 +265,13 @@ public class RaceService {
 
             Horse horse = raceParserService.createHorse(tds);
 
-            if (isHistorical) {
-                horseEnrichmentService.enrichHistoricalHorse(horse, currentCourse, currentDistance);
-            } else {
-                horseEnrichmentService.enrichTodayHorse(horse, currentCourse, currentDistance);
-            }
+            horseEnrichmentService.fetchHorseDetail(horse, isHistorical);
 
             horseList.add(horse);
+        }
+
+        for (Horse horse : horseList) {
+            horseEnrichmentService.applyScore(horse, horseList, currentCourse, currentDistance);
         }
 
         sortHorsesByScore(horseList);
