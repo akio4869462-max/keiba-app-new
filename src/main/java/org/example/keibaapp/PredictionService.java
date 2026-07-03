@@ -55,6 +55,15 @@ public class PredictionService {
 
         score += GRADE_SCORES.getOrDefault(grade, 0);
 
+        if (rank <= 3) {
+            int fieldSize = race.getFieldSize();
+            if (fieldSize >= 16) {
+                score += 4;
+            } else if (fieldSize >= 12) {
+                score += 2;
+            }
+        }
+
         return score * weight;
     }
 
@@ -65,11 +74,13 @@ public class PredictionService {
 
         double score = calculatePastRaceScore(race, weight);
 
+        String fieldSizeText = race.getFieldSize() > 0 ? "/" + race.getFieldSize() + "頭" : "";
         return label
                 + race.getGrade()
                 + " "
                 + race.getRank()
                 + "着"
+                + fieldSizeText
                 + " "
                 + race.getPopularity()
                 + "人気"
