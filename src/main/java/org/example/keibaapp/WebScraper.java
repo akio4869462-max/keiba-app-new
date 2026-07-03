@@ -12,7 +12,11 @@ import java.util.regex.Matcher;
 public class WebScraper {
     private static final int PAST_RACE_TABLE_INDEX = 4;
     private static final Pattern DISTANCE_PATTERN = Pattern.compile("(\\d{3,4})m");
-    private static final List<String> GRADES = List.of("GIII", "GII", "GI", "L", "OP");
+    private static final Pattern FIELD_SIZE_PATTERN = Pattern.compile("(\\d+)頭");
+    private static final List<String> GRADES = List.of(
+            "GIII", "GII", "GI", "L", "OP",
+            "3勝クラス", "2勝クラス", "1勝クラス", "未勝利", "新馬"
+    );
 
     // 指定されたURLからHTMLを取得するメソッド（Yahoo!競馬用につなぎます）
     public static Document getHTML(String url) throws IOException {
@@ -149,6 +153,7 @@ public class WebScraper {
 
         pastRace.setDistance(extractDistance(raceText));
         pastRace.setCourse(extractCourse(raceText));
+        pastRace.setFieldSize(extractFieldSize(raceText));
 
         return pastRace;
     }
@@ -194,6 +199,16 @@ public class WebScraper {
         }
 
         return "";
+    }
+
+    private static int extractFieldSize(String raceText) {
+        Matcher matcher = FIELD_SIZE_PATTERN.matcher(raceText);
+
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1));
+        }
+
+        return 0;
     }
 
     public static String getRaceDistance(Document doc) {
