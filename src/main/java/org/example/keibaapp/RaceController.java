@@ -13,10 +13,12 @@ public class RaceController {
     // ★重要：Springに「サービスを使ってね」と伝えるための変数とコンストラクタ
     private final RaceService raceService;
     private final RaceNotificationService notificationService;
+    private final DummyRaceFactory dummyRaceFactory;
 
-    public RaceController(RaceService raceService, RaceNotificationService notificationService) {
+    public RaceController(RaceService raceService, RaceNotificationService notificationService, DummyRaceFactory dummyRaceFactory) {
         this.raceService = raceService;
         this.notificationService = notificationService;
+        this.dummyRaceFactory = dummyRaceFactory;
     }
 
     @GetMapping("/races")
@@ -32,6 +34,14 @@ public class RaceController {
         notificationService.checkFavorites();
 
         return "通知チェック完了";
+    }
+
+    @GetMapping("/check/debug")
+    @ResponseBody
+    public String checkDebugNotification() {
+        List<RaceInfo> races = dummyRaceFactory.createDummyRaces();
+        notificationService.checkFavoritesWithDummy(races);
+        return "デバッグチェック完了";
     }
 
     @GetMapping("/results")
