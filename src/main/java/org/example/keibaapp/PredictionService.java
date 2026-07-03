@@ -97,8 +97,9 @@ public class PredictionService {
         StringBuilder reason = new StringBuilder();
 
         if (horse.getOdds() > 0 && horse.getOdds() < 999.9) {
+            double cappedOdds = Math.min(horse.getOdds(), 50.0);
             reason.append("・オッズ評価 +")
-                    .append(String.format("%.1f", 50 / horse.getOdds()));
+                    .append(String.format("%.1f", Math.sqrt(cappedOdds)));
         } else {
             reason.append("オッズ評価なし");
         }
@@ -155,7 +156,7 @@ public class PredictionService {
         }
 
         double cappedOdds = Math.min(horse.getOdds(), 50.0);
-        return cappedOdds * calculateScore(horse) / totalScore;
+        return Math.sqrt(cappedOdds) * calculateScore(horse) / totalScore;
     }
 
     public double calculateScore(
