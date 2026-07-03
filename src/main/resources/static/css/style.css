@@ -216,8 +216,7 @@ body {
     font-size: 0.78rem;
     line-height: 1.8;
     color: #333;
-    min-width: 180px;
-    max-width: 220px;
+    width: 220px;
     word-break: break-word;
 }
 
@@ -226,8 +225,7 @@ body {
     font-size: 0.78rem;
     line-height: 1.8;
     color: #444;
-    min-width: 180px;
-    max-width: 220px;
+    width: 220px;
     word-break: break-word;
 }
 

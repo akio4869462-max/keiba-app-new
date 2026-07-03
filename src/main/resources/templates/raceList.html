@@ -106,11 +106,15 @@
                               th:text="${#numbers.formatDecimal(horse.predictionScore, 1, 1)}"></span>
                     </td>
 
-                    <td class="prediction-reason-cell"
-                        th:text="${horse.predictionReason}"></td>
+                    <td>
+                        <div class="prediction-reason-cell"
+                             th:text="${horse.predictionReason}"></div>
+                    </td>
 
-                    <td class="ai-comment-cell"
-                        th:text="${horse.aiComment != null ? horse.aiComment : '—'}"></td>
+                    <td>
+                        <div class="ai-comment-cell"
+                             th:text="${horse.aiComment != null ? horse.aiComment : '—'}"></div>
+                    </td>
                 </tr>
                 </tbody>
             </table>
