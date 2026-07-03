@@ -2,118 +2,124 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>競馬アプリ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>競馬予想アプリ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
-<div class="container">
-<h1>本日の開催レース</h1>
 
-    <div class="nav">
-        <a href="/favorites">お気に入り馬一覧</a>
-        <a href="/favoritesJockey">お気に入り騎手一覧</a>
-        <a href="/results">予想結果検証</a>
+<nav class="navbar navbar-expand-lg">
+    <div class="container-fluid px-4">
+        <span class="navbar-brand">🏇 競馬予想アプリ</span>
+        <div class="d-flex gap-1 ms-auto">
+            <a class="nav-link" href="/favorites">⭐ お気に入り馬</a>
+            <a class="nav-link" href="/favoritesJockey">⭐ お気に入り騎手</a>
+            <a class="nav-link" href="/results">📊 予想結果検証</a>
+        </div>
+    </div>
+</nav>
+
+<div class="page-wrapper">
+
+    <div class="d-flex align-items-center mb-4">
+        <h1 class="page-title mb-0">本日の開催レース</h1>
+        <span class="ms-3 badge bg-secondary fs-6"
+              th:text="'全 ' + ${#lists.size(races)} + ' レース'"></span>
     </div>
 
-<hr>
+    <div th:each="race : ${races}" class="race-card mb-4">
 
-<p th:text="'取得したレース数: ' + ${#lists.size(races)}"></p>
-
-<div th:each="race : ${races}">
-
-    <div class="race-card">
-
-        <h2 th:text="${race.venue} + ' ' + ${race.raceNum} + 'R : ' + ${race.raceName}">
-        </h2>
-
-        <p th:text="'発走時刻: ' + ${race.raceTime}">
-        </p>
+        <div class="race-card-header">
+            <div class="d-flex align-items-center gap-3">
+                <span class="venue-badge" th:text="${race.venue}"></span>
+                <span class="race-number" th:text="${race.raceNum} + 'R'"></span>
+                <span class="race-name" th:text="${race.raceName}"></span>
+            </div>
+            <div class="race-time">
+                🕐 <span th:text="${race.raceTime} + ' 発走'"></span>
+            </div>
+        </div>
 
         <div class="table-wrapper">
-            <table border="1">
-            <tr>
-                <th>予想順位</th>
-                <th>馬番</th>
-                <th>馬名</th>
-                <th>騎手</th>
-                <th>オッズ</th>
-                <th>前走着順</th>
-                <th>予想スコア</th>
-                <th>予想理由</th>
-                <th>AIコメント</th>
-            </tr>
+            <table class="table table-hover race-table">
+                <thead>
+                <tr>
+                    <th class="text-center">順位</th>
+                    <th class="text-center">馬番</th>
+                    <th>馬名</th>
+                    <th>騎手</th>
+                    <th class="text-center">オッズ</th>
+                    <th>前走成績</th>
+                    <th class="text-center">スコア</th>
+                    <th>予想理由</th>
+                    <th>AIコメント</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="horse, stat : ${race.horses}"
+                    th:classappend="${stat.index == 0} ? 'rank-1' : (${stat.index == 1} ? 'rank-2' : (${stat.index == 2} ? 'rank-3' : ''))">
 
-            <tr th:each="horse, stat : ${race.horses}">
-                <td>
-                    <span th:if="${stat.index == 0}">🥇1位</span>
-                    <span th:if="${stat.index == 1}">🥈2位</span>
-                    <span th:if="${stat.index == 2}">🥉3位</span>
-                    <span th:if="${stat.index >= 3}"
-                          th:text="${stat.index + 1} + '位'"></span>
-                </td>
+                    <td class="text-center">
+                        <span th:if="${stat.index == 0}" class="rank-badge rank-gold">🥇 1位</span>
+                        <span th:if="${stat.index == 1}" class="rank-badge rank-silver">🥈 2位</span>
+                        <span th:if="${stat.index == 2}" class="rank-badge rank-bronze">🥉 3位</span>
+                        <span th:if="${stat.index >= 3}" class="rank-badge rank-other"
+                              th:text="${stat.index + 1} + '位'"></span>
+                    </td>
 
-                <td th:text="${horse.umaban}"></td>
+                    <td class="text-center fw-bold" th:text="${horse.umaban}"></td>
 
-                <td>
-                    <div class="horse-name" th:text="${horse.name}"></div>
+                    <td>
+                        <div class="horse-name" th:text="${horse.name}"></div>
+                        <form th:action="@{/favorite/add}" method="post">
+                            <input type="hidden" name="horseName" th:value="${horse.name}" />
+                            <button type="submit" class="btn-register">⭐ 登録</button>
+                        </form>
+                    </td>
 
-                    <form th:action="@{/favorite/add}"
-                          method="post"
-                          class="inline-form">
+                    <td>
+                        <div class="jockey-name" th:text="${horse.jockeyName}"></div>
+                        <form th:action="@{/favoriteJockey/add}" method="post">
+                            <input type="hidden" name="jockeyName" th:value="${horse.jockeyName}" />
+                            <button type="submit" class="btn-register">⭐ 登録</button>
+                        </form>
+                    </td>
 
-                        <input type="hidden"
-                               name="horseName"
-                               th:value="${horse.name}" />
+                    <td class="text-center">
+                        <span class="odds-badge"
+                              th:classappend="${horse.odds <= 3.0} ? ' odds-fav' : (${horse.odds <= 10.0} ? ' odds-mid' : ' odds-long')"
+                              th:text="${horse.odds}"></span>
+                    </td>
 
-                        <button type="submit" class="register-btn">
-                            ★登録
-                        </button>
-                    </form>
-                </td>
+                    <td class="past-races-cell">
+                        <div class="past-race-item"
+                             th:text="${horse.lastRace != null ? horse.lastRace.displayText : 'データなし'}"></div>
+                        <div class="past-race-item"
+                             th:text="${horse.secondLastRace != null ? horse.secondLastRace.displayText : 'データなし'}"></div>
+                        <div class="past-race-item"
+                             th:text="${horse.thirdLastRace != null ? horse.thirdLastRace.displayText : 'データなし'}"></div>
+                    </td>
 
-                <td>
-                    <div class="jockey-name" th:text="${horse.jockeyName}"></div>
+                    <td class="text-center">
+                        <span class="score-badge"
+                              th:text="${#numbers.formatDecimal(horse.predictionScore, 1, 1)}"></span>
+                    </td>
 
-                    <form th:action="@{/favoriteJockey/add}"
-                          method="post"
-                          class="inline-form">
+                    <td class="prediction-reason-cell"
+                        th:text="${horse.predictionReason}"></td>
 
-                        <input type="hidden"
-                               name="jockeyName"
-                               th:value="${horse.jockeyName}" />
-
-                        <button type="submit" class="register-btn">
-                            ★登録
-                        </button>
-                    </form>
-                </td>
-
-                <td class="odds"
-                    th:text="${horse.odds}">
-                </td>
-
-                <td class="past-races">
-                    <div th:text="${horse.lastRace != null ? horse.lastRace.displayText : 'データなし'}"></div>
-                    <div th:text="${horse.secondLastRace != null ? horse.secondLastRace.displayText : 'データなし'}"></div>
-                    <div th:text="${horse.thirdLastRace != null ? horse.thirdLastRace.displayText : 'データなし'}"></div>
-                </td>
-
-                <td th:text="${#numbers.formatDecimal(horse.predictionScore, 1, 1)}"></td>
-
-                <td class="prediction-reason"
-                    th:text="${horse.predictionReason}"></td>
-
-                <td class="ai-comment"
-                    th:text="${horse.aiComment != null ? horse.aiComment : 'AI未実行'}">
-                </td>
-            </tr>
-        </table>
-        ---</div>
+                    <td class="ai-comment-cell"
+                        th:text="${horse.aiComment != null ? horse.aiComment : '—'}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
 
     </div>
-    <hr>
 
 </div>
-</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

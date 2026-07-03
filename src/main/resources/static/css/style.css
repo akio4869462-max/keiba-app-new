@@ -1,148 +1,329 @@
+/* ========== Base ========== */
 body {
-    font-family: sans-serif;
-    margin: 32px;
-    background-color: #f7f7f7;
-    color: #222;
+    background: #f0f2f5;
+    font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+    color: #1a1a2e;
 }
 
-.nav {
-    margin-bottom: 20px;
+/* ========== Navbar ========== */
+.navbar {
+    background: #12203a;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
-.nav a {
-    display: inline-block;
-    margin-right: 12px;
-    padding: 8px 12px;
-    background: #eeeeee;
+.navbar-brand {
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #c9a227 !important;
+}
+
+.nav-link {
+    color: rgba(255,255,255,0.8) !important;
+    font-size: 0.875rem;
+    padding: 0.4rem 0.8rem !important;
     border-radius: 6px;
-    text-decoration: none;
-    color: #333;
+    transition: all 0.2s;
 }
 
-th {
-    background: #eeeeee;
+.nav-link:hover, .nav-link.active {
+    color: #c9a227 !important;
+    background: rgba(255,255,255,0.08);
 }
 
-button {
-    padding: 4px 8px;
-    cursor: pointer;
-}
-
-.nav {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.nav a {
-    background: #4CAF50;
-    color: white;
-    padding: 10px 16px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: bold;
-}
-
-.nav a:hover {
-    opacity: 0.9;
-}
-
-.odds {
-    text-align: right;
-    font-weight: bold;
-}
-
-.race-card {
-    background: #fafafa;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 20px;
-}
-
-.register-btn {
-    background: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 8px 12px;
-    font-size: 14px;
-    font-weight: bold;
-}
-
-.delete-btn {
-    background: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 8px 12px;
-    font-weight: bold;
-}
-
-.delete-btn:hover {
-    cursor: pointer;
-    opacity: 0.9;
-}
-
-.inline-form {
-    margin-top: 6px;
-}
-
-.horse-name,
-.jockey-name {
-    font-weight: 500;
-}
-
-.container {
-    max-width: none;
-    width: 95%;
+/* ========== Page Layout ========== */
+.page-wrapper {
+    max-width: 98%;
     margin: 0 auto;
+    padding: 28px 20px;
+}
+
+.page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #12203a;
+}
+
+/* ========== Race Card ========== */
+.race-card {
     background: white;
-    padding: 24px;
     border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    overflow: hidden;
 }
 
-.table-wrapper {
-    overflow-x: auto;
-    width: 100%;
+.race-card-header {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 100%);
+    color: white;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
 
-table {
-    border-collapse: collapse;
-    width: 100%;
-    margin-top: 12px;
-}
-
-.table-wrapper table {
-    border-collapse: collapse;
-    min-width: 1400px;
-    margin-top: 12px;
-}
-
-th, td {
-    border: 1px solid #ccc;
-    padding: 8px;
+.venue-badge {
+    background: #c9a227;
+    color: #1a1a2e;
+    font-weight: 700;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 0.82rem;
     white-space: nowrap;
 }
 
-.prediction-reason {
-    white-space: pre-line;
-    min-width: 420px;
-    line-height: 1.6;
+.race-number {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #f0e6c8;
+    white-space: nowrap;
 }
 
-.past-races {
-    white-space: normal;
+.race-name {
+    font-size: 0.95rem;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+.race-time {
+    font-size: 0.85rem;
+    opacity: 0.82;
+    white-space: nowrap;
+}
+
+/* ========== Table ========== */
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.race-table {
+    min-width: 1200px;
+    font-size: 0.875rem;
+    margin-bottom: 0;
+}
+
+.race-table thead th {
+    background: #f8f9fa;
+    border-bottom: 2px solid #e2e6ea;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 10px 12px;
+    white-space: nowrap;
+}
+
+.race-table td {
+    padding: 10px 12px;
+    vertical-align: middle;
+    border-color: #f2f2f2;
+}
+
+/* ========== Rank Row Highlights ========== */
+.rank-1 { background: #fffbf0; border-left: 4px solid #c9a227; }
+.rank-2 { background: #f9f9f9; border-left: 4px solid #a8a9ad; }
+.rank-3 { background: #fdf6f0; border-left: 4px solid #cd7f32; }
+
+.rank-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.rank-gold   { background: #fff3cd; color: #7d6008; }
+.rank-silver { background: #ebebeb; color: #555; }
+.rank-bronze { background: #fde8d8; color: #8b4513; }
+.rank-other  { background: #f0f0f0; color: #888; font-size: 0.72rem; }
+
+/* ========== Horse / Jockey ========== */
+.horse-name {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #12203a;
+}
+
+.jockey-name {
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.btn-register {
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 1px 8px;
+    font-size: 0.72rem;
+    cursor: pointer;
+    color: #999;
+    transition: all 0.2s;
+    margin-top: 4px;
+}
+
+.btn-register:hover {
+    background: #fff8e1;
+    border-color: #c9a227;
+    color: #a07c10;
+}
+
+/* ========== Odds Badge ========== */
+.odds-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    min-width: 56px;
+    text-align: center;
+}
+
+.odds-fav  { background: #ffe0e0; color: #c0392b; }
+.odds-mid  { background: #fff3cd; color: #856404; }
+.odds-long { background: #efefef; color: #666; }
+
+/* ========== Score Badge ========== */
+.score-badge {
+    display: inline-block;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 1rem;
+    background: #e8f5e9;
+    color: #2e7d32;
+    min-width: 64px;
+    text-align: center;
+}
+
+/* ========== Past Races ========== */
+.past-races-cell { min-width: 200px; }
+
+.past-race-item {
+    font-size: 0.76rem;
+    color: #555;
+    padding: 3px 0;
+    border-bottom: 1px dashed #eee;
+    white-space: nowrap;
+}
+
+.past-race-item:last-child { border-bottom: none; }
+
+/* ========== Prediction / AI ========== */
+.prediction-reason-cell {
+    white-space: pre-line;
+    font-size: 0.78rem;
+    line-height: 1.8;
+    color: #333;
     min-width: 260px;
-    line-height: 1.6;
 }
 
-.past-races div {
-    margin-bottom: 6px;
-}
-
-.ai-comment {
+.ai-comment-cell {
     white-space: pre-line;
-    min-width: 360px;
-    line-height: 1.6;
+    font-size: 0.78rem;
+    line-height: 1.8;
+    color: #444;
+    min-width: 240px;
+}
+
+/* ========== Content Card (favorites / results) ========== */
+.content-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+.content-card h2 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #12203a;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+/* ========== Stat Cards ========== */
+.stat-card {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 22px 16px;
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #c9a227;
+    line-height: 1.2;
+}
+
+.stat-label {
+    font-size: 0.82rem;
+    opacity: 0.85;
+    margin-top: 6px;
+}
+
+/* ========== Back Link ========== */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #12203a;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 8px 16px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    transition: box-shadow 0.2s;
+    margin-bottom: 20px;
+}
+
+.back-link:hover {
+    box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+    color: #12203a;
+}
+
+/* ========== Delete Button ========== */
+.btn-delete {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 14px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: opacity 0.2s;
+}
+
+.btn-delete:hover { opacity: 0.85; }
+
+/* ========== Results judgment ========== */
+.result-win  { color: #198754; font-weight: 700; }
+.result-fuku { color: #0d6efd; font-weight: 600; }
+.result-miss { color: #bbb; }
+
+/* ========== Favorite table ========== */
+.fav-table th {
+    background: #f8f9fa;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 10px 14px;
+    border-bottom: 2px solid #e2e6ea;
+}
+
+.fav-table td {
+    padding: 10px 14px;
+    vertical-align: middle;
+    border-color: #f2f2f2;
+    font-size: 0.9rem;
 }

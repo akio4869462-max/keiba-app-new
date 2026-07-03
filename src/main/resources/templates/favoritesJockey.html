@@ -2,63 +2,60 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>お気に入り騎手一覧</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
-<div class="container">
 
-    <h1>お気に入り騎手一覧</h1>
+<nav class="navbar navbar-expand-lg">
+    <div class="container-fluid px-4">
+        <span class="navbar-brand">🏇 競馬予想アプリ</span>
+        <div class="d-flex gap-1 ms-auto">
+            <a class="nav-link" href="/favorites">⭐ お気に入り馬</a>
+            <a class="nav-link active" href="/favoritesJockey">⭐ お気に入り騎手</a>
+            <a class="nav-link" href="/results">📊 予想結果検証</a>
+        </div>
+    </div>
+</nav>
 
-    <div class="race-card">
+<div class="page-wrapper" style="max-width: 640px; margin: 0 auto; padding: 28px 20px;">
 
-        <table>
+    <a href="/races" class="back-link">← レース一覧へ戻る</a>
+
+    <h1 class="page-title mb-4">⭐ お気に入り騎手一覧</h1>
+
+    <div class="content-card">
+        <h2>登録済みの騎手</h2>
+
+        <div th:if="${#lists.isEmpty(favoritesJockey)}" class="text-muted text-center py-4">
+            登録されている騎手はいません
+        </div>
+
+        <table th:unless="${#lists.isEmpty(favoritesJockey)}" class="table fav-table mb-0">
             <thead>
             <tr>
-                <th>馬名</th>
-                <th>操作</th>
+                <th>騎手名</th>
+                <th class="text-center" style="width: 100px">操作</th>
             </tr>
             </thead>
-
             <tbody>
             <tr th:each="horse : ${favoritesJockey}">
-
                 <td th:text="${horse.jockeyName}"></td>
-
-                <td>
-
-                    <form
-                            th:action="@{/favoriteJockey/delete}"
-                            method="post">
-
-                        <input
-                                type="hidden"
-                                name="id"
-                                th:value="${horse.id}" />
-
-                        <button
-                                class="delete-btn"
-                                type="submit">
-
-                            削除
-
-                        </button>
-
+                <td class="text-center">
+                    <form th:action="@{/favoriteJockey/delete}" method="post">
+                        <input type="hidden" name="id" th:value="${horse.id}" />
+                        <button class="btn-delete" type="submit">削除</button>
                     </form>
-
                 </td>
-
             </tr>
             </tbody>
-
         </table>
-
-    </div>
-
-    <div class="nav">
-        <a href="/races">レース一覧へ戻る</a>
     </div>
 
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
