@@ -50,6 +50,22 @@
         </div>
     </div>
 
+    <!-- オッズ帯別の的中率 -->
+    <h2 class="h5 mb-3">オッズ帯別 予想1位の的中率</h2>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4" th:each="band : ${oddsBandStats}">
+            <div class="stat-card">
+                <div class="stat-label fw-bold" th:text="${band.label}"></div>
+                <div class="stat-number"
+                     th:text="${#numbers.formatDecimal(band.winRate, 1, 1)} + '%'"></div>
+                <div class="stat-label">単勝的中率</div>
+                <div class="stat-number"
+                     th:text="${#numbers.formatDecimal(band.top3Rate, 1, 1)} + '%'"></div>
+                <div class="stat-label">複勝的中率 (対象 <span th:text="${band.total}"></span> レース)</div>
+            </div>
+        </div>
+    </div>
+
     <!-- レース別結果 -->
     <div th:each="race : ${races}" class="race-card mb-4">
 

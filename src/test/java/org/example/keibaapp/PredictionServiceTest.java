@@ -71,4 +71,72 @@ class PredictionServiceTest {
         assertTrue(reason.contains("GI"));
         assertTrue(reason.contains("1着"));
     }
+
+    @Test
+    void calculateScore_shouldAddBonusForInnerWakuOnTurfSprint() {
+        Horse innerHorse = new Horse(
+                "1",
+                "1",
+                "テストホース",
+                "テスト騎手",
+                "57.0",
+                5.0
+        );
+
+        Horse outerHorse = new Horse(
+                "8",
+                "8",
+                "テストホース2",
+                "テスト騎手2",
+                "57.0",
+                5.0
+        );
+
+        innerHorse.setLastRace(PastRaceInfo.empty());
+        innerHorse.setSecondLastRace(PastRaceInfo.empty());
+        innerHorse.setThirdLastRace(PastRaceInfo.empty());
+
+        outerHorse.setLastRace(PastRaceInfo.empty());
+        outerHorse.setSecondLastRace(PastRaceInfo.empty());
+        outerHorse.setThirdLastRace(PastRaceInfo.empty());
+
+        double innerScore = predictionService.calculateScore(innerHorse, "芝", "1200m");
+        double outerScore = predictionService.calculateScore(outerHorse, "芝", "1200m");
+
+        assertTrue(innerScore > outerScore);
+    }
+
+    @Test
+    void calculateScore_shouldIgnoreWakuOnLongDistanceRace() {
+        Horse innerHorse = new Horse(
+                "1",
+                "1",
+                "テストホース",
+                "テスト騎手",
+                "57.0",
+                5.0
+        );
+
+        Horse outerHorse = new Horse(
+                "8",
+                "8",
+                "テストホース2",
+                "テスト騎手2",
+                "57.0",
+                5.0
+        );
+
+        innerHorse.setLastRace(PastRaceInfo.empty());
+        innerHorse.setSecondLastRace(PastRaceInfo.empty());
+        innerHorse.setThirdLastRace(PastRaceInfo.empty());
+
+        outerHorse.setLastRace(PastRaceInfo.empty());
+        outerHorse.setSecondLastRace(PastRaceInfo.empty());
+        outerHorse.setThirdLastRace(PastRaceInfo.empty());
+
+        double innerScore = predictionService.calculateScore(innerHorse, "芝", "2000m");
+        double outerScore = predictionService.calculateScore(outerHorse, "芝", "2000m");
+
+        assertEquals(innerScore, outerScore);
+    }
 }

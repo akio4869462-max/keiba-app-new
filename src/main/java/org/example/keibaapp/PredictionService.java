@@ -124,6 +124,11 @@ public class PredictionService {
         reason.append("\n・コース適性 +")
                 .append(String.format("%.1f", courseScore));
 
+        double wakuScore = calculateWakuScore(currentCourse, currentDistance, horse.getWaku());
+
+        reason.append("\n・枠順適性 +")
+                .append(String.format("%.1f", wakuScore));
+
         for(int i=0;i<races.size();i++){
             reason.append("\n・");
             reason.append(createPastRaceReason(RACE_LABELS.get(i), races.get(i), WEIGHTS.get(i)));
@@ -176,7 +181,41 @@ public class PredictionService {
             score += calculateDistanceScore(currentDistance, races.get(i)) * WEIGHTS.get(i);
         }
 
+        score += calculateWakuScore(currentCourse, currentDistance, horse.getWaku());
+
         return score;
+    }
+
+    private static final int INNER_WAKU_BONUS = 2;
+    private static final int OUTER_WAKU_PENALTY = -1;
+    private static final int SPRINT_DISTANCE_THRESHOLD = 1400;
+
+    private double calculateWakuScore(String currentCourse, String currentDistance, String waku) {
+        if (currentCourse == null || !currentCourse.contains("芝")) {
+            return 0;
+        }
+
+        int distance = parseDistance(currentDistance);
+
+        if (distance == 0 || distance > SPRINT_DISTANCE_THRESHOLD) {
+            return 0;
+        }
+
+        if (waku == null || !waku.matches("\\d+")) {
+            return 0;
+        }
+
+        int wakuNumber = Integer.parseInt(waku);
+
+        if (wakuNumber >= 1 && wakuNumber <= 3) {
+            return INNER_WAKU_BONUS;
+        }
+
+        if (wakuNumber >= 7) {
+            return OUTER_WAKU_PENALTY;
+        }
+
+        return 0;
     }
 
     private int parseDistance(String distanceText) {
