@@ -128,6 +128,57 @@ public class RaceNotificationService {
         }
     }
 
+    public void checkFavoritesWithDummy(List<RaceInfo> races) {
+        for (FavoriteHorse favorite
+                : horseRepository.findAll()) {
+
+            for (RaceInfo race : races) {
+
+                for (Horse horse : race.getHorses()) {
+
+                    if (favorite.getHorseName()
+                            .equals(horse.getName())) {
+
+                        String message =
+                                "【デバッグ通知】" + horse.getName()
+                                        + " が " + race.getVenue()
+                                        + " " + race.getRaceNum()
+                                        + "R に出走します！";
+
+                        System.out.println(message);
+
+                        discordNotificationService.sendMessage(message);
+                    }
+                }
+            }
+        }
+
+        for (FavoriteJockey favorite
+                : jockeyRepository.findAll()) {
+
+            for (RaceInfo race : races) {
+
+                for (Horse horse : race.getHorses()) {
+
+                    if (favorite.getJockeyName()
+                            .equals(horse.getJockeyName())) {
+
+                        String message =
+                                "【デバッグ通知】" + horse.getJockeyName()
+                                        + " が " + race.getVenue()
+                                        + " " + race.getRaceNum()
+                                        + "R で" + horse.getName()
+                                        + "に騎乗します！";
+
+                        System.out.println(message);
+
+                        discordNotificationService.sendMessage(message);
+                    }
+                }
+            }
+        }
+    }
+
     @Scheduled(cron = "0 * * * * *")
     public void scheduledCheck() {
         DayOfWeek day = LocalDate.now().getDayOfWeek();
