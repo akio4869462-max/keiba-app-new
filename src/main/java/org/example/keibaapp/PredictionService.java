@@ -9,9 +9,9 @@ import java.util.Map;
 @Service
 public class PredictionService {
     private static final Map<Integer, Integer> RANK_SCORES = Map.of(
-            1, 25,
+            1, 20,
             2, 18,
-            3, 1
+            3, 10
     );
 
     private static final Map<String, Integer> GRADE_SCORES = Map.of(
@@ -19,7 +19,11 @@ public class PredictionService {
             "GII", 20,
             "GIII", 12,
             "L", 7,
-            "OP", 5
+            "OP", 5,
+            "3勝クラス", 4,
+            "2勝クラス", 3,
+            "1勝クラス", 2,
+            "未勝利", 1
     );
 
 
