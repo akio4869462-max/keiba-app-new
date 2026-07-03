@@ -216,7 +216,9 @@ body {
     font-size: 0.78rem;
     line-height: 1.8;
     color: #333;
-    min-width: 260px;
+    min-width: 180px;
+    max-width: 220px;
+    word-break: break-word;
 }
 
 .ai-comment-cell {
@@ -224,7 +226,9 @@ body {
     font-size: 0.78rem;
     line-height: 1.8;
     color: #444;
-    min-width: 240px;
+    min-width: 180px;
+    max-width: 220px;
+    word-break: break-word;
 }
 
 /* ========== Content Card (favorites / results) ========== */
