@@ -138,7 +138,8 @@ public class PredictionService {
             return 0;
         }
 
-        return horse.getOdds() * calculateScore(horse) / totalScore;
+        double cappedOdds = Math.min(horse.getOdds(), 50.0);
+        return cappedOdds * calculateScore(horse) / totalScore;
     }
 
     public double calculateScore(
