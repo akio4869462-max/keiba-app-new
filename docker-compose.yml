@@ -2,6 +2,7 @@ services:
   db:
     image: postgres:16
     container_name: keiba-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: keibadb
       POSTGRES_USER: keiba
@@ -12,6 +13,7 @@ services:
   app:
     build: .
     container_name: keiba-app
+    restart: unless-stopped
     ports:
       - "8080:8080"
     depends_on:
