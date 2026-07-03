@@ -17,117 +17,98 @@ public class DummyRaceFactory {
     }
 
     public List<RaceInfo> createDummyRaces() {
-        List<Horse> horses = new ArrayList<>();
+        List<Horse> horses1 = new ArrayList<>();
+        List<Horse> horses2 = new ArrayList<>();
 
-        horses.add(new Horse("1", "1", "ダノンデサイル", "戸崎 圭太", "58.0", 7.3));
-        horses.add(new Horse("1", "2", "ミュージアムマイル", "D.レーン", "54.0", 5.3));
-        horses.add(new Horse("2", "3", "シュガークン", "吉村 誠之助", "58.0", 303.2));
-        horses.add(new Horse("2", "4", "ミクニインスパイア", "丹内 祐次", "54.0", 65.3));
-        horses.add(new Horse("3", "5", "クロワデュノール", "北村 友一", "54.0",1.8));
-        horses.add(new Horse("3", "6", "ビザンチンドリーム", "西村 淳也", "58.0", 36.5));
-        horses.add(new Horse("4", "7", "ファミリータイム", "幸 英明", "58.0", 332.8));
-        horses.add(new Horse("4", "8", "タガノデュード", "高杉 吏麒", "58.0", 74.6));
-        horses.add(new Horse("5", "9", "コスモキュランダ", "横山 武史", "58.0", 44.5));
-        horses.add(new Horse("5", "10", "ジューンテイク", "松山 弘平", "58.0", 199.2));
-        horses.add(new Horse("6", "11", "シンエンペラー", "坂井 瑠星", "58.0", 102.4));
-        horses.add(new Horse("6", "12", "マイネルエンペラー", "川田 将雅", "58.0", 132.7));
-        horses.add(new Horse("7", "13", "シェイクユアハート", "古川 吉洋", "58.0", 55.2));
-        horses.add(new Horse("7", "14", "スティンガーグラス", "岩田 望来", "58.0", 125.0));
-        horses.add(new Horse("7", "15", "マイユニバース", "横山 典弘", "54.0", 23.3));
-        horses.add(new Horse("8", "16", "メイショウタバル", "武 豊", "58.0", 4.9));
-        horses.add(new Horse("8", "17", "レガレイラ", "C.ルメール", "56.0", 10.5));
-        horses.add(new Horse("8", "18", "ミステリーウェイ", "松本 大輝", "58.0", 249.3));
-        List<RaceInfo> races = new ArrayList<>();
+        horses1.add(new Horse("1", "1", "ダノンデサイル", "戸崎 圭太", "58.0", 7.3));
+        horses1.add(new Horse("1", "2", "ミュージアムマイル", "D.レーン", "54.0", 5.3));
+        horses1.add(new Horse("2", "3", "シュガークン", "横山 武史", "58.0", 303.2));
+        horses1.add(new Horse("2", "4", "ミクニインスパイア", "丹内 祐次", "54.0", 65.3));
+        horses1.add(new Horse("3", "5", "クロワデュノール", "北村 友一", "54.0", 1.8));
 
-        races.add(new RaceInfo(
+        horses2.add(new Horse("3", "6", "ビザンチンドリーム", "西村 淳也", "58.0", 36.5));
+        horses2.add(new Horse("4", "7", "ファミリータイム", "幸 英明", "58.0", 332.8));
+        horses2.add(new Horse("4", "8", "タガノデュード", "高杉 吏麒", "58.0", 74.6));
+        horses2.add(new Horse("5", "9", "コスモキュランダ", "横山 武史", "58.0", 44.5));
+        horses2.add(new Horse("5", "10", "ジューンテイク", "松山 弘平", "58.0", 199.2));
+
+        List<RaceInfo> races1 = new ArrayList<>();
+        List<RaceInfo> races2 = new ArrayList<>();
+
+        races1.add(new RaceInfo(
                 1,
                 "東京",
-                "ダミーレース",
+                "ダミーレース1",
                 LocalTime.of(10, 0),
                 "芝",
                 "2000m",
-                horses
+                horses1
+        ));
+        races2.add(new RaceInfo(
+                2,
+                "東京",
+                "ダミーレース2",
+                LocalTime.of(10, 30),
+                "ダ",
+                "1600m",
+                horses2
         ));
 
         PastRaceInfo[] lastRaces = {
-                new PastRaceInfo("ダミーレース",3, "GI", 4),
-                new PastRaceInfo("ダミーレース",1, "GIII", 2),
-                new PastRaceInfo("ダミーレース",15, "条件戦", 8),
-                new PastRaceInfo("ダミーレース",2, "条件戦", 3),
-                new PastRaceInfo("ダミーレース",1, "GI", 1),
-                new PastRaceInfo("ダミーレース",2, "GII", 5),
-                new PastRaceInfo("ダミーレース",9, "条件戦", 10),
-                new PastRaceInfo("ダミーレース",6, "条件戦", 7),
-                new PastRaceInfo("ダミーレース",7, "GIII", 6),
-                new PastRaceInfo("ダミーレース",4, "条件戦", 4),
-                new PastRaceInfo("ダミーレース",7, "GI", 3),
-                new PastRaceInfo("ダミーレース",5, "GII", 5),
-                new PastRaceInfo("ダミーレース",1, "OP", 2),
-                new PastRaceInfo("ダミーレース",1, "L", 1),
-                new PastRaceInfo("ダミーレース",1, "条件戦", 1),
-                new PastRaceInfo("ダミーレース",2, "GIII", 1),
-                new PastRaceInfo("ダミーレース",4, "GI", 2),
-                new PastRaceInfo("ダミーレース",8, "条件戦", 9)
+                new PastRaceInfo("ダミーレース", 3, "GI", 4),
+                new PastRaceInfo("ダミーレース", 1, "GIII", 2),
+                new PastRaceInfo("ダミーレース", 15, "条件戦", 8),
+                new PastRaceInfo("ダミーレース", 2, "条件戦", 3),
+                new PastRaceInfo("ダミーレース", 1, "GI", 1)
         };
 
         PastRaceInfo[] secondLastRaces = {
-                new PastRaceInfo("ダミーレース",5, "GII", 3),
-                new PastRaceInfo("ダミーレース",2, "GI", 5),
-                new PastRaceInfo("ダミーレース",8, "条件戦", 6),
-                new PastRaceInfo("ダミーレース",1, "条件戦", 2),
-                new PastRaceInfo("ダミーレース",2, "GI", 1),
-                new PastRaceInfo("ダミーレース",6, "GIII", 4),
-                new PastRaceInfo("ダミーレース",12, "条件戦", 12),
-                new PastRaceInfo("ダミーレース",4, "条件戦", 8),
-                new PastRaceInfo("ダミーレース",3, "GIII", 5),
-                new PastRaceInfo("ダミーレース",7, "条件戦", 9),
-                new PastRaceInfo("ダミーレース",3, "GII", 2),
-                new PastRaceInfo("ダミーレース",6, "GIII", 6),
-                new PastRaceInfo("ダミーレース",4, "OP", 3),
-                new PastRaceInfo("ダミーレース",5, "L", 4),
-                new PastRaceInfo("ダミーレース",2, "条件戦", 2),
-                new PastRaceInfo("ダミーレース",1, "GII", 1),
-                new PastRaceInfo("ダミーレース",1, "GI", 3),
-                new PastRaceInfo("ダミーレース",10, "条件戦", 11)
+                new PastRaceInfo("ダミーレース", 5, "GII", 3),
+                new PastRaceInfo("ダミーレース", 2, "GI", 5),
+                new PastRaceInfo("ダミーレース", 8, "条件戦", 6),
+                new PastRaceInfo("ダミーレース", 1, "条件戦", 2),
+                new PastRaceInfo("ダミーレース", 2, "GI", 1)
         };
 
         PastRaceInfo[] thirdLastRaces = {
-                new PastRaceInfo("ダミーレース",2, "GIII", 2),
-                new PastRaceInfo("ダミーレース",1, "GII", 4),
-                new PastRaceInfo("ダミーレース",10, "条件戦", 10),
-                new PastRaceInfo("ダミーレース",4, "条件戦", 5),
-                new PastRaceInfo("ダミーレース",1, "GIII", 1),
-                new PastRaceInfo("ダミーレース",3, "GII", 3),
-                new PastRaceInfo("ダミーレース",8, "条件戦", 9),
-                new PastRaceInfo("ダミーレース",5, "条件戦", 7),
-                new PastRaceInfo("ダミーレース",6, "GI", 8),
-                new PastRaceInfo("ダミーレース",5, "条件戦", 6),
-                new PastRaceInfo("ダミーレース",2, "GI", 2),
-                new PastRaceInfo("ダミーレース",4, "GII", 4),
-                new PastRaceInfo("ダミーレース",6, "OP", 5),
-                new PastRaceInfo("ダミーレース",2, "L", 2),
-                new PastRaceInfo("ダミーレース",3, "条件戦", 3),
-                new PastRaceInfo("ダミーレース",5, "GI", 6),
-                new PastRaceInfo("ダミーレース",2, "GII", 2),
-                new PastRaceInfo("ダミーレース",12, "条件戦", 12)
+                new PastRaceInfo("ダミーレース", 2, "GIII", 2),
+                new PastRaceInfo("ダミーレース", 1, "GII", 4),
+                new PastRaceInfo("ダミーレース", 10, "条件戦", 10),
+                new PastRaceInfo("ダミーレース", 4, "条件戦", 5),
+                new PastRaceInfo("ダミーレース", 1, "GIII", 1)
         };
 
-        for (int i = 0; i < horses.size(); i++) {
-            Horse horse = horses.get(i);
-
+        for (int i = 0; i < horses1.size(); i++) {
+            Horse horse = horses1.get(i);
             horse.setLastRace(lastRaces[i]);
             horse.setSecondLastRace(secondLastRaces[i]);
             horse.setThirdLastRace(thirdLastRaces[i]);
+        }
 
-            horse.setPredictionScore(predictionService.calculateScore(horse, "芝","2000m"));
+        for (Horse horse : horses1) {
+            horse.setPredictionScore(predictionService.calculateExpectedValue(horse, horses1));
             horse.setPredictionReason(predictionService.createReason(horse, "芝", "2000m"));
         }
 
-        horses.sort(
-                Comparator.comparingDouble(Horse::getPredictionScore)
-                        .reversed()
-        );
+        horses1.sort(Comparator.comparingDouble(Horse::getPredictionScore).reversed());
 
+        for (int i = 0; i < horses2.size(); i++) {
+            Horse horse = horses2.get(i);
+            horse.setLastRace(lastRaces[i]);
+            horse.setSecondLastRace(secondLastRaces[i]);
+            horse.setThirdLastRace(thirdLastRaces[i]);
+        }
+
+        for (Horse horse : horses2) {
+            horse.setPredictionScore(predictionService.calculateExpectedValue(horse, horses2));
+            horse.setPredictionReason(predictionService.createReason(horse, "ダ", "1600m"));
+        }
+
+        horses2.sort(Comparator.comparingDouble(Horse::getPredictionScore).reversed());
+
+        List<RaceInfo> races = new ArrayList<>();
+        races.addAll(races1);
+        races.addAll(races2);
         return races;
     }
 }
