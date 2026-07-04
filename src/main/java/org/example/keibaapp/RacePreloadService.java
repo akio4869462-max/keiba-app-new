@@ -20,6 +20,23 @@ public class RacePreloadService {
         System.out.println("【事前キャッシュ】1-4R 完了");
     }
 
+    // 8:50 にキャッシュ更新（8:00+90分=9:30の期限切れ前にリフレッシュ）
+    // これがないと9:30頃の1R通知でキャッシュミスが起きる
+    @Scheduled(cron = "0 50 8 * * SAT,SUN")
+    public void refreshEarlyMorningRaces() {
+        System.out.println("【キャッシュ更新】1-4R リフレッシュ(8:50)");
+        raceService.getRaces();
+        System.out.println("【キャッシュ更新】完了");
+    }
+
+    // 10:00 にキャッシュ更新（2R〜4Rが10時台に発走するため、8:50+90分=10:20まで有効）
+    @Scheduled(cron = "0 0 10 * * SAT,SUN")
+    public void refreshMidMorningRaces() {
+        System.out.println("【キャッシュ更新】1-4R リフレッシュ(10:00)");
+        raceService.getRaces();
+        System.out.println("【キャッシュ更新】完了");
+    }
+
     // 11:31 に5-8Rを先読み（時間帯切り替え直後）
     @Scheduled(cron = "0 31 11 * * SAT,SUN")
     public void preloadMiddayRaces() {

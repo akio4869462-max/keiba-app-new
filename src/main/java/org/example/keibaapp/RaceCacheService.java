@@ -37,6 +37,11 @@ public class RaceCacheService {
         return cachedRaces;
     }
 
+    // キャッシュにデータが存在するか（有効期限は問わない）
+    public boolean hasCachedRaces() {
+        return cachedRaces != null && !cachedRaces.isEmpty();
+    }
+
     public void cacheRaces(String currentRange,
                            List<RaceInfo> races) {
         this.cachedRaces = races;
