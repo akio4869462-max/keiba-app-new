@@ -6,30 +6,46 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.time.LocalTime;
 
 @Service
 public class RaceService {
+    private static final ZoneId JST = ZoneId.of("Asia/Tokyo");
+
     private final CsvExporter csvExporter;
     private final DummyRaceFactory dummyRaceFactory;
     private final RaceCacheService raceCacheService;
     private final HorseEnrichmentService horseEnrichmentService;
     private final RaceParserService raceParserService;
+    private final TrackedRaceUrlRepository trackedRaceUrlRepository;
 
     public RaceService(
             CsvExporter csvExporter,
             DummyRaceFactory dummyRaceFactory,
             RaceCacheService raceCacheService,
             HorseEnrichmentService horseEnrichmentService,
-            RaceParserService raceParserService) {
+            RaceParserService raceParserService,
+            TrackedRaceUrlRepository trackedRaceUrlRepository) {
 
         this.csvExporter = csvExporter;
         this.dummyRaceFactory = dummyRaceFactory;
         this.raceCacheService = raceCacheService;
         this.horseEnrichmentService = horseEnrichmentService;
         this.raceParserService = raceParserService;
+        this.trackedRaceUrlRepository = trackedRaceUrlRepository;
+    }
+
+    private void trackRaceUrls(Set<String> raceUrls) {
+        LocalDate today = LocalDate.now(JST);
+
+        for (String raceUrl : raceUrls) {
+            if (trackedRaceUrlRepository.findByRaceUrl(raceUrl).isEmpty()) {
+                trackedRaceUrlRepository.save(new TrackedRaceUrl(raceUrl, today));
+            }
+        }
     }
 
     public List<RaceInfo> fetchTodayRaces() {
@@ -68,6 +84,8 @@ public class RaceService {
                 venueCount++;
 
                 Set<String> raceUrls = raceParserService.getRaceUrls(listDoc);
+
+                trackRaceUrls(raceUrls);
 
                 String venueName =
                         raceParserService.extractVenueName(listDoc.title());

@@ -69,6 +69,10 @@ public class HorseEnrichmentService {
         horse.setLastRace(detail.getLastRace());
         horse.setSecondLastRace(detail.getSecondLastRace());
         horse.setThirdLastRace(detail.getThirdLastRace());
+
+        if (isHistorical) {
+            horse.setActualRace(detail.getActualRace());
+        }
     }
 
     public void enrichJockeyStats(Horse horse) throws InterruptedException {

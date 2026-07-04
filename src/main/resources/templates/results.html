@@ -28,12 +28,17 @@
 
     <h1 class="page-title mb-4">📊 予想結果検証</h1>
 
+    <p class="text-muted" th:if="${raceCount == 0}">
+        まだ蓄積されたデータがありません。次の開催週(土日)から自動的にレースURLを記録し、
+        月曜早朝のバッチ処理で結果を確定・蓄積していきます。
+    </p>
+
     <!-- サマリーカード -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="stat-card">
                 <div class="stat-number" th:text="${raceCount}"></div>
-                <div class="stat-label">検証レース数</div>
+                <div class="stat-label">検証レース数(累積)</div>
             </div>
         </div>
         <div class="col-md-4">
@@ -52,6 +57,31 @@
         </div>
     </div>
 
+    <!-- 回収率(ROI)検証 -->
+    <h2 class="h5 mb-3">回収率検証(予想1位を単勝1点ずつ購入した場合)</h2>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-number" th:text="${roiBetCount}"></div>
+                <div class="stat-label">購入レース数</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-number"
+                     th:text="${#numbers.formatDecimal(roi, 1, 1)} + '%'"></div>
+                <div class="stat-label">単勝回収率(100%が収支トントン)</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-number"
+                     th:text="${#numbers.formatDecimal(roiTotalReturn, 1, 1)}"></div>
+                <div class="stat-label">払戻合計(1レース1単位のうち)</div>
+            </div>
+        </div>
+    </div>
+
     <!-- オッズ帯別の的中率 -->
     <h2 class="h5 mb-3">オッズ帯別 予想1位の的中率</h2>
     <div class="row g-3 mb-4">
@@ -63,64 +93,47 @@
                 <div class="stat-label">単勝的中率</div>
                 <div class="stat-number"
                      th:text="${#numbers.formatDecimal(band.top3Rate, 1, 1)} + '%'"></div>
-                <div class="stat-label">複勝的中率 (対象 <span th:text="${band.total}"></span> レース)</div>
+                <div class="stat-label">複勝的中率 (対象 <span th:text="${band.total}"></span> 件)</div>
             </div>
         </div>
     </div>
 
-    <!-- レース別結果 -->
-    <div th:each="race : ${races}" class="race-card mb-4">
-
-        <div class="race-card-header">
-            <span class="race-name fw-bold" th:text="${race.displayRaceName}"></span>
+    <!-- スコア帯別の精度 -->
+    <h2 class="h5 mb-3">予想スコア帯別の精度(全出走馬対象)</h2>
+    <p class="text-muted small">スコアが高いほど実際にも着順が良ければ、モデルの順位付けが機能していると言える。</p>
+    <div class="row g-3 mb-4">
+        <div class="col-md-3" th:each="band : ${scoreBandStats}">
+            <div class="stat-card">
+                <div class="stat-label fw-bold" th:text="${band.label}"></div>
+                <div class="stat-number"
+                     th:text="${#numbers.formatDecimal(band.winRate, 1, 1)} + '%'"></div>
+                <div class="stat-label">単勝的中率</div>
+                <div class="stat-number"
+                     th:text="${#numbers.formatDecimal(band.top3Rate, 1, 1)} + '%'"></div>
+                <div class="stat-label">複勝的中率 (対象 <span th:text="${band.total}"></span> 頭)</div>
+            </div>
         </div>
+    </div>
 
-        <div class="table-wrapper">
-            <table class="table race-table mb-0">
-                <thead>
-                <tr>
-                    <th class="text-center" style="width: 80px">予想順位</th>
-                    <th>馬名</th>
-                    <th class="text-center" style="width: 90px">スコア</th>
-                    <th class="text-center" style="width: 90px">実際の着順</th>
-                    <th class="text-center" style="width: 120px">判定</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="horse, stat : ${race.horses}"
-                    th:classappend="${stat.index == 0} ? 'rank-1' : (${stat.index == 1} ? 'rank-2' : (${stat.index == 2} ? 'rank-3' : ''))">
-
-                    <td class="text-center">
-                        <span th:if="${stat.index == 0}" class="rank-badge rank-gold">🥇 1位</span>
-                        <span th:if="${stat.index == 1}" class="rank-badge rank-silver">🥈 2位</span>
-                        <span th:if="${stat.index == 2}" class="rank-badge rank-bronze">🥉 3位</span>
-                        <span th:if="${stat.index >= 3}" class="rank-badge rank-other"
-                              th:text="${stat.index + 1} + '位'"></span>
-                    </td>
-
-                    <td class="horse-name" th:text="${horse.name}"></td>
-
-                    <td class="text-center">
-                        <span class="score-badge"
-                              th:text="${#numbers.formatDecimal(horse.predictionScore, 1, 1)}"></span>
-                    </td>
-
-                    <td class="text-center fw-bold"
-                        th:text="${horse.actualRace != null ? horse.actualRace.rank + '着' : '不明'}"></td>
-
-                    <td class="text-center">
-                        <span th:if="${horse.actualRace != null and stat.index == 0 and horse.actualRace.rank == 1}"
-                              class="result-win">◎ 単勝的中</span>
-                        <span th:if="${horse.actualRace != null and stat.index < 3 and horse.actualRace.rank <= 3 and not (stat.index == 0 and horse.actualRace.rank == 1)}"
-                              class="result-fuku">○ 複勝圏</span>
-                        <span th:if="${horse.actualRace == null or horse.actualRace.rank > 3}"
-                              class="result-miss">—</span>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-
+    <!-- 週別推移 -->
+    <h2 class="h5 mb-3">週別の的中率推移</h2>
+    <div class="table-wrapper mb-4">
+        <table class="table race-table mb-0">
+            <thead>
+            <tr>
+                <th>週</th>
+                <th class="text-center" style="width: 120px">対象レース数</th>
+                <th class="text-center" style="width: 120px">予想1位 単勝的中率</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="week : ${weeklyStats}">
+                <td th:text="${week.label}"></td>
+                <td class="text-center" th:text="${week.total}"></td>
+                <td class="text-center" th:text="${#numbers.formatDecimal(week.winRate, 1, 1)} + '%'"></td>
+            </tr>
+            </tbody>
+        </table>
     </div>
 
 </div>

@@ -89,7 +89,11 @@
                             <td class="text-center fw-bold" th:text="${horse.umaban}"></td>
 
                             <td>
-                                <div class="horse-name" th:text="${horse.name}"></div>
+                                <a class="horse-name" th:if="${horse.horseUrl != null and !horse.horseUrl.isEmpty()}"
+                                   th:href="${horse.horseUrl}" th:text="${horse.name}"
+                                   target="_blank" rel="noopener"></a>
+                                <div class="horse-name" th:unless="${horse.horseUrl != null and !horse.horseUrl.isEmpty()}"
+                                     th:text="${horse.name}"></div>
                                 <form th:action="@{/favorite/add}" method="post">
                                     <input type="hidden" name="horseName" th:value="${horse.name}" />
                                     <button type="submit" class="btn-register">⭐ 登録</button>
@@ -97,7 +101,11 @@
                             </td>
 
                             <td>
-                                <div class="jockey-name" th:text="${horse.jockeyName}"></div>
+                                <a class="jockey-name" th:if="${horse.jockeyUrl != null and !horse.jockeyUrl.isEmpty()}"
+                                   th:href="${horse.jockeyUrl}" th:text="${horse.jockeyName}"
+                                   target="_blank" rel="noopener"></a>
+                                <div class="jockey-name" th:unless="${horse.jockeyUrl != null and !horse.jockeyUrl.isEmpty()}"
+                                     th:text="${horse.jockeyName}"></div>
                                 <form th:action="@{/favoriteJockey/add}" method="post">
                                     <input type="hidden" name="jockeyName" th:value="${horse.jockeyName}" />
                                     <button type="submit" class="btn-register">⭐ 登録</button>

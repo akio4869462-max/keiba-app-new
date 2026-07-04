@@ -289,4 +289,10 @@ public class WebScraper {
 
         return "";
     }
+
+    public static String getVenueName(Document doc) {
+        Element venueLink = doc.selectFirst("a.hr-menuWhite__text[href*=/keiba/race/list/]");
+
+        return venueLink != null ? venueLink.text().trim() : "";
+    }
 }

@@ -17,11 +17,31 @@ public class RaceController {
     private final RaceService raceService;
     private final RaceNotificationService notificationService;
     private final DummyRaceFactory dummyRaceFactory;
+    private final RaceResultRecordRepository raceResultRecordRepository;
+    private final RaceResultStatsService raceResultStatsService;
+    private final RaceResultCollectionService raceResultCollectionService;
 
-    public RaceController(RaceService raceService, RaceNotificationService notificationService, DummyRaceFactory dummyRaceFactory) {
+    public RaceController(
+            RaceService raceService,
+            RaceNotificationService notificationService,
+            DummyRaceFactory dummyRaceFactory,
+            RaceResultRecordRepository raceResultRecordRepository,
+            RaceResultStatsService raceResultStatsService,
+            RaceResultCollectionService raceResultCollectionService) {
+
         this.raceService = raceService;
         this.notificationService = notificationService;
         this.dummyRaceFactory = dummyRaceFactory;
+        this.raceResultRecordRepository = raceResultRecordRepository;
+        this.raceResultStatsService = raceResultStatsService;
+        this.raceResultCollectionService = raceResultCollectionService;
+    }
+
+    @GetMapping("/results/collect")
+    @ResponseBody
+    public String collectResults() {
+        raceResultCollectionService.collectWeekendResults();
+        return "結果収集を実行しました";
     }
 
     @GetMapping("/races")
@@ -75,64 +95,35 @@ public class RaceController {
 
     @GetMapping("/results")
     public String results(Model model) {
-        List<RaceInfo> races = raceService.fetchHistoricalRaces();
+        List<RaceResultRecord> allRecords = raceResultRecordRepository.findAll();
 
-        int raceCount = races.size();
-        int top1Win = 0;
-        int top1Top3 = 0;
-        int top3Top3 = 0;
-        int top3Total = 0;
+        List<RaceResultRecord> topPicks = allRecords.stream()
+                .filter(r -> r.getPredictionRank() == 1)
+                .collect(Collectors.toList());
 
-        for (RaceInfo race : races) {
-            List<Horse> horses = race.getHorses();
+        List<RaceResultRecord> top3Picks = allRecords.stream()
+                .filter(r -> r.getPredictionRank() <= 3)
+                .collect(Collectors.toList());
 
-            if (horses.isEmpty()) {
-                continue;
-            }
+        int raceCount = topPicks.size();
+        int top1Win = raceResultStatsService.countWins(topPicks);
+        int top1Top3 = raceResultStatsService.countTop3(topPicks);
+        int top3Total = top3Picks.size();
+        int top3Top3 = raceResultStatsService.countTop3(top3Picks);
 
-            Horse topHorse = horses.get(0);
-
-            if (topHorse.getActualRace() != null) {
-                int rank = topHorse.getActualRace().getRank();
-
-                if (rank == 1) {
-                    top1Win++;
-                }
-
-                if (rank >= 1 && rank <= 3) {
-                    top1Top3++;
-                }
-            }
-
-            for (int i = 0; i < Math.min(3, horses.size()); i++) {
-                Horse horse = horses.get(i);
-
-                if (horse.getActualRace() != null) {
-                    top3Total++;
-
-                    int rank = horse.getActualRace().getRank();
-
-                    if (rank >= 1 && rank <= 3) {
-                        top3Top3++;
-                    }
-                }
-            }
-        }
-
-        model.addAttribute("races", races);
         model.addAttribute("raceCount", raceCount);
-        model.addAttribute("top1WinRate", rate(top1Win, raceCount));
-        model.addAttribute("top1Top3Rate", rate(top1Top3, raceCount));
-        model.addAttribute("top3Top3Rate", rate(top3Top3, top3Total));
+        model.addAttribute("top1WinRate", raceResultStatsService.rate(top1Win, raceCount));
+        model.addAttribute("top1Top3Rate", raceResultStatsService.rate(top1Top3, raceCount));
+        model.addAttribute("top3Top3Rate", raceResultStatsService.rate(top3Top3, top3Total));
+
+        model.addAttribute("oddsBandStats", raceResultStatsService.buildOddsBandStats(topPicks));
+        model.addAttribute("scoreBandStats", raceResultStatsService.buildScoreBandStats(allRecords));
+        model.addAttribute("weeklyStats", raceResultStatsService.buildWeeklyStats(topPicks));
+
+        model.addAttribute("roi", raceResultStatsService.calculateRoi(topPicks));
+        model.addAttribute("roiBetCount", topPicks.size());
+        model.addAttribute("roiTotalReturn", raceResultStatsService.totalReturn(topPicks));
 
         return "results";
-    }
-
-    private double rate(int hit, int total) {
-        if (total == 0) {
-            return 0;
-        }
-
-        return hit * 100.0 / total;
     }
 }
