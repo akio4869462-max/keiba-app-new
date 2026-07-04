@@ -74,8 +74,8 @@ class RaceResultStatsServiceTest {
 
     @Test
     void oddsBandLabel_shouldBucketCorrectly() {
-        assertEquals("人気馬(3倍未満)", statsService.oddsBandLabel(2.9));
-        assertEquals("中穴(3〜10倍)", statsService.oddsBandLabel(5.0));
-        assertEquals("大穴(10倍超)", statsService.oddsBandLabel(15.0));
+        assertEquals("人気馬(5倍未満)", statsService.oddsBandLabel(4.9));
+        assertEquals("中穴(5〜20倍)", statsService.oddsBandLabel(10.0));
+        assertEquals("大穴(20倍超)", statsService.oddsBandLabel(25.0));
     }
 }

@@ -40,22 +40,22 @@ public class RaceResultStatsService {
     }
 
     public String oddsBandLabel(double odds) {
-        if (odds < 3) {
-            return "人気馬(3倍未満)";
+        if (odds < 5) {
+            return "人気馬(5倍未満)";
         }
 
-        if (odds < 10) {
-            return "中穴(3〜10倍)";
+        if (odds < 20) {
+            return "中穴(5〜20倍)";
         }
 
-        return "大穴(10倍超)";
+        return "大穴(20倍超)";
     }
 
     public List<OddsBandStat> buildOddsBandStats(List<RaceResultRecord> topPicks) {
         Map<String, int[]> counts = new LinkedHashMap<>();
-        counts.put("人気馬(3倍未満)", new int[3]);
-        counts.put("中穴(3〜10倍)", new int[3]);
-        counts.put("大穴(10倍超)", new int[3]);
+        counts.put("人気馬(5倍未満)", new int[3]);
+        counts.put("中穴(5〜20倍)", new int[3]);
+        counts.put("大穴(20倍超)", new int[3]);
 
         for (RaceResultRecord record : topPicks) {
             int[] c = counts.get(oddsBandLabel(record.getOdds()));
