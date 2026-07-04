@@ -291,7 +291,11 @@ public class WebScraper {
     }
 
     public static String getVenueName(Document doc) {
-        Element venueLink = doc.selectFirst("a.hr-menuWhite__text[href*=/keiba/race/list/]");
+        // 同じ日の全開催場を並べたナビゲーションのうち、このレースの開催場だけが
+        // hr-menuWhite__item--current になっているので、そこから取得する
+        // （--currentを付けないと常に先頭の開催場が返ってしまう）
+        Element venueLink = doc.selectFirst(
+                "li.hr-menuWhite__item--current a.hr-menuWhite__text[href*=/keiba/race/list/]");
 
         return venueLink != null ? venueLink.text().trim() : "";
     }

@@ -20,6 +20,7 @@ public class RaceController {
     private final RaceResultRecordRepository raceResultRecordRepository;
     private final RaceResultStatsService raceResultStatsService;
     private final RaceResultCollectionService raceResultCollectionService;
+    private final TrackedRaceUrlRepository trackedRaceUrlRepository;
 
     public RaceController(
             RaceService raceService,
@@ -27,7 +28,8 @@ public class RaceController {
             DummyRaceFactory dummyRaceFactory,
             RaceResultRecordRepository raceResultRecordRepository,
             RaceResultStatsService raceResultStatsService,
-            RaceResultCollectionService raceResultCollectionService) {
+            RaceResultCollectionService raceResultCollectionService,
+            TrackedRaceUrlRepository trackedRaceUrlRepository) {
 
         this.raceService = raceService;
         this.notificationService = notificationService;
@@ -35,12 +37,31 @@ public class RaceController {
         this.raceResultRecordRepository = raceResultRecordRepository;
         this.raceResultStatsService = raceResultStatsService;
         this.raceResultCollectionService = raceResultCollectionService;
+        this.trackedRaceUrlRepository = trackedRaceUrlRepository;
     }
 
     @GetMapping("/results/collect")
     @ResponseBody
     public String collectResults() {
         return raceResultCollectionService.collectWeekendResults();
+    }
+
+    @GetMapping("/results/reset")
+    @ResponseBody
+    public String resetResults() {
+        long deletedCount = raceResultRecordRepository.count();
+        raceResultRecordRepository.deleteAll();
+
+        List<TrackedRaceUrl> trackedUrls = trackedRaceUrlRepository.findAll();
+
+        for (TrackedRaceUrl tracked : trackedUrls) {
+            tracked.setProcessed(false);
+        }
+
+        trackedRaceUrlRepository.saveAll(trackedUrls);
+
+        return "検証結果をリセットしました（削除件数: " + deletedCount + "件 / "
+                + trackedUrls.size() + "件のURLを再収集対象に戻しました）";
     }
 
     @GetMapping("/results/debug")

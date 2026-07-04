@@ -69,7 +69,7 @@ public class RaceResultCollectionService {
         List<Horse> horses = raceService.buildHorseList(doc, course, distance, true);
 
         boolean hasConfirmedResult = horses.stream()
-                .anyMatch(horse -> horse.getActualRace() != null && horse.getActualRace().getRank() > 0);
+                .anyMatch(horse -> isConfirmedForThisRace(horse, course, distance));
 
         if (!hasConfirmedResult) {
             System.out.println("結果未確定のためスキップ(次回再試行): " + raceUrl);
@@ -79,7 +79,10 @@ public class RaceResultCollectionService {
         int predictionRank = 1;
 
         for (Horse horse : horses) {
-            int actualRank = horse.getActualRace() != null
+            // コース・距離が一致しない場合、馬の個人ページの最新走が
+            // 「まだ行われていないこのレース」ではなく別の過去レースを
+            // 指している可能性が高いため、未確定として扱う
+            int actualRank = isConfirmedForThisRace(horse, course, distance)
                     ? horse.getActualRace().getRank()
                     : 0;
 
@@ -104,5 +107,39 @@ public class RaceResultCollectionService {
         System.out.println("【結果収集】完了: " + raceUrl);
 
         return true;
+    }
+
+    // 馬の個人ページの最新走が本当に「このレース」を指しているかの簡易チェック。
+    // レース自体のIDや日付を突き合わせられないため、コースと距離が一致するかで代用する。
+    // （表記が「ダート」と「ダ」のように違う場合があるので芝/ダの種別だけで比較する）
+    // 障害レースは過去走側のコース判定（extractCourse）が「障」を認識せず空文字に
+    // なるため、その場合はコース種別のチェックをスキップし距離のみで判定する
+    static boolean isConfirmedForThisRace(Horse horse, String course, String distance) {
+        PastRaceInfo actualRace = horse.getActualRace();
+
+        if (actualRace == null || actualRace.getRank() == 0) {
+            return false;
+        }
+
+        if (!distance.equals(actualRace.getDistance())) {
+            return false;
+        }
+
+        if (actualRace.getCourse() == null || actualRace.getCourse().isBlank()) {
+            return true;
+        }
+
+        return sameCourseType(course, actualRace.getCourse());
+    }
+
+    static boolean sameCourseType(String a, String b) {
+        if (a == null || b == null) {
+            return false;
+        }
+
+        boolean bothTurf = a.contains("芝") && b.contains("芝");
+        boolean bothDirt = a.contains("ダ") && b.contains("ダ");
+
+        return bothTurf || bothDirt;
     }
 }
