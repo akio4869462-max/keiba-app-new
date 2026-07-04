@@ -9,6 +9,10 @@ services:
       POSTGRES_PASSWORD: keiba
     ports:
       - "5432:5432"
+    deploy:
+      resources:
+        limits:
+          memory: 256m
 
   app:
     build: .
@@ -23,3 +27,8 @@ services:
       SPRING_DATASOURCE_USERNAME: keiba
       SPRING_DATASOURCE_PASSWORD: keiba
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx512m"
+    deploy:
+      resources:
+        limits:
+          memory: 600m
