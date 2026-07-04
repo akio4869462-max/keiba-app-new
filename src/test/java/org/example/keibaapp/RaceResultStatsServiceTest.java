@@ -20,7 +20,7 @@ class RaceResultStatsServiceTest {
     }
 
     @Test
-    void calculateRoi_shouldReturnPositiveWhenWinPaysMoreThanStakes() {
+    void calculateRoi_shouldReturnOverHundredWhenWinPaysMoreThanStakes() {
         List<RaceResultRecord> topPicks = List.of(
                 record(LocalDate.of(2026, 7, 4), 50, 3.0, 1, 1),
                 record(LocalDate.of(2026, 7, 5), 50, 5.0, 1, 2)
@@ -28,7 +28,8 @@ class RaceResultStatsServiceTest {
 
         double roi = statsService.calculateRoi(topPicks);
 
-        assertEquals(50.0, roi, 0.001);
+        // 100%が収支トントン。3.0(的中)+0(不的中)=3.0を2レース分(投資2)で回収 -> 150%
+        assertEquals(150.0, roi, 0.001);
     }
 
     @Test

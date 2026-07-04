@@ -27,21 +27,35 @@ public class RaceResultCollectionService {
     }
 
     @Scheduled(cron = "0 0 3 * * MON", zone = "Asia/Tokyo")
-    public void collectWeekendResults() {
+    public String collectWeekendResults() {
         List<TrackedRaceUrl> pending = trackedRaceUrlRepository.findByProcessedFalse();
 
-        System.out.println("【結果収集】未処理URL " + pending.size() + "件");
+        int confirmed = 0;
+        int pendingResult = 0;
+        int failed = 0;
 
         for (TrackedRaceUrl tracked : pending) {
             try {
-                processRaceUrl(tracked);
+                if (processRaceUrl(tracked)) {
+                    confirmed++;
+                } else {
+                    pendingResult++;
+                }
             } catch (Exception e) {
+                failed++;
                 System.out.println("結果収集失敗: " + tracked.getRaceUrl() + " / " + e.getMessage());
             }
         }
+
+        String summary = "対象" + pending.size() + "件 / 確定" + confirmed
+                + "件 / 結果未確定" + pendingResult + "件 / 失敗" + failed + "件";
+
+        System.out.println("【結果収集】" + summary);
+
+        return summary;
     }
 
-    private void processRaceUrl(TrackedRaceUrl tracked) throws InterruptedException, java.io.IOException {
+    private boolean processRaceUrl(TrackedRaceUrl tracked) throws InterruptedException, java.io.IOException {
         String raceUrl = tracked.getRaceUrl();
 
         Document doc = WebScraper.getHTML(raceUrl);
@@ -59,7 +73,7 @@ public class RaceResultCollectionService {
 
         if (!hasConfirmedResult) {
             System.out.println("結果未確定のためスキップ(次回再試行): " + raceUrl);
-            return;
+            return false;
         }
 
         int predictionRank = 1;
@@ -88,5 +102,7 @@ public class RaceResultCollectionService {
         trackedRaceUrlRepository.save(tracked);
 
         System.out.println("【結果収集】完了: " + raceUrl);
+
+        return true;
     }
 }

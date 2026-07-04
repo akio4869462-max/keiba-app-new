@@ -151,7 +151,7 @@ public class RaceResultStatsService {
 
         double totalReturn = totalReturn(topPicks);
 
-        return (totalReturn - totalStake) / totalStake * 100;
+        return totalReturn / totalStake * 100;
     }
 
     public double totalReturn(List<RaceResultRecord> topPicks) {

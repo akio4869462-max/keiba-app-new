@@ -40,8 +40,30 @@ public class RaceController {
     @GetMapping("/results/collect")
     @ResponseBody
     public String collectResults() {
-        raceResultCollectionService.collectWeekendResults();
-        return "結果収集を実行しました";
+        return raceResultCollectionService.collectWeekendResults();
+    }
+
+    @GetMapping("/results/debug")
+    @ResponseBody
+    public String debugResults() {
+        List<RaceResultRecord> topPicks = raceResultRecordRepository.findAll().stream()
+                .filter(r -> r.getPredictionRank() == 1)
+                .collect(Collectors.toList());
+
+        Map<String, Long> byDateVenue = topPicks.stream()
+                .collect(Collectors.groupingBy(
+                        r -> r.getRaceDate() + " " + r.getVenue(),
+                        LinkedHashMap::new,
+                        Collectors.counting()));
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("合計レース数: ").append(topPicks.size()).append("\n\n");
+
+        for (Map.Entry<String, Long> entry : byDateVenue.entrySet()) {
+            sb.append(entry.getKey()).append(": ").append(entry.getValue()).append("件\n");
+        }
+
+        return sb.toString();
     }
 
     @GetMapping("/races")
