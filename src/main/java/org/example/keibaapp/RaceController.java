@@ -5,7 +5,10 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Controller
 public class RaceController {
@@ -23,7 +26,16 @@ public class RaceController {
 
     @GetMapping("/races")
     public String showRaces(Model model) {
-        model.addAttribute("races", raceService.getBasicRaces());
+        List<RaceInfo> races = raceService.getBasicRaces();
+
+        // LinkedHashMap を指定することで取得順（東京→阪神→小倉）を保持する
+        Map<String, List<RaceInfo>> racesByVenue = races.stream()
+                .collect(Collectors.groupingBy(
+                        RaceInfo::getVenue,
+                        LinkedHashMap::new,
+                        Collectors.toList()));
+
+        model.addAttribute("racesByVenue", racesByVenue);
         return "raceList";
     }
 
