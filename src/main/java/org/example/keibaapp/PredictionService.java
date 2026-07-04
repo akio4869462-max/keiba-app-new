@@ -129,6 +129,11 @@ public class PredictionService {
         reason.append("\n・枠順適性 +")
                 .append(String.format("%.1f", wakuScore));
 
+        double jockeyScore = calculateJockeyScore(horse.getJockeyStats());
+
+        reason.append("\n・騎手成績 +")
+                .append(String.format("%.1f", jockeyScore));
+
         for(int i=0;i<races.size();i++){
             reason.append("\n・");
             reason.append(createPastRaceReason(RACE_LABELS.get(i), races.get(i), WEIGHTS.get(i)));
@@ -182,8 +187,21 @@ public class PredictionService {
         }
 
         score += calculateWakuScore(currentCourse, currentDistance, horse.getWaku());
+        score += calculateJockeyScore(horse.getJockeyStats());
 
         return score;
+    }
+
+    private static final double JOCKEY_WIN_RATE_WEIGHT = 1.0;
+    private static final double JOCKEY_RENTAI_RATE_WEIGHT = 0.5;
+
+    private double calculateJockeyScore(JockeyStats stats) {
+        if (stats == null) {
+            return 0;
+        }
+
+        return stats.getWinRate() * 100 * JOCKEY_WIN_RATE_WEIGHT
+                + stats.getRentaiRate() * 100 * JOCKEY_RENTAI_RATE_WEIGHT;
     }
 
     private static final int INNER_WAKU_BONUS = 2;

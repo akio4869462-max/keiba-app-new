@@ -10,6 +10,8 @@ public class Horse {
     private double predictionScore;
     private String predictionReason;
     private String horseUrl;
+    private String jockeyUrl;
+    private JockeyStats jockeyStats;
     private PastRaceInfo lastRace;
     private PastRaceInfo secondLastRace;
     private PastRaceInfo thirdLastRace;
@@ -60,6 +62,22 @@ public class Horse {
 
     public void setHorseUrl(String horseUrl) {
         this.horseUrl = horseUrl;
+    }
+
+    public String getJockeyUrl() {
+        return jockeyUrl;
+    }
+
+    public void setJockeyUrl(String jockeyUrl) {
+        this.jockeyUrl = jockeyUrl;
+    }
+
+    public JockeyStats getJockeyStats() {
+        return jockeyStats;
+    }
+
+    public void setJockeyStats(JockeyStats jockeyStats) {
+        this.jockeyStats = jockeyStats;
     }
 
     Horse(String waku, String umaban, String name, String jockeyName, String jockeyWeight, double odds) {

@@ -139,4 +139,60 @@ class PredictionServiceTest {
 
         assertEquals(innerScore, outerScore);
     }
+
+    @Test
+    void calculateScore_shouldAddBonusForHigherWinRateJockey() {
+        Horse strongJockeyHorse = new Horse(
+                "1",
+                "1",
+                "テストホース",
+                "テスト騎手",
+                "57.0",
+                5.0
+        );
+
+        Horse weakJockeyHorse = new Horse(
+                "2",
+                "2",
+                "テストホース2",
+                "テスト騎手2",
+                "57.0",
+                5.0
+        );
+
+        strongJockeyHorse.setLastRace(PastRaceInfo.empty());
+        strongJockeyHorse.setSecondLastRace(PastRaceInfo.empty());
+        strongJockeyHorse.setThirdLastRace(PastRaceInfo.empty());
+        strongJockeyHorse.setJockeyStats(new JockeyStats(0.2, 0.4));
+
+        weakJockeyHorse.setLastRace(PastRaceInfo.empty());
+        weakJockeyHorse.setSecondLastRace(PastRaceInfo.empty());
+        weakJockeyHorse.setThirdLastRace(PastRaceInfo.empty());
+        weakJockeyHorse.setJockeyStats(new JockeyStats(0.05, 0.1));
+
+        double strongScore = predictionService.calculateScore(strongJockeyHorse, "ダ", "2000m");
+        double weakScore = predictionService.calculateScore(weakJockeyHorse, "ダ", "2000m");
+
+        assertTrue(strongScore > weakScore);
+    }
+
+    @Test
+    void calculateScore_shouldTreatMissingJockeyStatsAsZero() {
+        Horse horse = new Horse(
+                "1",
+                "1",
+                "テストホース",
+                "テスト騎手",
+                "57.0",
+                5.0
+        );
+
+        horse.setLastRace(PastRaceInfo.empty());
+        horse.setSecondLastRace(PastRaceInfo.empty());
+        horse.setThirdLastRace(PastRaceInfo.empty());
+
+        double score = predictionService.calculateScore(horse, "ダ", "2000m");
+
+        assertEquals(0, score);
+    }
 }

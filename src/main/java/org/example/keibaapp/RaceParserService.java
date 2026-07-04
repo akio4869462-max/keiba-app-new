@@ -96,6 +96,11 @@ public class RaceParserService {
                         jockeyData.lastIndexOf(' ') + 1
                 );
 
+        Element jockeyLink = tds.get(3).selectFirst("a");
+        String jockeyUrl = jockeyLink != null
+                ? jockeyLink.attr("abs:href")
+                : "";
+
         double oddsValue =
                 OddsParser.parse(tds.get(7).text().trim());
 
@@ -109,6 +114,7 @@ public class RaceParserService {
         );
 
         horse.setHorseUrl(horseUrl);
+        horse.setJockeyUrl(jockeyUrl);
 
         return horse;
     }

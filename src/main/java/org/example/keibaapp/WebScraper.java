@@ -158,6 +158,51 @@ public class WebScraper {
         return pastRace;
     }
 
+    public static JockeyStats getJockeyStats(String jockeyUrl) {
+        try {
+            Document doc = getHTML(jockeyUrl);
+
+            Element table = doc.selectFirst("div.hr-jockeyReward table.hr-table");
+
+            if (table == null) {
+                return JockeyStats.empty();
+            }
+
+            Elements rows = table.select("tbody tr");
+
+            if (rows.isEmpty()) {
+                return JockeyStats.empty();
+            }
+
+            Elements tds = rows.get(0).select("td");
+
+            if (tds.size() < 8) {
+                return JockeyStats.empty();
+            }
+
+            double winRate = parseRate(tds.get(6).text().trim());
+            double rentaiRate = parseRate(tds.get(7).text().trim());
+
+            return new JockeyStats(winRate, rentaiRate);
+
+        } catch (Exception e) {
+            System.out.println("騎手成績取得失敗: " + jockeyUrl + " / " + e.getMessage());
+            return JockeyStats.empty();
+        }
+    }
+
+    private static double parseRate(String rateText) {
+        if (rateText.isEmpty() || rateText.equals("-")) {
+            return 0;
+        }
+
+        try {
+            return Double.parseDouble(rateText);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
     private static Elements getHorseResultRows(String horseUrl) throws IOException {
         Document doc = getHTML(horseUrl);
 

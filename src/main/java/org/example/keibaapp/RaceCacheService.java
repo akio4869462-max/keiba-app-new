@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RaceCacheService {
 
     private final Map<String, HorseDetailInfo> horseDetailCache = new ConcurrentHashMap<>();
+    private final Map<String, JockeyStats> jockeyStatsCache = new ConcurrentHashMap<>();
 
     private List<RaceInfo> cachedRaces;
     private LocalDateTime lastFetchedAt;
@@ -23,6 +24,14 @@ public class RaceCacheService {
     public void putHorseDetail(String key,
                                HorseDetailInfo detail) {
         horseDetailCache.put(key, detail);
+    }
+
+    public JockeyStats getJockeyStats(String key) {
+        return jockeyStatsCache.get(key);
+    }
+
+    public void putJockeyStats(String key, JockeyStats stats) {
+        jockeyStatsCache.put(key, stats);
     }
 
     public boolean isRaceCacheValid(String currentRange) {

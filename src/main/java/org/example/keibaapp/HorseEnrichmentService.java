@@ -71,6 +71,27 @@ public class HorseEnrichmentService {
         horse.setThirdLastRace(detail.getThirdLastRace());
     }
 
+    public void enrichJockeyStats(Horse horse) throws InterruptedException {
+        String jockeyUrl = horse.getJockeyUrl();
+
+        if (jockeyUrl == null || jockeyUrl.isBlank()) {
+            horse.setJockeyStats(JockeyStats.empty());
+            return;
+        }
+
+        JockeyStats stats = raceCacheService.getJockeyStats(jockeyUrl);
+
+        if (stats == null) {
+            Thread.sleep(500);
+
+            stats = WebScraper.getJockeyStats(jockeyUrl);
+
+            raceCacheService.putJockeyStats(jockeyUrl, stats);
+        }
+
+        horse.setJockeyStats(stats);
+    }
+
     public void applyScore(
             Horse horse,
             List<Horse> allHorses,
