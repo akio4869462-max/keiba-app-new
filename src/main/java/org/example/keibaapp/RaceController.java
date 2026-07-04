@@ -57,6 +57,9 @@ public class RaceController {
     @ResponseBody
     public String checkNotification() {
 
+        // 手動実行時はキャッシュを最新化してから通知チェック
+        // （自動スケジュール実行はPreloadServiceがキャッシュを管理するため不要）
+        raceService.getRaces();
         notificationService.checkFavorites();
 
         return "通知チェック完了";
