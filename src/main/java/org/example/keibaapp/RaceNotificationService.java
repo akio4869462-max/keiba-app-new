@@ -62,7 +62,7 @@ public class RaceNotificationService {
                     if (favorite.getHorseName()
                             .equals(horse.getName())) {
                         LocalTime now = LocalTime.now(JST);
-                        LocalTime notifyTime = race.getRaceTime().minusMinutes(30);
+                        LocalTime notifyTime = race.getRaceTime().minusMinutes(5);
 
                         if (now.isBefore(notifyTime) || now.isAfter(race.getRaceTime())) {
                             continue;
@@ -106,7 +106,7 @@ public class RaceNotificationService {
                     if (favorite.getJockeyName()
                             .equals(horse.getJockeyName())) {
                         LocalTime now = LocalTime.now(JST);
-                        LocalTime notifyTime = race.getRaceTime().minusMinutes(30);
+                        LocalTime notifyTime = race.getRaceTime().minusMinutes(5);
 
                         if (now.isBefore(notifyTime) || now.isAfter(race.getRaceTime())) {
                             continue;
