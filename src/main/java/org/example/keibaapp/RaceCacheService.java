@@ -29,12 +29,17 @@ public class RaceCacheService {
         return cachedRaces != null
                 && currentRange.equals(cachedRange)
                 && lastFetchedAt != null
-                && lastFetchedAt.plusMinutes(30)
+                && lastFetchedAt.plusMinutes(90)
                 .isAfter(LocalDateTime.now());
     }
 
     public List<RaceInfo> getCachedRaces() {
         return cachedRaces;
+    }
+
+    // キャッシュにデータが存在するか（有効期限は問わない）
+    public boolean hasCachedRaces() {
+        return cachedRaces != null && !cachedRaces.isEmpty();
     }
 
     public void cacheRaces(String currentRange,

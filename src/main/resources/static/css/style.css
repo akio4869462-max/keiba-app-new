@@ -329,3 +329,38 @@ body {
     border-color: #f2f2f2;
     font-size: 0.9rem;
 }
+
+/* ========== Venue tabs ========== */
+.venue-tabs {
+    border-bottom: 2px solid #c9a227;
+    gap: 4px;
+}
+
+.venue-tabs .nav-link {
+    color: #6c757d;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    padding: 8px 20px;
+    transition: color 0.2s, background 0.2s;
+}
+
+.venue-tabs .nav-link:hover {
+    color: #12203a;
+    background: #f8f5ec;
+    border-color: #e8d9a0 #e8d9a0 transparent;
+}
+
+.venue-tabs .nav-link.active {
+    color: #12203a;
+    background: #fff;
+    border-color: #c9a227 #c9a227 #fff;
+    font-weight: 700;
+}
+
+.venue-tab-content {
+    background: transparent;
+    padding-top: 24px;
+}

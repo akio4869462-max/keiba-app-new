@@ -17,6 +17,7 @@ public class RaceNotificationService {
     private final DiscordNotificationService discordNotificationService;
     private final NotificationHistoryRepository historyRepository;
     private final NotificationJockeyHistoryRepository historyJockeyRepository;
+    private final RaceCacheService raceCacheService;
 
     public RaceNotificationService(
             FavoriteHorseRepository horseRepository,
@@ -24,7 +25,8 @@ public class RaceNotificationService {
             RaceService raceService,
             DiscordNotificationService discordNotificationService,
             NotificationHistoryRepository historyRepository,
-            NotificationJockeyHistoryRepository historyJockeyRepository) {
+            NotificationJockeyHistoryRepository historyJockeyRepository,
+            RaceCacheService raceCacheService) {
 
         this.horseRepository = horseRepository;
         this.jockeyRepository = jockeyRepository;
@@ -32,11 +34,20 @@ public class RaceNotificationService {
         this.discordNotificationService = discordNotificationService;
         this.historyRepository = historyRepository;
         this.historyJockeyRepository = historyJockeyRepository;
+        this.raceCacheService = raceCacheService;
     }
 
     public void checkFavorites() {
 
-        List<RaceInfo> races = raceService.getRaces();
+        // キャッシュのみ使う（フェッチはPreloadServiceに任せる）
+        // raceService.getRaces()はキャッシュミス時に30〜60秒かかるため、
+        // 通知ウィンドウ（発走5分前）を超えてしまい通知が届かなくなる
+        if (!raceCacheService.hasCachedRaces()) {
+            System.out.println("レースキャッシュなし - 通知チェックをスキップ");
+            return;
+        }
+
+        List<RaceInfo> races = raceCacheService.getCachedRaces();
 
         for (FavoriteHorse favorite
                 : horseRepository.findAll()) {
@@ -48,7 +59,7 @@ public class RaceNotificationService {
                     if (favorite.getHorseName()
                             .equals(horse.getName())) {
                         LocalTime now = LocalTime.now();
-                        LocalTime notifyTime = race.getRaceTime().minusMinutes(5);
+                        LocalTime notifyTime = race.getRaceTime().minusMinutes(30);
 
                         if (now.isBefore(notifyTime) || now.isAfter(race.getRaceTime())) {
                             continue;
@@ -92,7 +103,7 @@ public class RaceNotificationService {
                     if (favorite.getJockeyName()
                             .equals(horse.getJockeyName())) {
                         LocalTime now = LocalTime.now();
-                        LocalTime notifyTime = race.getRaceTime().minusMinutes(5);
+                        LocalTime notifyTime = race.getRaceTime().minusMinutes(30);
 
                         if (now.isBefore(notifyTime) || now.isAfter(race.getRaceTime())) {
                             continue;
