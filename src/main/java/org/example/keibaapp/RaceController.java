@@ -23,8 +23,14 @@ public class RaceController {
 
     @GetMapping("/races")
     public String showRaces(Model model) {
-        model.addAttribute("races", raceService.getRaces());
+        model.addAttribute("races", raceService.getBasicRaces());
         return "raceList";
+    }
+
+    @GetMapping("/predict")
+    public String showPredict(Model model) {
+        model.addAttribute("races", raceService.getRaces());
+        return "predict";
     }
 
     @GetMapping("/check")

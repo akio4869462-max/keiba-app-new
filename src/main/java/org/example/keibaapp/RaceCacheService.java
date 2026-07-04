@@ -29,7 +29,7 @@ public class RaceCacheService {
         return cachedRaces != null
                 && currentRange.equals(cachedRange)
                 && lastFetchedAt != null
-                && lastFetchedAt.plusMinutes(30)
+                && lastFetchedAt.plusMinutes(90)
                 .isAfter(LocalDateTime.now());
     }
 

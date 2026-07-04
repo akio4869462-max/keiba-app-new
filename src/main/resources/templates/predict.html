@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>出馬表</title>
+    <title>競馬予想</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
@@ -13,8 +13,8 @@
     <div class="container-fluid px-4">
         <span class="navbar-brand">🏇 競馬予想アプリ</span>
         <div class="d-flex gap-1 ms-auto">
-            <a class="nav-link active" href="/races">📋 出馬表</a>
-            <a class="nav-link" href="/predict">🎯 予想</a>
+            <a class="nav-link" href="/races">📋 出馬表</a>
+            <a class="nav-link active" href="/predict">🎯 予想</a>
             <a class="nav-link" href="/favorites">⭐ お気に入り馬</a>
             <a class="nav-link" href="/favoritesJockey">⭐ お気に入り騎手</a>
             <a class="nav-link" href="/results">📊 検証</a>
@@ -25,7 +25,7 @@
 <div class="page-wrapper">
 
     <div class="d-flex align-items-center mb-4">
-        <h1 class="page-title mb-0">📋 本日の出馬表</h1>
+        <h1 class="page-title mb-0">🎯 本日の予想</h1>
         <span class="ms-3 badge bg-secondary fs-6"
               th:text="'全 ' + ${#lists.size(races)} + ' レース'"></span>
     </div>
@@ -47,18 +47,28 @@
             <table class="table table-hover race-table">
                 <thead>
                 <tr>
-                    <th class="text-center">枠番</th>
+                    <th class="text-center">予想順位</th>
                     <th class="text-center">馬番</th>
                     <th>馬名</th>
                     <th>騎手</th>
-                    <th class="text-center">斤量</th>
                     <th class="text-center">オッズ</th>
+                    <th>前走成績</th>
+                    <th class="text-center">スコア</th>
+                    <th>予想理由</th>
+                    <th>AIコメント</th>
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="horse : ${race.horses}">
+                <tr th:each="horse, stat : ${race.horses}"
+                    th:classappend="${stat.index == 0} ? 'rank-1' : (${stat.index == 1} ? 'rank-2' : (${stat.index == 2} ? 'rank-3' : ''))">
 
-                    <td class="text-center" th:text="${horse.waku}"></td>
+                    <td class="text-center">
+                        <span th:if="${stat.index == 0}" class="rank-badge rank-gold">🥇 1位</span>
+                        <span th:if="${stat.index == 1}" class="rank-badge rank-silver">🥈 2位</span>
+                        <span th:if="${stat.index == 2}" class="rank-badge rank-bronze">🥉 3位</span>
+                        <span th:if="${stat.index >= 3}" class="rank-badge rank-other"
+                              th:text="${stat.index + 1} + '位'"></span>
+                    </td>
 
                     <td class="text-center fw-bold" th:text="${horse.umaban}"></td>
 
@@ -78,14 +88,35 @@
                         </form>
                     </td>
 
-                    <td class="text-center" th:text="${horse.jockeyWeight}"></td>
-
                     <td class="text-center">
                         <span class="odds-badge"
                               th:classappend="${horse.odds <= 3.0} ? ' odds-fav' : (${horse.odds <= 10.0} ? ' odds-mid' : ' odds-long')"
                               th:text="${horse.odds}"></span>
                     </td>
 
+                    <td class="past-races-cell">
+                        <div class="past-race-item"
+                             th:text="${horse.lastRace != null ? horse.lastRace.displayText : 'データなし'}"></div>
+                        <div class="past-race-item"
+                             th:text="${horse.secondLastRace != null ? horse.secondLastRace.displayText : 'データなし'}"></div>
+                        <div class="past-race-item"
+                             th:text="${horse.thirdLastRace != null ? horse.thirdLastRace.displayText : 'データなし'}"></div>
+                    </td>
+
+                    <td class="text-center">
+                        <span class="score-badge"
+                              th:text="${#numbers.formatDecimal(horse.predictionScore, 1, 1)}"></span>
+                    </td>
+
+                    <td>
+                        <div class="prediction-reason-cell"
+                             th:text="${horse.predictionReason}"></div>
+                    </td>
+
+                    <td>
+                        <div class="ai-comment-cell"
+                             th:text="${horse.aiComment != null ? horse.aiComment : '—'}"></div>
+                    </td>
                 </tr>
                 </tbody>
             </table>

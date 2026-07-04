@@ -244,6 +244,79 @@ public class RaceService {
         return races;
     }
 
+    public List<RaceInfo> getBasicRaces() {
+        List<RaceInfo> allRaces = new ArrayList<>();
+
+        try {
+            String todayText = LocalDate.now()
+                    .format(DateTimeFormatter.ofPattern("yyyy年M月d日"));
+
+            Document topDoc = WebScraper.getHTML("https://sports.yahoo.co.jp/keiba/");
+
+            Elements raceListLinks = topDoc.select("a[href*=/keiba/race/list/]");
+
+            int venueCount = 0;
+
+            for (Element link : raceListLinks) {
+                String listUrl = link.attr("abs:href");
+                Document listDoc = WebScraper.getHTML(listUrl);
+
+                if (!listDoc.title().contains(todayText)) continue;
+                if (venueCount >= 3) break;
+                venueCount++;
+
+                Set<String> raceUrls = raceParserService.getRaceUrls(listDoc);
+                String venueName = raceParserService.extractVenueName(listDoc.title());
+
+                for (String raceUrl : raceUrls) {
+                    try {
+                        int[] range = raceParserService.getRaceRangeByTime();
+                        if (!raceParserService.shouldFetchRace(raceUrl, range[0], range[1])) continue;
+
+                        Document doc = WebScraper.getHTML(raceUrl);
+
+                        RaceInfo raceInfo = new RaceInfo(
+                                raceParserService.getRaceNumber(raceUrl),
+                                venueName,
+                                WebScraper.getRaceName(doc),
+                                raceParserService.parseRaceTime(doc),
+                                WebScraper.getRaceCourse(doc),
+                                WebScraper.getRaceDistance(doc),
+                                buildBasicHorseList(doc)
+                        );
+
+                        allRaces.add(raceInfo);
+
+                    } catch (Exception e) {
+                        System.out.println(raceParserService.getRaceNumber(raceUrl) + "R取得失敗: " + e.getMessage());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("出馬表取得エラー: " + e.getMessage());
+        }
+
+        if (allRaces.isEmpty()) {
+            return dummyRaceFactory.createDummyRaces();
+        }
+
+        return allRaces;
+    }
+
+    private List<Horse> buildBasicHorseList(Document doc) {
+        List<Horse> horseList = new ArrayList<>();
+        Elements rows = raceParserService.getRaceRows(doc);
+
+        for (Element row : rows) {
+            if (row.selectFirst("th") != null || row.text().contains("枠番")) continue;
+            Elements tds = row.select("td");
+            if (tds.size() < 8) continue;
+            horseList.add(raceParserService.createHorse(tds));
+        }
+
+        return horseList;
+    }
+
     private void sortHorsesByScore(List<Horse> horseList) {
         horseList.sort(
                 Comparator.comparingDouble(Horse::getPredictionScore)
