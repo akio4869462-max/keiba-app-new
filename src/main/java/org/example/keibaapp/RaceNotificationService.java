@@ -6,10 +6,13 @@ import org.springframework.scheduling.annotation.Scheduled;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
 public class RaceNotificationService {
+
+    private static final ZoneId JST = ZoneId.of("Asia/Tokyo");
 
     private final FavoriteHorseRepository horseRepository;
     private final FavoriteJockeyRepository jockeyRepository;
@@ -58,7 +61,7 @@ public class RaceNotificationService {
 
                     if (favorite.getHorseName()
                             .equals(horse.getName())) {
-                        LocalTime now = LocalTime.now();
+                        LocalTime now = LocalTime.now(JST);
                         LocalTime notifyTime = race.getRaceTime().minusMinutes(30);
 
                         if (now.isBefore(notifyTime) || now.isAfter(race.getRaceTime())) {
@@ -102,7 +105,7 @@ public class RaceNotificationService {
 
                     if (favorite.getJockeyName()
                             .equals(horse.getJockeyName())) {
-                        LocalTime now = LocalTime.now();
+                        LocalTime now = LocalTime.now(JST);
                         LocalTime notifyTime = race.getRaceTime().minusMinutes(30);
 
                         if (now.isBefore(notifyTime) || now.isAfter(race.getRaceTime())) {
@@ -190,10 +193,10 @@ public class RaceNotificationService {
         }
     }
 
-    @Scheduled(cron = "0 * * * * *")
+    @Scheduled(cron = "0 * * * * *", zone = "Asia/Tokyo")
     public void scheduledCheck() {
-        DayOfWeek day = LocalDate.now().getDayOfWeek();
-        LocalTime time = LocalTime.now();
+        DayOfWeek day = LocalDate.now(JST).getDayOfWeek();
+        LocalTime time = LocalTime.now(JST);
 
         if ((day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY)
                 && (time.isAfter(LocalTime.of(9, 0)) && time.isBefore(LocalTime.of(17, 0)))) {
