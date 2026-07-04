@@ -41,7 +41,15 @@ public class RaceController {
 
     @GetMapping("/predict")
     public String showPredict(Model model) {
-        model.addAttribute("races", raceService.getRaces());
+        List<RaceInfo> races = raceService.getRaces();
+
+        Map<String, List<RaceInfo>> racesByVenue = races.stream()
+                .collect(Collectors.groupingBy(
+                        RaceInfo::getVenue,
+                        LinkedHashMap::new,
+                        Collectors.toList()));
+
+        model.addAttribute("racesByVenue", racesByVenue);
         return "predict";
     }
 
