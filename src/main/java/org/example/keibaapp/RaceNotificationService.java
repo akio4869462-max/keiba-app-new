@@ -83,6 +83,7 @@ public class RaceNotificationService {
 
                         String message =
                                 "【出走通知】" + horse.getName()
+                                        + "(" + horse.getUmaban() + "番)"
                                         + " が " + race.getVenue()
                                         + " " + race.getRaceNum()
                                         + "R に出走します！";
@@ -130,6 +131,7 @@ public class RaceNotificationService {
                                         + " が " + race.getVenue()
                                         + " " + race.getRaceNum()
                                         + "R で" + horse.getName()
+                                        + "(" + horse.getUmaban() + "番)"
                                         + "に騎乗します！";
 
                         System.out.println(message);
@@ -155,6 +157,7 @@ public class RaceNotificationService {
 
                         String message =
                                 "【デバッグ通知】" + horse.getName()
+                                        + "(" + horse.getUmaban() + "番)"
                                         + " が " + race.getVenue()
                                         + " " + race.getRaceNum()
                                         + "R に出走します！";
@@ -182,6 +185,7 @@ public class RaceNotificationService {
                                         + " が " + race.getVenue()
                                         + " " + race.getRaceNum()
                                         + "R で" + horse.getName()
+                                        + "(" + horse.getUmaban() + "番)"
                                         + "に騎乗します！";
 
                         System.out.println(message);
