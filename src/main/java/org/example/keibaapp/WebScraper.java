@@ -18,18 +18,40 @@ public class WebScraper {
             "3勝クラス", "2勝クラス", "1勝クラス", "未勝利", "新馬"
     );
 
+    // サーキットブレーカー: 直近で取得に失敗し続けている間は、ブロック/障害中の
+    // サイトに何度もアクセスしてしまわないよう、一定時間スクレイピング自体を
+    // スキップする。定期実行・手動実行・ページ表示のどこから呼ばれても共通で効く
+    private static volatile long circuitOpenUntil = 0;
+    private static final long CIRCUIT_COOLDOWN_MS = 5 * 60 * 1000;
+
+    // テストで状態をリセットするためだけに用意（本番コードからは呼ばない）
+    static void resetCircuitBreakerForTesting() {
+        circuitOpenUntil = 0;
+    }
+
     // 指定されたURLからHTMLを取得するメソッド（Yahoo!競馬用につなぎます）
     public static Document getHTML(String url) throws IOException {
+        long now = System.currentTimeMillis();
+
+        if (now < circuitOpenUntil) {
+            throw new IOException(
+                    "直近の取得失敗が続いているため一時停止中です（あと"
+                            + ((circuitOpenUntil - now) / 1000) + "秒）: " + url);
+        }
+
         IOException lastException = null;
 
         for (int i = 0; i < 3; i++) {
             try {
-                return Jsoup.connect(url)
+                Document doc = Jsoup.connect(url)
                         .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36")
                         .referrer("https://sports.yahoo.co.jp/")
                         .header("Accept-Language", "ja,en-US;q=0.9,en;q=0.8")
                         .timeout(15000)
                         .get();
+
+                circuitOpenUntil = 0;
+                return doc;
             } catch (IOException e) {
                 lastException = e;
 
@@ -43,6 +65,10 @@ public class WebScraper {
                 }
             }
         }
+
+        circuitOpenUntil = System.currentTimeMillis() + CIRCUIT_COOLDOWN_MS;
+        System.out.println(
+                "連続して取得に失敗したため" + (CIRCUIT_COOLDOWN_MS / 60000) + "分間スクレイピングを一時停止します");
 
         throw lastException;
     }

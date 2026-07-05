@@ -34,11 +34,16 @@
         まだ蓄積されたレースがありません。
     </p>
 
-    <div th:each="race : ${raceGroups}" class="race-card mb-4">
+    <div th:each="race, stat : ${raceGroups}">
+
+    <h2 class="h5 mt-4 mb-3"
+        th:if="${stat.first or race.raceDate != raceGroups[stat.index - 1].raceDate}"
+        th:text="${race.raceDate}"></h2>
+
+    <div class="race-card mb-4">
 
         <div class="race-card-header">
             <span class="race-name fw-bold" th:text="${race.displayName}"></span>
-            <span class="text-muted small" th:text="${race.raceDate}"></span>
         </div>
 
         <div class="table-wrapper">
@@ -72,6 +77,8 @@
                 </tbody>
             </table>
         </div>
+
+    </div>
 
     </div>
 
