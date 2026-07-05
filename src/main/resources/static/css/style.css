@@ -139,6 +139,27 @@ body {
 .rank-bronze { background: #fde8d8; color: #8b4513; }
 .rank-other  { background: #f0f0f0; color: #888; font-size: 0.72rem; }
 
+/* ========== Waku (post position) Badge ========== */
+.waku-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.waku-1 { background: #fff; color: #333; border: 1px solid #999; }
+.waku-2 { background: #333; color: #fff; }
+.waku-3 { background: #d9333f; color: #fff; }
+.waku-4 { background: #2a5caa; color: #fff; }
+.waku-5 { background: #f7d117; color: #333; }
+.waku-6 { background: #2b8a3e; color: #fff; }
+.waku-7 { background: #e8792a; color: #333; }
+.waku-8 { background: #ea6db4; color: #333; }
+
 /* ========== Horse / Jockey ========== */
 .horse-name {
     font-weight: 700;

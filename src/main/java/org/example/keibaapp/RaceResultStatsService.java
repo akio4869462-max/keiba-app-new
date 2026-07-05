@@ -154,6 +154,31 @@ public class RaceResultStatsService {
         return totalReturn / totalStake * 100;
     }
 
+    public List<RaceResultGroup> buildRaceGroups(List<RaceResultRecord> allRecords) {
+        Map<RaceKey, List<RaceResultRecord>> grouped = allRecords.stream()
+                .collect(Collectors.groupingBy(
+                        r -> new RaceKey(r.getRaceDate(), r.getVenue(), r.getRaceNumber(), r.getRaceName())));
+
+        List<RaceResultGroup> groups = new ArrayList<>();
+
+        for (Map.Entry<RaceKey, List<RaceResultRecord>> entry : grouped.entrySet()) {
+            List<RaceResultRecord> horses = new ArrayList<>(entry.getValue());
+            horses.sort(Comparator.comparingInt(RaceResultRecord::getActualRank));
+
+            RaceKey key = entry.getKey();
+            groups.add(new RaceResultGroup(key.raceDate(), key.venue(), key.raceNumber(), key.raceName(), horses));
+        }
+
+        groups.sort(Comparator.comparing(RaceResultGroup::getRaceDate).reversed()
+                .thenComparing(RaceResultGroup::getVenue)
+                .thenComparingInt(RaceResultGroup::getRaceNumber));
+
+        return groups;
+    }
+
+    private record RaceKey(LocalDate raceDate, String venue, int raceNumber, String raceName) {
+    }
+
     public double totalReturn(List<RaceResultRecord> topPicks) {
         return topPicks.stream()
                 .mapToDouble(r -> r.getActualRank() == 1 ? r.getOdds() : 0)

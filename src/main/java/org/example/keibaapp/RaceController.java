@@ -5,6 +5,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +23,8 @@ public class RaceController {
     private final RaceResultStatsService raceResultStatsService;
     private final RaceResultCollectionService raceResultCollectionService;
     private final TrackedRaceUrlRepository trackedRaceUrlRepository;
+    private final FavoriteHorseService favoriteHorseService;
+    private final FavoriteJockeyService favoriteJockeyService;
 
     public RaceController(
             RaceService raceService,
@@ -29,7 +33,9 @@ public class RaceController {
             RaceResultRecordRepository raceResultRecordRepository,
             RaceResultStatsService raceResultStatsService,
             RaceResultCollectionService raceResultCollectionService,
-            TrackedRaceUrlRepository trackedRaceUrlRepository) {
+            TrackedRaceUrlRepository trackedRaceUrlRepository,
+            FavoriteHorseService favoriteHorseService,
+            FavoriteJockeyService favoriteJockeyService) {
 
         this.raceService = raceService;
         this.notificationService = notificationService;
@@ -38,6 +44,8 @@ public class RaceController {
         this.raceResultStatsService = raceResultStatsService;
         this.raceResultCollectionService = raceResultCollectionService;
         this.trackedRaceUrlRepository = trackedRaceUrlRepository;
+        this.favoriteHorseService = favoriteHorseService;
+        this.favoriteJockeyService = favoriteJockeyService;
     }
 
     @GetMapping("/results/collect")
@@ -168,5 +176,52 @@ public class RaceController {
         model.addAttribute("roiTotalReturn", raceResultStatsService.totalReturn(topPicks));
 
         return "results";
+    }
+
+    @GetMapping("/results/races")
+    public String resultsByRace(Model model) {
+        List<RaceResultRecord> allRecords = raceResultRecordRepository.findAll();
+
+        model.addAttribute("raceGroups", raceResultStatsService.buildRaceGroups(allRecords));
+
+        return "raceResults";
+    }
+
+    @GetMapping("/favorites/today")
+    public String favoritesToday(Model model) {
+        List<RaceInfo> races = raceService.getRaces();
+
+        List<FavoriteRaceEntry> horseMatches = new ArrayList<>();
+
+        for (FavoriteHorse favorite : favoriteHorseService.findAll()) {
+            for (RaceInfo race : races) {
+                for (Horse horse : race.getHorses()) {
+                    if (favorite.getHorseName().equals(horse.getName())) {
+                        horseMatches.add(new FavoriteRaceEntry(race, horse, favorite.getHorseName()));
+                    }
+                }
+            }
+        }
+
+        List<FavoriteRaceEntry> jockeyMatches = new ArrayList<>();
+
+        for (FavoriteJockey favorite : favoriteJockeyService.findAll()) {
+            for (RaceInfo race : races) {
+                for (Horse horse : race.getHorses()) {
+                    if (favorite.getJockeyName().equals(horse.getJockeyName())) {
+                        jockeyMatches.add(new FavoriteRaceEntry(race, horse, favorite.getJockeyName()));
+                    }
+                }
+            }
+        }
+
+        Comparator<FavoriteRaceEntry> byRaceTime = Comparator.comparing(entry -> entry.getRace().getRaceTime());
+        horseMatches.sort(byRaceTime);
+        jockeyMatches.sort(byRaceTime);
+
+        model.addAttribute("horseMatches", horseMatches);
+        model.addAttribute("jockeyMatches", jockeyMatches);
+
+        return "favoritesToday";
     }
 }

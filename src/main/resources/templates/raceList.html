@@ -18,6 +18,8 @@
             <a class="nav-link" href="/favorites">⭐ お気に入り馬</a>
             <a class="nav-link" href="/favoritesJockey">⭐ お気に入り騎手</a>
             <a class="nav-link" href="/results">📊 検証</a>
+            <a class="nav-link" href="/results/races">🏁 結果</a>
+            <a class="nav-link" href="/favorites/today">🌅 今日の予定</a>
         </div>
     </div>
 </nav>
@@ -73,7 +75,6 @@
                     <table class="table table-hover race-table">
                         <thead>
                         <tr>
-                            <th class="text-center">枠番</th>
                             <th class="text-center">馬番</th>
                             <th>馬名</th>
                             <th>騎手</th>
@@ -84,15 +85,16 @@
                         <tbody>
                         <tr th:each="horse : ${race.horses}">
 
-                            <td class="text-center" th:text="${horse.waku}"></td>
-
-                            <td class="text-center fw-bold" th:text="${horse.umaban}"></td>
+                            <td class="text-center">
+                                <span class="waku-badge" th:classappend="'waku-' + ${horse.waku}"
+                                      th:text="${horse.umaban}"></span>
+                            </td>
 
                             <td>
-                                <a class="horse-name" th:if="${horse.horseUrl != null and !horse.horseUrl.isEmpty()}"
-                                   th:href="${horse.horseUrl}" th:text="${horse.name}"
+                                <a class="horse-name" th:if="${horse.netkeibaHorseUrl != null and !horse.netkeibaHorseUrl.isEmpty()}"
+                                   th:href="${horse.netkeibaHorseUrl}" th:text="${horse.name}"
                                    target="_blank" rel="noopener"></a>
-                                <div class="horse-name" th:unless="${horse.horseUrl != null and !horse.horseUrl.isEmpty()}"
+                                <div class="horse-name" th:unless="${horse.netkeibaHorseUrl != null and !horse.netkeibaHorseUrl.isEmpty()}"
                                      th:text="${horse.name}"></div>
                                 <form th:action="@{/favorite/add}" method="post">
                                     <input type="hidden" name="horseName" th:value="${horse.name}" />
@@ -101,10 +103,10 @@
                             </td>
 
                             <td>
-                                <a class="jockey-name" th:if="${horse.jockeyUrl != null and !horse.jockeyUrl.isEmpty()}"
-                                   th:href="${horse.jockeyUrl}" th:text="${horse.jockeyName}"
+                                <a class="jockey-name" th:if="${horse.netkeibaJockeyUrl != null and !horse.netkeibaJockeyUrl.isEmpty()}"
+                                   th:href="${horse.netkeibaJockeyUrl}" th:text="${horse.jockeyName}"
                                    target="_blank" rel="noopener"></a>
-                                <div class="jockey-name" th:unless="${horse.jockeyUrl != null and !horse.jockeyUrl.isEmpty()}"
+                                <div class="jockey-name" th:unless="${horse.netkeibaJockeyUrl != null and !horse.netkeibaJockeyUrl.isEmpty()}"
                                      th:text="${horse.jockeyName}"></div>
                                 <form th:action="@{/favoriteJockey/add}" method="post">
                                     <input type="hidden" name="jockeyName" th:value="${horse.jockeyName}" />

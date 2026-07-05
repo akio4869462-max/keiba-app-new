@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>レース結果一覧</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg">
+    <div class="container-fluid px-4">
+        <span class="navbar-brand">🏇 競馬予想アプリ</span>
+        <div class="d-flex gap-1 ms-auto">
+            <a class="nav-link" href="/races">📋 出馬表</a>
+            <a class="nav-link" href="/predict">🎯 予想</a>
+            <a class="nav-link" href="/favorites">⭐ お気に入り馬</a>
+            <a class="nav-link" href="/favoritesJockey">⭐ お気に入り騎手</a>
+            <a class="nav-link" href="/results">📊 検証</a>
+            <a class="nav-link active" href="/results/races">🏁 結果</a>
+            <a class="nav-link" href="/favorites/today">🌅 今日の予定</a>
+        </div>
+    </div>
+</nav>
+
+<div class="page-wrapper">
+
+    <a href="/results" class="back-link">← 検証ページへ戻る</a>
+
+    <h1 class="page-title mb-4">🏁 レース結果一覧</h1>
+
+    <p class="text-muted" th:if="${#lists.isEmpty(raceGroups)}">
+        まだ蓄積されたレースがありません。
+    </p>
+
+    <div th:each="race : ${raceGroups}" class="race-card mb-4">
+
+        <div class="race-card-header">
+            <span class="race-name fw-bold" th:text="${race.displayName}"></span>
+            <span class="text-muted small" th:text="${race.raceDate}"></span>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="table race-table mb-0">
+                <thead>
+                <tr>
+                    <th class="text-center" style="width: 90px">着順</th>
+                    <th>馬名</th>
+                    <th class="text-center" style="width: 100px">予想順位</th>
+                    <th class="text-center" style="width: 90px">オッズ</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="horse : ${race.horses}"
+                    th:classappend="${horse.actualRank == 1} ? 'rank-1' : (${horse.actualRank == 2} ? 'rank-2' : (${horse.actualRank == 3} ? 'rank-3' : ''))">
+
+                    <td class="text-center fw-bold"
+                        th:text="${horse.actualRank > 0 ? horse.actualRank + '着' : '不明'}"></td>
+
+                    <td class="horse-name" th:text="${horse.horseName}"></td>
+
+                    <td class="text-center">
+                        <span th:if="${horse.predictionRank == 1}" class="rank-badge rank-gold"
+                              th:text="${horse.predictionRank} + '位'"></span>
+                        <span th:unless="${horse.predictionRank == 1}" class="rank-badge rank-other"
+                              th:text="${horse.predictionRank} + '位'"></span>
+                    </td>
+
+                    <td class="text-center" th:text="${horse.odds}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

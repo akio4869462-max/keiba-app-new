@@ -72,6 +72,34 @@ public class Horse {
         this.jockeyUrl = jockeyUrl;
     }
 
+    // Yahoo!スポーツと同じJRA登録番号がnetkeibaのURLでもそのまま使えるため、
+    // IDを抜き出してnetkeiba側のURLに組み替える
+    public String getNetkeibaHorseUrl() {
+        return toNetkeibaUrl(horseUrl, "horse");
+    }
+
+    public String getNetkeibaJockeyUrl() {
+        return toNetkeibaUrl(jockeyUrl, "jockey");
+    }
+
+    private String toNetkeibaUrl(String yahooUrl, String type) {
+        if (yahooUrl == null || yahooUrl.isEmpty()) {
+            return "";
+        }
+
+        String trimmed = yahooUrl.endsWith("/")
+                ? yahooUrl.substring(0, yahooUrl.length() - 1)
+                : yahooUrl;
+
+        String id = trimmed.substring(trimmed.lastIndexOf('/') + 1);
+
+        if (id.isEmpty()) {
+            return "";
+        }
+
+        return "https://db.netkeiba.com/" + type + "/" + id + "/";
+    }
+
     public JockeyStats getJockeyStats() {
         return jockeyStats;
     }
