@@ -30,6 +30,11 @@
 
     <h1 class="page-title mb-4">🏁 レース結果一覧</h1>
 
+    <p class="text-muted small">
+        直近<span th:text="${displayWeeks}"></span>週間分を表示しています（全期間の集計は
+        <a href="/results">検証ページ</a>を参照してください）。
+    </p>
+
     <p class="text-muted" th:if="${#lists.isEmpty(raceGroups)}">
         まだ蓄積されたレースがありません。
     </p>

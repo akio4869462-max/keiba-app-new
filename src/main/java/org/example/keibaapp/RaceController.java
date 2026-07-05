@@ -5,6 +5,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -14,6 +16,11 @@ import java.util.stream.Collectors;
 
 @Controller
 public class RaceController {
+
+    private static final ZoneId JST = ZoneId.of("Asia/Tokyo");
+
+    // /results/racesはページが際限なく伸びないよう直近分のみ表示する
+    private static final int RACE_RESULTS_DISPLAY_WEEKS = 4;
 
     // ★重要：Springに「サービスを使ってね」と伝えるための変数とコンストラクタ
     private final RaceService raceService;
@@ -182,9 +189,11 @@ public class RaceController {
 
     @GetMapping("/results/races")
     public String resultsByRace(Model model) {
-        List<RaceResultRecord> allRecords = raceResultRecordRepository.findAll();
+        LocalDate cutoff = LocalDate.now(JST).minusWeeks(RACE_RESULTS_DISPLAY_WEEKS);
+        List<RaceResultRecord> recentRecords = raceResultRecordRepository.findByRaceDateGreaterThanEqual(cutoff);
 
-        model.addAttribute("raceGroups", raceResultStatsService.buildRaceGroups(allRecords));
+        model.addAttribute("raceGroups", raceResultStatsService.buildRaceGroups(recentRecords));
+        model.addAttribute("displayWeeks", RACE_RESULTS_DISPLAY_WEEKS);
 
         return "raceResults";
     }
