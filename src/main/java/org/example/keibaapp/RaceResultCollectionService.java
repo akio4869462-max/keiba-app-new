@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class RaceResultCollectionService {
@@ -18,6 +19,11 @@ public class RaceResultCollectionService {
     // 発走から確定を試みるまでの猶予（レース自体は数分で終わるが、着順確定・
     // 結果ページへの反映にはさらに時間がかかるため余裕を持たせる）
     private static final int RESULT_CONFIRMATION_BUFFER_MINUTES = 40;
+
+    // 手動実行(即座に返る)と定期実行が重なって二重にスクレイピングが走ると、
+    // メモリの小さいEC2インスタンス上で他のページ取得と資源を奪い合ってしまう
+    // ため、同時に1つしか実行しないようにする
+    private final AtomicBoolean isCollecting = new AtomicBoolean(false);
 
     private final TrackedRaceUrlRepository trackedRaceUrlRepository;
     private final RaceResultRecordRepository raceResultRecordRepository;
@@ -50,31 +56,41 @@ public class RaceResultCollectionService {
     // 土日に取りこぼした分の最終catch-allとして月曜早朝にも実行する
     @Scheduled(cron = "0 0 3 * * MON", zone = "Asia/Tokyo")
     public String collectWeekendResults() {
-        List<TrackedRaceUrl> pending = trackedRaceUrlRepository.findByProcessedFalse();
-
-        int confirmed = 0;
-        int pendingResult = 0;
-        int failed = 0;
-
-        for (TrackedRaceUrl tracked : pending) {
-            try {
-                if (processRaceUrl(tracked)) {
-                    confirmed++;
-                } else {
-                    pendingResult++;
-                }
-            } catch (Exception e) {
-                failed++;
-                System.out.println("結果収集失敗: " + tracked.getRaceUrl() + " / " + e.getMessage());
-            }
+        if (!isCollecting.compareAndSet(false, true)) {
+            String message = "既に結果収集が実行中のため今回はスキップしました";
+            System.out.println("【結果収集】" + message);
+            return message;
         }
 
-        String summary = "対象" + pending.size() + "件 / 確定" + confirmed
-                + "件 / 結果未確定" + pendingResult + "件 / 失敗" + failed + "件";
+        try {
+            List<TrackedRaceUrl> pending = trackedRaceUrlRepository.findByProcessedFalse();
 
-        System.out.println("【結果収集】" + summary);
+            int confirmed = 0;
+            int pendingResult = 0;
+            int failed = 0;
 
-        return summary;
+            for (TrackedRaceUrl tracked : pending) {
+                try {
+                    if (processRaceUrl(tracked)) {
+                        confirmed++;
+                    } else {
+                        pendingResult++;
+                    }
+                } catch (Exception e) {
+                    failed++;
+                    System.out.println("結果収集失敗: " + tracked.getRaceUrl() + " / " + e.getMessage());
+                }
+            }
+
+            String summary = "対象" + pending.size() + "件 / 確定" + confirmed
+                    + "件 / 結果未確定" + pendingResult + "件 / 失敗" + failed + "件";
+
+            System.out.println("【結果収集】" + summary);
+
+            return summary;
+        } finally {
+            isCollecting.set(false);
+        }
     }
 
     private boolean processRaceUrl(TrackedRaceUrl tracked) throws InterruptedException, java.io.IOException {
