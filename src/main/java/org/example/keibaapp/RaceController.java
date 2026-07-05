@@ -51,7 +51,9 @@ public class RaceController {
     @GetMapping("/results/collect")
     @ResponseBody
     public String collectResults() {
-        return raceResultCollectionService.collectWeekendResults();
+        raceResultCollectionService.collectWeekendResultsAsync();
+        return "結果収集を開始しました。1頭ずつ取得するため時間がかかります。"
+                + "しばらくしてから/results/racesや/results/debugで確認してください。";
     }
 
     @GetMapping("/results/reset")

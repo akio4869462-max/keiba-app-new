@@ -1,6 +1,7 @@
 package org.example.keibaapp;
 
 import org.jsoup.nodes.Document;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +34,14 @@ public class RaceResultCollectionService {
         this.raceResultRecordRepository = raceResultRecordRepository;
         this.raceService = raceService;
         this.raceParserService = raceParserService;
+    }
+
+    // 手動実行(/results/collect)用。1頭ごとに0.5秒待ちながら順に取得するため
+    // レース数が多いと数十秒〜数分かかる。ブラウザを待たせないよう非同期で実行し、
+    // 結果は/results/racesや/results/debugで確認してもらう
+    @Async
+    public void collectWeekendResultsAsync() {
+        collectWeekendResults();
     }
 
     // 土日の日中は30分おきに確定済みレースがないか確認し、順次結果を反映する
