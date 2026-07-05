@@ -4,10 +4,19 @@ import org.jsoup.nodes.Document;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
 public class RaceResultCollectionService {
+
+    private static final ZoneId JST = ZoneId.of("Asia/Tokyo");
+
+    // 発走から確定を試みるまでの猶予（レース自体は数分で終わるが、着順確定・
+    // 結果ページへの反映にはさらに時間がかかるため余裕を持たせる）
+    private static final int RESULT_CONFIRMATION_BUFFER_MINUTES = 40;
 
     private final TrackedRaceUrlRepository trackedRaceUrlRepository;
     private final RaceResultRecordRepository raceResultRecordRepository;
@@ -26,6 +35,10 @@ public class RaceResultCollectionService {
         this.raceParserService = raceParserService;
     }
 
+    // 土日の日中は30分おきに確定済みレースがないか確認し、順次結果を反映する
+    // （未確定のレースはprocessRaceUrl内でスキップされ次回に再試行されるだけなので安全）
+    @Scheduled(cron = "0 */30 9-18 * * SAT,SUN", zone = "Asia/Tokyo")
+    // 土日に取りこぼした分の最終catch-allとして月曜早朝にも実行する
     @Scheduled(cron = "0 0 3 * * MON", zone = "Asia/Tokyo")
     public String collectWeekendResults() {
         List<TrackedRaceUrl> pending = trackedRaceUrlRepository.findByProcessedFalse();
@@ -59,6 +72,21 @@ public class RaceResultCollectionService {
         String raceUrl = tracked.getRaceUrl();
 
         Document doc = WebScraper.getHTML(raceUrl);
+
+        // サイト側は発走前でも「結果」欄に古いデータ(前走時点のキャッシュ等)を
+        // 表示していることがあり、内容だけでは確定判定を信用できない。
+        // そのため発走時刻から十分な時間が経っているかを最初にチェックする。
+        // LocalTimeは日付を持たないため、tracked.getRaceDate()（追跡開始時の
+        // 実際の日付）と組み合わせて絶対時刻同士で比較する
+        LocalTime raceTime = raceParserService.parseRaceTime(doc);
+        LocalDateTime raceDateTime = LocalDateTime.of(tracked.getRaceDate(), raceTime);
+        LocalDateTime now = LocalDateTime.now(JST);
+
+        if (now.isBefore(raceDateTime.plusMinutes(RESULT_CONFIRMATION_BUFFER_MINUTES))) {
+            System.out.println(
+                    "発走(" + raceDateTime + ")から間もないためスキップ(次回再試行): " + raceUrl);
+            return false;
+        }
 
         String venueName = WebScraper.getVenueName(doc);
         String raceName = WebScraper.getRaceName(doc);

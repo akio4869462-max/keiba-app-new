@@ -28,9 +28,16 @@ public class HorseEnrichmentService {
             String horseUrl,
             boolean historical) throws InterruptedException {
 
-        String cacheKey = historical
-                ? "historical:" + horseUrl
-                : "today:" + horseUrl;
+        // historicalモードは結果確定チェックに使われ、土日は結果が出るまで
+        // 何度もポーリングされる。キャッシュしてしまうと未確定だった時点の
+        // データが固定され、後で結果が出ても永遠に反映されなくなるため、
+        // このモードだけは毎回取得し直す
+        if (historical) {
+            Thread.sleep(500);
+            return WebScraper.getHistoricalHorseDetailInfo(horseUrl);
+        }
+
+        String cacheKey = "today:" + horseUrl;
 
         HorseDetailInfo detail =
                 raceCacheService.getHorseDetail(cacheKey);
@@ -38,9 +45,7 @@ public class HorseEnrichmentService {
         if (detail == null) {
             Thread.sleep(500);
 
-            detail = historical
-                    ? WebScraper.getHistoricalHorseDetailInfo(horseUrl)
-                    : WebScraper.getTodayHorseDetailInfo(horseUrl);
+            detail = WebScraper.getTodayHorseDetailInfo(horseUrl);
 
             raceCacheService.putHorseDetail(cacheKey, detail);
         }
