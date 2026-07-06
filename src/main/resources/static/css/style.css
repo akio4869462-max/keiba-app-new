@@ -18,12 +18,23 @@ body {
     color: #c9a227 !important;
 }
 
+/* ナビ項目が増えて画面幅に収まらない場合、隠れて操作不能にならないよう折り返す */
+.navbar .container-fluid {
+    flex-wrap: wrap;
+    row-gap: 6px;
+}
+
+.navbar .d-flex {
+    flex-wrap: wrap;
+}
+
 .nav-link {
     color: rgba(255,255,255,0.8) !important;
     font-size: 0.875rem;
     padding: 0.4rem 0.8rem !important;
     border-radius: 6px;
     transition: all 0.2s;
+    white-space: nowrap;
 }
 
 .nav-link:hover, .nav-link.active {
