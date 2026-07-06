@@ -1,5 +1,6 @@
 package org.example.keibaapp;
 
+import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -24,9 +25,13 @@ public class WebScraper {
     private static volatile long circuitOpenUntil = 0;
     private static final long CIRCUIT_COOLDOWN_MS = 5 * 60 * 1000;
 
-    // テストで状態をリセットするためだけに用意（本番コードからは呼ばない）
+    // テストで状態をリセット・確認するためだけに用意（本番コードからは呼ばない）
     static void resetCircuitBreakerForTesting() {
         circuitOpenUntil = 0;
+    }
+
+    static boolean isCircuitOpenForTesting() {
+        return System.currentTimeMillis() < circuitOpenUntil;
     }
 
     // 指定されたURLからHTMLを取得するメソッド（Yahoo!競馬用につなぎます）
@@ -52,6 +57,25 @@ public class WebScraper {
 
                 circuitOpenUntil = 0;
                 return doc;
+            } catch (HttpStatusException e) {
+                // 404/403などのクライアントエラーは、このURL固有の問題（存在しない
+                // 馬・騎手ページ等）であり、サイト全体の障害を示すものではない。
+                // リトライしても結果は変わらないため即座に諦め、サーキットブレーカー
+                // にもカウントしない（無関係な処理まで巻き込んで止めてしまうため）
+                if (e.getStatusCode() >= 400 && e.getStatusCode() < 500) {
+                    System.out.println("取得失敗(対象なし): " + url + " / " + e.getMessage());
+                    throw e;
+                }
+
+                lastException = e;
+                System.out.println("取得失敗(" + (i + 1) + "/3): " + url + " / " + e.getMessage());
+
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException interruptedException) {
+                    Thread.currentThread().interrupt();
+                    throw e;
+                }
             } catch (IOException e) {
                 lastException = e;
 
