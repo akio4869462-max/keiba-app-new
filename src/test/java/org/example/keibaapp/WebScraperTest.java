@@ -29,8 +29,16 @@ class WebScraperTest {
 
     @Test
     void getHTML_shouldOpenCircuitAndSkipRetriesAfterRepeatedConnectionFailures() throws Exception {
+        // サーキットが閉じている（正常な）間は残り秒数は0のはず
+        assertEquals(0, WebScraper.getCircuitRemainingSeconds());
+
         // 1回目: 接続自体に失敗（3回リトライ）し、サーキットが開く
         assertThrows(IOException.class, () -> WebScraper.getHTML(UNREACHABLE_URL));
+
+        // サーキットが開いた直後は残り秒数が正の値になっているはず（最大5分=300秒）
+        long remaining = WebScraper.getCircuitRemainingSeconds();
+        assertTrue(remaining > 0 && remaining <= 300,
+                "サーキットオープン直後の残り秒数が想定外: " + remaining);
 
         // 2回目: サーキットが開いている間はリトライせず即座に失敗するはず
         long start = System.currentTimeMillis();

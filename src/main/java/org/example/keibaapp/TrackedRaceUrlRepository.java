@@ -11,4 +11,6 @@ public interface TrackedRaceUrlRepository
     Optional<TrackedRaceUrl> findByRaceUrl(String raceUrl);
 
     List<TrackedRaceUrl> findByProcessedFalse();
+
+    long countByProcessedFalse();
 }

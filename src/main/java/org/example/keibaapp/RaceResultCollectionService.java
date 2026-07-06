@@ -25,6 +25,10 @@ public class RaceResultCollectionService {
     // ため、同時に1つしか実行しないようにする
     private final AtomicBoolean isCollecting = new AtomicBoolean(false);
 
+    // /statusページで直近の収集結果を表示するために保持しておく
+    private volatile String lastRunSummary = "まだ実行されていません";
+    private volatile LocalDateTime lastRunAt;
+
     private final TrackedRaceUrlRepository trackedRaceUrlRepository;
     private final RaceResultRecordRepository raceResultRecordRepository;
     private final RacePayoutRepository racePayoutRepository;
@@ -90,10 +94,25 @@ public class RaceResultCollectionService {
 
             System.out.println("【結果収集】" + summary);
 
+            lastRunSummary = summary;
+            lastRunAt = LocalDateTime.now(JST);
+
             return summary;
         } finally {
             isCollecting.set(false);
         }
+    }
+
+    public boolean isCollecting() {
+        return isCollecting.get();
+    }
+
+    public String getLastRunSummary() {
+        return lastRunSummary;
+    }
+
+    public LocalDateTime getLastRunAt() {
+        return lastRunAt;
     }
 
     private boolean processRaceUrl(TrackedRaceUrl tracked) throws InterruptedException, java.io.IOException {

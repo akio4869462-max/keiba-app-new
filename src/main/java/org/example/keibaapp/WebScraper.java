@@ -35,6 +35,12 @@ public class WebScraper {
         return System.currentTimeMillis() < circuitOpenUntil;
     }
 
+    // サーキットブレーカーの残り一時停止秒数（0なら稼働中）。/statusページ表示用
+    public static long getCircuitRemainingSeconds() {
+        long now = System.currentTimeMillis();
+        return now < circuitOpenUntil ? (circuitOpenUntil - now) / 1000 : 0;
+    }
+
     // 指定されたURLからHTMLを取得するメソッド（Yahoo!競馬用につなぎます）
     public static Document getHTML(String url) throws IOException {
         long now = System.currentTimeMillis();
