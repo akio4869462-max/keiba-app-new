@@ -6,6 +6,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
@@ -338,6 +339,48 @@ public class WebScraper {
         }
 
         return "";
+    }
+
+    // 結果ページ(/race/result/{id})の払戻金テーブルを解析する。
+    // 複勝・ワイドは1レースに3組み合わせあり、最初の行にだけ<th>(rowspan)が
+    // 付くため、<th>が無い行は直前の馬券種を引き継ぐ
+    public static List<PayoutEntry> getPayouts(Document doc) {
+        List<PayoutEntry> payouts = new ArrayList<>();
+        Elements tables = doc.select("table.hr-tableLeftTop");
+        String currentBetType = null;
+
+        for (Element table : tables) {
+            for (Element row : table.select("tbody tr")) {
+                Element betTypeHeader = row.selectFirst("th");
+
+                if (betTypeHeader != null) {
+                    currentBetType = betTypeHeader.text().trim();
+                }
+
+                Elements tds = row.select("td");
+
+                if (currentBetType == null || tds.size() < 2) {
+                    continue;
+                }
+
+                String combination = tds.get(0).text().trim();
+                int payoutYen = parsePayoutYen(tds.get(1).text().trim());
+
+                payouts.add(new PayoutEntry(currentBetType, combination, payoutYen));
+            }
+        }
+
+        return payouts;
+    }
+
+    private static int parsePayoutYen(String payoutText) {
+        String digitsOnly = payoutText.replaceAll("[^0-9]", "");
+
+        if (digitsOnly.isEmpty()) {
+            return 0;
+        }
+
+        return Integer.parseInt(digitsOnly);
     }
 
     public static String getVenueName(Document doc) {

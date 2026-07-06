@@ -83,6 +83,25 @@
             </table>
         </div>
 
+        <div class="table-wrapper" th:if="${not #lists.isEmpty(race.payouts)}">
+            <table class="table race-table mb-0">
+                <thead>
+                <tr>
+                    <th style="width: 100px">券種</th>
+                    <th>組み合わせ</th>
+                    <th class="text-end" style="width: 120px">払戻金</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="payout : ${race.payouts}">
+                    <td th:text="${payout.betType}"></td>
+                    <td th:text="${payout.combination}"></td>
+                    <td class="text-end" th:text="${payout.payoutYen} + '円'"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
     </div>
 
     </div>

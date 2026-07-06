@@ -27,17 +27,20 @@ public class RaceResultCollectionService {
 
     private final TrackedRaceUrlRepository trackedRaceUrlRepository;
     private final RaceResultRecordRepository raceResultRecordRepository;
+    private final RacePayoutRepository racePayoutRepository;
     private final RaceService raceService;
     private final RaceParserService raceParserService;
 
     public RaceResultCollectionService(
             TrackedRaceUrlRepository trackedRaceUrlRepository,
             RaceResultRecordRepository raceResultRecordRepository,
+            RacePayoutRepository racePayoutRepository,
             RaceService raceService,
             RaceParserService raceParserService) {
 
         this.trackedRaceUrlRepository = trackedRaceUrlRepository;
         this.raceResultRecordRepository = raceResultRecordRepository;
+        this.racePayoutRepository = racePayoutRepository;
         this.raceService = raceService;
         this.raceParserService = raceParserService;
     }
@@ -129,6 +132,8 @@ public class RaceResultCollectionService {
             return false;
         }
 
+        fetchAndSavePayouts(raceUrl, tracked.getRaceDate(), venueName, raceNum);
+
         int predictionRank = 1;
 
         for (Horse horse : horses) {
@@ -160,6 +165,30 @@ public class RaceResultCollectionService {
         System.out.println("【結果収集】完了: " + raceUrl);
 
         return true;
+    }
+
+    // 結果ページ(denmaをresultに置き換えたURL)から全馬券種の払戻金を取得して保存する。
+    // 付加情報のため、取得に失敗しても馬別結果の保存自体は失敗させない
+    private void fetchAndSavePayouts(String denmaUrl, java.time.LocalDate raceDate, String venue, int raceNumber) {
+        try {
+            String resultUrl = denmaUrl.replace("/race/denma/", "/race/result/");
+            Document resultDoc = WebScraper.getHTML(resultUrl);
+
+            List<PayoutEntry> payouts = WebScraper.getPayouts(resultDoc);
+
+            for (PayoutEntry payout : payouts) {
+                racePayoutRepository.save(new RacePayout(
+                        raceDate,
+                        venue,
+                        raceNumber,
+                        payout.getBetType(),
+                        payout.getCombination(),
+                        payout.getPayoutYen()
+                ));
+            }
+        } catch (Exception e) {
+            System.out.println("払戻金取得失敗: " + denmaUrl + " / " + e.getMessage());
+        }
     }
 
     // 馬の個人ページの最新走が本当に「このレース」を指しているかの簡易チェック。

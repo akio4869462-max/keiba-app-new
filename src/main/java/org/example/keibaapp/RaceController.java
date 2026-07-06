@@ -27,6 +27,7 @@ public class RaceController {
     private final RaceNotificationService notificationService;
     private final DummyRaceFactory dummyRaceFactory;
     private final RaceResultRecordRepository raceResultRecordRepository;
+    private final RacePayoutRepository racePayoutRepository;
     private final RaceResultStatsService raceResultStatsService;
     private final RaceResultCollectionService raceResultCollectionService;
     private final TrackedRaceUrlRepository trackedRaceUrlRepository;
@@ -38,6 +39,7 @@ public class RaceController {
             RaceNotificationService notificationService,
             DummyRaceFactory dummyRaceFactory,
             RaceResultRecordRepository raceResultRecordRepository,
+            RacePayoutRepository racePayoutRepository,
             RaceResultStatsService raceResultStatsService,
             RaceResultCollectionService raceResultCollectionService,
             TrackedRaceUrlRepository trackedRaceUrlRepository,
@@ -48,6 +50,7 @@ public class RaceController {
         this.notificationService = notificationService;
         this.dummyRaceFactory = dummyRaceFactory;
         this.raceResultRecordRepository = raceResultRecordRepository;
+        this.racePayoutRepository = racePayoutRepository;
         this.raceResultStatsService = raceResultStatsService;
         this.raceResultCollectionService = raceResultCollectionService;
         this.trackedRaceUrlRepository = trackedRaceUrlRepository;
@@ -191,8 +194,9 @@ public class RaceController {
     public String resultsByRace(Model model) {
         LocalDate cutoff = LocalDate.now(JST).minusWeeks(RACE_RESULTS_DISPLAY_WEEKS);
         List<RaceResultRecord> recentRecords = raceResultRecordRepository.findByRaceDateGreaterThanEqual(cutoff);
+        List<RacePayout> recentPayouts = racePayoutRepository.findByRaceDateGreaterThanEqual(cutoff);
 
-        model.addAttribute("raceGroups", raceResultStatsService.buildRaceGroups(recentRecords));
+        model.addAttribute("raceGroups", raceResultStatsService.buildRaceGroups(recentRecords, recentPayouts));
         model.addAttribute("displayWeeks", RACE_RESULTS_DISPLAY_WEEKS);
 
         return "raceResults";

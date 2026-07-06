@@ -154,10 +154,14 @@ public class RaceResultStatsService {
         return totalReturn / totalStake * 100;
     }
 
-    public List<RaceResultGroup> buildRaceGroups(List<RaceResultRecord> allRecords) {
+    public List<RaceResultGroup> buildRaceGroups(List<RaceResultRecord> allRecords, List<RacePayout> allPayouts) {
         Map<RaceKey, List<RaceResultRecord>> grouped = allRecords.stream()
                 .collect(Collectors.groupingBy(
                         r -> new RaceKey(r.getRaceDate(), r.getVenue(), r.getRaceNumber(), r.getRaceName())));
+
+        Map<PayoutKey, List<RacePayout>> groupedPayouts = allPayouts.stream()
+                .collect(Collectors.groupingBy(
+                        p -> new PayoutKey(p.getRaceDate(), p.getVenue(), p.getRaceNumber())));
 
         List<RaceResultGroup> groups = new ArrayList<>();
 
@@ -166,7 +170,11 @@ public class RaceResultStatsService {
             horses.sort(Comparator.comparingInt(RaceResultRecord::getActualRank));
 
             RaceKey key = entry.getKey();
-            groups.add(new RaceResultGroup(key.raceDate(), key.venue(), key.raceNumber(), key.raceName(), horses));
+            PayoutKey payoutKey = new PayoutKey(key.raceDate(), key.venue(), key.raceNumber());
+            List<RacePayout> payouts = groupedPayouts.getOrDefault(payoutKey, List.of());
+
+            groups.add(new RaceResultGroup(
+                    key.raceDate(), key.venue(), key.raceNumber(), key.raceName(), horses, payouts));
         }
 
         groups.sort(Comparator.comparing(RaceResultGroup::getRaceDate).reversed()
@@ -177,6 +185,9 @@ public class RaceResultStatsService {
     }
 
     private record RaceKey(LocalDate raceDate, String venue, int raceNumber, String raceName) {
+    }
+
+    private record PayoutKey(LocalDate raceDate, String venue, int raceNumber) {
     }
 
     public double totalReturn(List<RaceResultRecord> topPicks) {

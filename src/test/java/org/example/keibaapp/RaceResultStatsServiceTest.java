@@ -99,7 +99,7 @@ class RaceResultStatsServiceTest {
                 raceRecord(date, "東京", 1, "レースB", "単独馬", 1, 1)
         );
 
-        List<RaceResultGroup> groups = statsService.buildRaceGroups(records);
+        List<RaceResultGroup> groups = statsService.buildRaceGroups(records, List.of());
 
         assertEquals(2, groups.size());
 
@@ -121,7 +121,7 @@ class RaceResultStatsServiceTest {
                 raceRecord(LocalDate.of(2026, 7, 4), "東京", 1, "新しいレース", "馬2", 1, 1)
         );
 
-        List<RaceResultGroup> groups = statsService.buildRaceGroups(records);
+        List<RaceResultGroup> groups = statsService.buildRaceGroups(records, List.of());
 
         assertEquals("新しいレース", groups.get(0).getRaceName());
         assertEquals("古いレース", groups.get(1).getRaceName());
