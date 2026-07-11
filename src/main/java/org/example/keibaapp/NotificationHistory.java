@@ -2,6 +2,8 @@ package org.example.keibaapp;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDate;
+
 @Entity
 public class NotificationHistory {
 
@@ -13,15 +15,21 @@ public class NotificationHistory {
 
     private String raceName;
 
+    // "サラ系2歳未勝利"等のレース名は毎週使い回されるため、日付がないと
+    // 別の週の同名レースを「通知済み」と誤判定してしまう
+    private LocalDate raceDate;
+
     public NotificationHistory() {
     }
 
     public NotificationHistory(
             String horseName,
-            String raceName) {
+            String raceName,
+            LocalDate raceDate) {
 
         this.horseName = horseName;
         this.raceName = raceName;
+        this.raceDate = raceDate;
     }
 
     public Long getId() {
@@ -34,5 +42,9 @@ public class NotificationHistory {
 
     public String getRaceName() {
         return raceName;
+    }
+
+    public LocalDate getRaceDate() {
+        return raceDate;
     }
 }

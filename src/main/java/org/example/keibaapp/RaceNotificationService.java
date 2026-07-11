@@ -51,6 +51,7 @@ public class RaceNotificationService {
         }
 
         List<RaceInfo> races = raceCacheService.getCachedRaces();
+        LocalDate today = LocalDate.now(JST);
 
         for (FavoriteHorse favorite
                 : horseRepository.findAll()) {
@@ -69,9 +70,10 @@ public class RaceNotificationService {
                         }
 
                         if (historyRepository
-                                .findByHorseNameAndRaceName(
+                                .findByHorseNameAndRaceNameAndRaceDate(
                                         horse.getName(),
-                                        race.getRaceName())
+                                        race.getRaceName(),
+                                        today)
                                 .isPresent()) {
 
                             System.out.println(
@@ -91,7 +93,7 @@ public class RaceNotificationService {
                         System.out.println(message);
 
                         discordNotificationService.sendMessage(message);
-                        historyRepository.save(new NotificationHistory(horse.getName(), race.getRaceName()));
+                        historyRepository.save(new NotificationHistory(horse.getName(), race.getRaceName(), today));
                     }
                 }
             }
@@ -114,9 +116,10 @@ public class RaceNotificationService {
                         }
 
                         if (historyJockeyRepository
-                                .findByJockeyNameAndRaceName(
+                                .findByJockeyNameAndRaceNameAndRaceDate(
                                         horse.getJockeyName(),
-                                        race.getRaceName())
+                                        race.getRaceName(),
+                                        today)
                                 .isPresent()) {
 
                             System.out.println(
@@ -137,7 +140,7 @@ public class RaceNotificationService {
                         System.out.println(message);
 
                         discordNotificationService.sendMessage(message);
-                        historyJockeyRepository.save(new NotificationJockeyHistory(horse.getJockeyName(), race.getRaceName()));
+                        historyJockeyRepository.save(new NotificationJockeyHistory(horse.getJockeyName(), race.getRaceName(), today));
                     }
                 }
             }
