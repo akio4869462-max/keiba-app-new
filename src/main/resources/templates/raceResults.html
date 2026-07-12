@@ -69,7 +69,13 @@
                     <td class="text-center fw-bold"
                         th:text="${horse.actualRank > 0 ? horse.actualRank + '着' : '不明'}"></td>
 
-                    <td class="horse-name" th:text="${horse.horseName}"></td>
+                    <td class="horse-name">
+                        <span th:text="${horse.horseName}"></span>
+                        <form th:action="@{/favorite/add}" method="post">
+                            <input type="hidden" name="horseName" th:value="${horse.horseName}" />
+                            <button type="submit" class="btn-register">⭐ 登録</button>
+                        </form>
+                    </td>
 
                     <td class="text-center">
                         <span th:if="${horse.predictionRank == 1}" class="rank-badge rank-gold"

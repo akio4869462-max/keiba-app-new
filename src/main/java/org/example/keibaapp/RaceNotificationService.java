@@ -60,8 +60,10 @@ public class RaceNotificationService {
 
                 for (Horse horse : race.getHorses()) {
 
-                    if (favorite.getHorseName()
-                            .equals(horse.getName())) {
+                    boolean nameMatch = favorite.getHorseName().equals(horse.getName());
+                    boolean sireMatch = !nameMatch && favorite.getHorseName().equals(horse.getSire());
+
+                    if (nameMatch || sireMatch) {
                         LocalTime now = LocalTime.now(JST);
                         LocalTime notifyTime = race.getRaceTime().minusMinutes(5);
 
@@ -83,9 +85,14 @@ public class RaceNotificationService {
                             continue;
                         }
 
-                        String message =
-                                "【出走通知】" + horse.getName()
+                        String message = nameMatch
+                                ? "【出走通知】" + horse.getName()
                                         + "(" + horse.getUmaban() + "番)"
+                                        + " が " + race.getVenue()
+                                        + " " + race.getRaceNum()
+                                        + "R に出走します！"
+                                : "【出走通知】お気に入り馬「" + favorite.getHorseName() + "」の産駒 "
+                                        + horse.getName() + "(" + horse.getUmaban() + "番)"
                                         + " が " + race.getVenue()
                                         + " " + race.getRaceNum()
                                         + "R に出走します！";

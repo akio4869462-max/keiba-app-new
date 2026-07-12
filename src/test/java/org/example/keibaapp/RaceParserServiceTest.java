@@ -1,5 +1,8 @@
 package org.example.keibaapp;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -47,5 +50,52 @@ class RaceParserServiceTest {
         );
 
         assertFalse(result);
+    }
+
+    @Test
+    void createHorse_shouldParsePedigreeWithMixedLinksAndPlainText() {
+        // 父・母父はリンク有り、母はプレーンテキスト（既存パターンに準拠）
+        String html = "<table><tr>"
+                + "<td>1</td>"
+                + "<td>2</td>"
+                + "<td><a href=\"/keiba/directory/horse/1/\">コントラポスト</a></td>"
+                + "<td><a href=\"/keiba/directory/jockey/1/\">菊沢 一樹</a> 56.0</td>"
+                + "<td>菊沢 隆徳</td>"
+                + "<td class=\"hr-table__data--horsePedigree\">"
+                + "<p>父：<a href=\"/keiba/directory/horse/2/\">ルーラーシップ</a></p>"
+                + "<p>母：アカンサス</p>"
+                + "<p>(母父：<a href=\"/keiba/directory/horse/3/\">フジキセキ</a>)</p>"
+                + "</td>"
+                + "<td>466(-4)</td>"
+                + "<td>8(15.1)</td>"
+                + "</tr></table>";
+
+        Elements tds = Jsoup.parse(html).selectFirst("tr").select("td");
+        Horse horse = service.createHorse(tds);
+
+        assertEquals("ルーラーシップ", horse.getSire());
+        assertEquals("アカンサス", horse.getDam());
+        assertEquals("フジキセキ", horse.getDamSire());
+    }
+
+    @Test
+    void createHorse_shouldLeavePedigreeNullWhenCellHasNoRecognizedFormat() {
+        String html = "<table><tr>"
+                + "<td>1</td>"
+                + "<td>2</td>"
+                + "<td><a href=\"/keiba/directory/horse/1/\">コントラポスト</a></td>"
+                + "<td><a href=\"/keiba/directory/jockey/1/\">菊沢 一樹</a> 56.0</td>"
+                + "<td>菊沢 隆徳</td>"
+                + "<td class=\"hr-table__data--horsePedigree\"></td>"
+                + "<td>466(-4)</td>"
+                + "<td>8(15.1)</td>"
+                + "</tr></table>";
+
+        Elements tds = Jsoup.parse(html).selectFirst("tr").select("td");
+        Horse horse = service.createHorse(tds);
+
+        assertNull(horse.getSire());
+        assertNull(horse.getDam());
+        assertNull(horse.getDamSire());
     }
 }

@@ -32,6 +32,13 @@
     <h1 class="page-title mb-4">⭐ お気に入り馬一覧</h1>
 
     <div class="content-card">
+        <h2>馬名を直接登録</h2>
+
+        <form th:action="@{/favorite/add}" method="post" class="d-flex gap-2 mb-4">
+            <input type="text" name="horseName" class="form-control" placeholder="馬名を入力" required />
+            <button type="submit" class="btn-register">⭐ 登録</button>
+        </form>
+
         <h2>登録済みの馬</h2>
 
         <div th:if="${#lists.isEmpty(favorites)}" class="text-muted text-center py-4">

@@ -51,7 +51,11 @@
             <tr th:each="entry : ${horseMatches}">
                 <td class="text-center fw-bold" th:text="${entry.race.raceTime}"></td>
                 <td th:text="${entry.race.displayRaceName}"></td>
-                <td class="horse-name" th:text="${entry.horse.name}"></td>
+                <td class="horse-name">
+                    <span th:text="${entry.horse.name}"></span>
+                    <span th:if="${entry.matchedName != entry.horse.name}"
+                          class="text-muted small">(父:<span th:text="${entry.matchedName}"></span>)</span>
+                </td>
                 <td class="text-center" th:text="${entry.horse.odds}"></td>
             </tr>
             </tbody>

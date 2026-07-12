@@ -116,7 +116,30 @@ public class RaceParserService {
         horse.setHorseUrl(horseUrl);
         horse.setJockeyUrl(jockeyUrl);
 
+        parsePedigree(tds, horse);
+
         return horse;
+    }
+
+    // 血統セル(父馬名/母馬名/(母父馬名))を解析する。
+    // 海外馬などリンクが無くテキストのみの場合もあるため、<a>の有無に関わらず
+    // .text()で取得する。想定外の形式の場合は空文字のままにする防御的な実装
+    private void parsePedigree(Elements tds, Horse horse) {
+        if (tds.size() < 6) {
+            return;
+        }
+
+        for (Element p : tds.get(5).select("p")) {
+            String text = p.text().trim();
+
+            if (text.startsWith("父：")) {
+                horse.setSire(text.substring("父：".length()).trim());
+            } else if (text.startsWith("母：")) {
+                horse.setDam(text.substring("母：".length()).trim());
+            } else if (text.startsWith("(母父：") || text.startsWith("（母父：")) {
+                horse.setDamSire(text.replaceAll("[（(]母父：|[）)]", "").trim());
+            }
+        }
     }
 
     public int[] getRaceRangeByTime() {

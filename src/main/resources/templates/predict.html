@@ -110,6 +110,15 @@
                                    target="_blank" rel="noopener"></a>
                                 <div class="horse-name" th:unless="${horse.netkeibaHorseUrl != null and !horse.netkeibaHorseUrl.isEmpty()}"
                                      th:text="${horse.name}"></div>
+                                <div class="text-muted small" th:if="${horse.sire != null and !horse.sire.isEmpty()}">
+                                    父:<span th:text="${horse.sire}"></span>
+                                </div>
+                                <div class="text-muted small" th:if="${horse.dam != null and !horse.dam.isEmpty()}">
+                                    母:<span th:text="${horse.dam}"></span>
+                                </div>
+                                <div class="text-muted small" th:if="${horse.damSire != null and !horse.damSire.isEmpty()}">
+                                    母父:<span th:text="${horse.damSire}"></span>
+                                </div>
                                 <form th:action="@{/favorite/add}" method="post">
                                     <input type="hidden" name="horseName" th:value="${horse.name}" />
                                     <button type="submit" class="btn-register">⭐ 登録</button>

@@ -211,7 +211,8 @@ public class RaceController {
         for (FavoriteHorse favorite : favoriteHorseService.findAll()) {
             for (RaceInfo race : races) {
                 for (Horse horse : race.getHorses()) {
-                    if (favorite.getHorseName().equals(horse.getName())) {
+                    if (favorite.getHorseName().equals(horse.getName())
+                            || favorite.getHorseName().equals(horse.getSire())) {
                         horseMatches.add(new FavoriteRaceEntry(race, horse, favorite.getHorseName()));
                     }
                 }

@@ -19,6 +19,9 @@ public class Horse {
     private int actualRank;
     private String aiPrompt;
     private String aiComment;
+    private String sire;
+    private String dam;
+    private String damSire;
 
     public int getActualRank() {
         return actualRank;
@@ -171,5 +174,29 @@ public class Horse {
 
     public void setAiComment(String aiComment) {
         this.aiComment = aiComment;
+    }
+
+    public String getSire() {
+        return sire;
+    }
+
+    public void setSire(String sire) {
+        this.sire = sire;
+    }
+
+    public String getDam() {
+        return dam;
+    }
+
+    public void setDam(String dam) {
+        this.dam = dam;
+    }
+
+    public String getDamSire() {
+        return damSire;
+    }
+
+    public void setDamSire(String damSire) {
+        this.damSire = damSire;
     }
 }
