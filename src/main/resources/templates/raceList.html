@@ -66,6 +66,8 @@
                         <span class="venue-badge" th:text="${race.venue}"></span>
                         <span class="race-number" th:text="${race.raceNum} + 'R'"></span>
                         <span class="race-name" th:text="${race.raceName}"></span>
+                        <span class="race-time" th:if="${race.course != null and !race.course.isEmpty()}"
+                              th:text="${race.course} + ${race.distance}"></span>
                     </div>
                     <div class="race-time">
                         🕐 <span th:text="${race.raceTime} + ' 発走'"></span>
