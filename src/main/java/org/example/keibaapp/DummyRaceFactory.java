@@ -86,7 +86,7 @@ public class DummyRaceFactory {
         }
 
         for (Horse horse : horses1) {
-            horse.setPredictionScore(predictionService.calculateExpectedValue(horse, horses1));
+            horse.setPredictionScore(predictionService.calculateExpectedValue(horse, horses1, "芝", "2000m"));
             horse.setPredictionReason(predictionService.createReason(horse, "芝", "2000m"));
         }
 
@@ -100,7 +100,7 @@ public class DummyRaceFactory {
         }
 
         for (Horse horse : horses2) {
-            horse.setPredictionScore(predictionService.calculateExpectedValue(horse, horses2));
+            horse.setPredictionScore(predictionService.calculateExpectedValue(horse, horses2, "ダ", "1600m"));
             horse.setPredictionReason(predictionService.createReason(horse, "ダ", "1600m"));
         }
 

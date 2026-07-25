@@ -107,7 +107,7 @@ public class HorseEnrichmentService {
             String currentCourse,
             String currentDistance) {
         horse.setPredictionScore(
-                predictionService.calculateExpectedValue(horse, allHorses));
+                predictionService.calculateExpectedValue(horse, allHorses, currentCourse, currentDistance));
         horse.setPredictionReason(
                 predictionService.createReason(horse, currentCourse, currentDistance));
     }

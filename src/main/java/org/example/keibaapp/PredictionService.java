@@ -154,19 +154,41 @@ public class PredictionService {
         return score;
     }
 
-    public double calculateExpectedValue(Horse horse, List<Horse> allHorse) {
-        double totalScore = 0;
+    // レース内の期待値合計に対する割合(0〜100点)で予想スコアを表す。
+    // 以前はここでcalculateScore(horse)(前走のみ)しか使っておらず、
+    // 距離適性・コース適性・枠順適性・騎手成績(reasonには表示されるが
+    // スコアには未反映)が実際の順位付けに全く効いていなかったため、
+    // calculateScore(horse, course, distance)(これらを含む版)に差し替えた
+    public double calculateExpectedValue(
+            Horse horse,
+            List<Horse> allHorse,
+            String currentCourse,
+            String currentDistance) {
+
+        double totalExpectedValue = 0;
 
         for (Horse h : allHorse) {
-            totalScore += calculateScore(h);
+            totalExpectedValue += rawExpectedValue(h, currentCourse, currentDistance);
         }
 
-        if (totalScore == 0 || horse.getOdds() <= 0 || horse.getOdds() >= 999.9) {
+        if (totalExpectedValue == 0) {
+            return 0;
+        }
+
+        return 100 * rawExpectedValue(horse, currentCourse, currentDistance) / totalExpectedValue;
+    }
+
+    private double rawExpectedValue(Horse horse, String currentCourse, String currentDistance) {
+        if (horse.getOdds() <= 0 || horse.getOdds() >= 999.9) {
             return 0;
         }
 
         double cappedOdds = Math.min(horse.getOdds(), 50.0);
-        return Math.sqrt(cappedOdds) * calculateScore(horse) / totalScore;
+
+        // 枠順ペナルティ等で理論上マイナスになりうるため、0未満は0点として扱う
+        double abilityScore = Math.max(calculateScore(horse, currentCourse, currentDistance), 0);
+
+        return Math.sqrt(cappedOdds) * abilityScore;
     }
 
     public double calculateScore(
