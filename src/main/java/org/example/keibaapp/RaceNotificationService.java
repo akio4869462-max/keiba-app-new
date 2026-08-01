@@ -3,7 +3,6 @@ package org.example.keibaapp;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Scheduled;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -207,13 +206,14 @@ public class RaceNotificationService {
         }
     }
 
+    // 曜日をハードコードせず毎日実行する(夏の変則開催等、土日以外の開催に対応するため)。
+    // 非開催日はgetRaces()がraceCacheServiceに書き込まないため、hasCachedRaces()が
+    // falseのままとなりcheckFavorites()内で安全にスキップされる
     @Scheduled(cron = "0 * * * * *", zone = "Asia/Tokyo")
     public void scheduledCheck() {
-        DayOfWeek day = LocalDate.now(JST).getDayOfWeek();
         LocalTime time = LocalTime.now(JST);
 
-        if ((day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY)
-                && (time.isAfter(LocalTime.of(9, 0)) && time.isBefore(LocalTime.of(17, 0)))) {
+        if (time.isAfter(LocalTime.of(8, 0)) && time.isBefore(LocalTime.of(19, 0))) {
             System.out.println("定期通知チェックを実行します");
             checkFavorites();
         }

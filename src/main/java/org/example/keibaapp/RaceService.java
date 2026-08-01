@@ -92,17 +92,18 @@ public class RaceService {
 
                 for (String raceUrl : raceUrls) {
                     try {
-                        int[] range = raceParserService.getRaceRangeByTime();
+                        // 壁時計からレース番号を推測するのではなく、denmaページを取得して
+                        // 実際の発走時刻を見てから「今表示する価値があるか」を判定する
+                        // (夏の変則開催等で発走時刻が通常と大きくずれても正しく動くようにするため)
+                        Document doc = WebScraper.getHTML(raceUrl);
 
-                        if (!raceParserService.shouldFetchRace(raceUrl, range[0], range[1])) {
+                        LocalTime raceTime = raceParserService.parseRaceTime(doc);
+
+                        if (!raceParserService.isRaceTimeRelevant(raceTime)) {
                             continue;
                         }
 
-                        Document doc = WebScraper.getHTML(raceUrl);
-
                         String raceName = WebScraper.getRaceName(doc);
-
-                        LocalTime raceTime = raceParserService.parseRaceTime(doc);
 
                         int raceNum = raceParserService.getRaceNumber(raceUrl);
 
@@ -144,6 +145,29 @@ public class RaceService {
 
         csvExporter.exportPredictions(allRaces);
         return allRaces;
+    }
+
+    // 今日JRAの開催があるかどうかだけを軽量に判定する。レース単位の詳細取得は行わない。
+    // 曜日をハードコードせずスケジュール処理を毎日実行できるようにするために使う
+    public boolean hasRaceToday() {
+        try {
+            String todayText = LocalDate.now()
+                    .format(DateTimeFormatter.ofPattern("yyyy年M月d日"));
+
+            Document topDoc = WebScraper.getHTML("https://sports.yahoo.co.jp/keiba/");
+
+            for (Element link : topDoc.select("a[href*=/keiba/race/list/]")) {
+                Document listDoc = WebScraper.getHTML(link.attr("abs:href"));
+
+                if (listDoc.title().contains(todayText)) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("開催日判定でエラーが発生しました: " + e.getMessage());
+        }
+
+        return false;
     }
 
     private List<String> loadTargetListUrls() {
@@ -232,17 +256,11 @@ public class RaceService {
 
         System.out.println("★ServiceのgetRacesが呼ばれました！");
 
-        int[] range = raceParserService.getRaceRangeByTime();
-
-        // DEBUG
-        System.out.println(
-                "取得対象レース="
-                        + range[0]
-                        + "R～"
-                        + range[1]
-                        + "R");
-
-        String currentRange = range[0] + "-" + range[1];
+        // レース番号の範囲ではなく、現在時刻を30分単位に丸めた値をキャッシュキーにする。
+        // (発走時刻ベースの関連レース判定に変えたため、レース番号の範囲では
+        // キャッシュの区切りを表現できなくなったため)
+        LocalTime now = LocalTime.now(JST);
+        String currentRange = now.getHour() + ":" + (now.getMinute() / 30 * 30);
 
         // DEBUG
         System.out.println("キャッシュキー=" + currentRange);
@@ -253,6 +271,14 @@ public class RaceService {
         }
 
         System.out.println("最新データを取得します");
+
+        // 曜日をハードコードせず毎日この経路が呼ばれうるため、今日開催がなければ
+        // ダミーを返すだけにし、お気に入り通知チェックに使われるキャッシュには
+        // 書き込まない(非開催日にダミーの馬名でお気に入りが誤反応しないようにするため)
+        if (!hasRaceToday()) {
+            System.out.println("本日は開催がないためダミーデータを返します");
+            return dummyRaceFactory.createDummyRaces();
+        }
 
         List<RaceInfo> races = fetchTodayRaces();
 //        List<RaceInfo> races = fetchHistoricalRaces();
@@ -288,16 +314,17 @@ public class RaceService {
 
                 for (String raceUrl : raceUrls) {
                     try {
-                        int[] range = raceParserService.getRaceRangeByTime();
-                        if (!raceParserService.shouldFetchRace(raceUrl, range[0], range[1])) continue;
-
                         Document doc = WebScraper.getHTML(raceUrl);
+
+                        LocalTime raceTime = raceParserService.parseRaceTime(doc);
+
+                        if (!raceParserService.isRaceTimeRelevant(raceTime)) continue;
 
                         RaceInfo raceInfo = new RaceInfo(
                                 raceParserService.getRaceNumber(raceUrl),
                                 venueName,
                                 WebScraper.getRaceName(doc),
-                                raceParserService.parseRaceTime(doc),
+                                raceTime,
                                 WebScraper.getRaceCourse(doc),
                                 WebScraper.getRaceDistance(doc),
                                 buildBasicHorseList(doc)

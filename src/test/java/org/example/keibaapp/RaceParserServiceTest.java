@@ -5,6 +5,9 @@ import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalTime;
+import java.time.ZoneId;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class RaceParserServiceTest {
@@ -97,5 +100,38 @@ class RaceParserServiceTest {
         assertNull(horse.getSire());
         assertNull(horse.getDam());
         assertNull(horse.getDamSire());
+    }
+
+    @Test
+    void isRaceTimeRelevant_shouldReturnTrueForRaceStartingSoon() {
+        LocalTime soon = LocalTime.now(ZoneId.of("Asia/Tokyo")).plusMinutes(30);
+
+        assertTrue(service.isRaceTimeRelevant(soon));
+    }
+
+    @Test
+    void isRaceTimeRelevant_shouldReturnTrueForRaceThatJustFinished() {
+        LocalTime justPast = LocalTime.now(ZoneId.of("Asia/Tokyo")).minusMinutes(30);
+
+        assertTrue(service.isRaceTimeRelevant(justPast));
+    }
+
+    @Test
+    void isRaceTimeRelevant_shouldReturnFalseForRaceFarInTheFuture() {
+        LocalTime farFuture = LocalTime.now(ZoneId.of("Asia/Tokyo")).plusMinutes(200);
+
+        assertFalse(service.isRaceTimeRelevant(farFuture));
+    }
+
+    @Test
+    void isRaceTimeRelevant_shouldReturnFalseForRaceLongPast() {
+        LocalTime longPast = LocalTime.now(ZoneId.of("Asia/Tokyo")).minusMinutes(90);
+
+        assertFalse(service.isRaceTimeRelevant(longPast));
+    }
+
+    @Test
+    void isRaceTimeRelevant_shouldReturnFalseForNull() {
+        assertFalse(service.isRaceTimeRelevant(null));
     }
 }

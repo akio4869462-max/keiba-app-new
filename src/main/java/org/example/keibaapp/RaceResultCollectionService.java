@@ -57,11 +57,13 @@ public class RaceResultCollectionService {
         collectWeekendResults();
     }
 
-    // 土日の日中は30分おきに確定済みレースがないか確認し、順次結果を反映する
-    // （未確定のレースはprocessRaceUrl内でスキップされ次回に再試行されるだけなので安全）
-    @Scheduled(cron = "0 */30 9-18 * * SAT,SUN", zone = "Asia/Tokyo")
-    // 土日に取りこぼした分の最終catch-allとして月曜早朝にも実行する
-    @Scheduled(cron = "0 0 3 * * MON", zone = "Asia/Tokyo")
+    // 開催日の日中は30分おきに確定済みレースがないか確認し、順次結果を反映する
+    // （未確定のレースはprocessRaceUrl内でスキップされ次回に再試行されるだけなので安全）。
+    // 曜日をハードコードせず毎日実行する(夏の変則開催等、土日以外の開催に対応するため)。
+    // 対象URLが無ければ何もせず一瞬で終わるだけなので、非開催日の実行コストは小さい
+    @Scheduled(cron = "0 */30 8-19 * * *", zone = "Asia/Tokyo")
+    // 前日に取りこぼした分の最終catch-allとして毎日早朝にも実行する
+    @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Tokyo")
     public String collectWeekendResults() {
         if (!isCollecting.compareAndSet(false, true)) {
             String message = "既に結果収集が実行中のため今回はスキップしました";
