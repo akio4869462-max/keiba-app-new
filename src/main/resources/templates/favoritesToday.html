@@ -43,6 +43,7 @@
             <tr>
                 <th class="text-center" style="width: 90px">発走時刻</th>
                 <th>レース</th>
+                <th class="text-center" style="width: 70px">馬番</th>
                 <th>馬名</th>
                 <th class="text-center" style="width: 90px">オッズ</th>
             </tr>
@@ -51,6 +52,7 @@
             <tr th:each="entry : ${horseMatches}">
                 <td class="text-center fw-bold" th:text="${entry.race.raceTime}"></td>
                 <td th:text="${entry.race.displayRaceName}"></td>
+                <td class="text-center" th:text="${entry.horse.umaban}"></td>
                 <td class="horse-name">
                     <span th:text="${entry.horse.name}"></span>
                     <span th:if="${entry.matchedName != entry.horse.name}"
@@ -75,6 +77,7 @@
                 <th class="text-center" style="width: 90px">発走時刻</th>
                 <th>レース</th>
                 <th>騎手</th>
+                <th class="text-center" style="width: 70px">馬番</th>
                 <th>馬名</th>
                 <th class="text-center" style="width: 90px">オッズ</th>
             </tr>
@@ -84,6 +87,7 @@
                 <td class="text-center fw-bold" th:text="${entry.race.raceTime}"></td>
                 <td th:text="${entry.race.displayRaceName}"></td>
                 <td class="jockey-name" th:text="${entry.horse.jockeyName}"></td>
+                <td class="text-center" th:text="${entry.horse.umaban}"></td>
                 <td class="horse-name" th:text="${entry.horse.name}"></td>
                 <td class="text-center" th:text="${entry.horse.odds}"></td>
             </tr>
