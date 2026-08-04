@@ -13,6 +13,8 @@ public class RaceCacheService {
     private final Map<String, HorseDetailInfo> horseDetailCache = new ConcurrentHashMap<>();
     private final Map<String, JockeyStats> jockeyStatsCache = new ConcurrentHashMap<>();
 
+    private static final int CACHE_TTL_MINUTES = 90;
+
     private List<RaceInfo> cachedRaces;
     private LocalDateTime lastFetchedAt;
     private String cachedRange;
@@ -38,7 +40,7 @@ public class RaceCacheService {
         return cachedRaces != null
                 && currentRange.equals(cachedRange)
                 && lastFetchedAt != null
-                && lastFetchedAt.plusMinutes(90)
+                && lastFetchedAt.plusMinutes(CACHE_TTL_MINUTES)
                 .isAfter(LocalDateTime.now());
     }
 
@@ -46,9 +48,16 @@ public class RaceCacheService {
         return cachedRaces;
     }
 
-    // キャッシュにデータが存在するか（有効期限は問わない）
+    // キャッシュにデータが存在し、かつ十分新しいか。
+    // 曜日をハードコードせず毎日通知チェックが走るようになったため、非開催日に
+    // 前回開催日の古いキャッシュ(発走時刻だけが今日の現在時刻とたまたま一致する)
+    // を使って誤通知しないよう、存在チェックだけでなく鮮度もここで見る
     public boolean hasCachedRaces() {
-        return cachedRaces != null && !cachedRaces.isEmpty();
+        return cachedRaces != null
+                && !cachedRaces.isEmpty()
+                && lastFetchedAt != null
+                && lastFetchedAt.plusMinutes(CACHE_TTL_MINUTES)
+                .isAfter(LocalDateTime.now());
     }
 
     public void cacheRaces(String currentRange,
@@ -56,5 +65,11 @@ public class RaceCacheService {
         this.cachedRaces = races;
         this.cachedRange = currentRange;
         this.lastFetchedAt = LocalDateTime.now();
+    }
+
+    // テストで古いキャッシュ(前回開催日分等)の挙動を再現するためだけに用意
+    // (本番コードからは呼ばない)
+    void setLastFetchedAtForTesting(LocalDateTime lastFetchedAt) {
+        this.lastFetchedAt = lastFetchedAt;
     }
 }

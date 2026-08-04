@@ -207,8 +207,10 @@ public class RaceNotificationService {
     }
 
     // 曜日をハードコードせず毎日実行する(夏の変則開催等、土日以外の開催に対応するため)。
-    // 非開催日はgetRaces()がraceCacheServiceに書き込まないため、hasCachedRaces()が
-    // falseのままとなりcheckFavorites()内で安全にスキップされる
+    // 非開催日は基本的にgetRaces()がraceCacheServiceに書き込まないためキャッシュが
+    // 存在しなくなるが、前回開催日のキャッシュが残っている場合でも
+    // hasCachedRaces()が鮮度もチェックするため、古いキャッシュで
+    // checkFavorites()が誤って動いてしまうことはない
     @Scheduled(cron = "0 * * * * *", zone = "Asia/Tokyo")
     public void scheduledCheck() {
         LocalTime time = LocalTime.now(JST);
