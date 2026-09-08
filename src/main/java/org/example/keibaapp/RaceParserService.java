@@ -7,7 +7,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,13 +34,54 @@ public class RaceParserService {
     }
 
     public LocalTime parseRaceTime(Document doc) {
-        String rawTime = WebScraper.getRaceTime(doc);
+        return parseTimeText(WebScraper.getRaceTime(doc));
+    }
 
+    private LocalTime parseTimeText(String rawTime) {
         if (rawTime.length() == 4) {
             rawTime = "0" + rawTime;
         }
 
         return LocalTime.parse(rawTime);
+    }
+
+    // 開催場一覧ページ(listDoc)は、各レースのdenmaページを開かなくても
+    // レース番号・発走時刻・URLが既に一覧表として載っている
+    // (.hr-tableSchedule__data--date に "1R<p>9:50</p>" の形で、
+    // 同じ<tr>内の.hr-tableSchedule__linkにレースURLがある)。
+    // これを使えば、関連性のないレースのdenmaページまで開かずに済む
+    public record RaceSchedule(String raceUrl, LocalTime raceTime) {
+    }
+
+    public List<RaceSchedule> getRaceSchedules(Document listDoc) {
+        List<RaceSchedule> schedules = new ArrayList<>();
+
+        for (Element row : listDoc.select("tr")) {
+            Element dateCell = row.selectFirst(".hr-tableSchedule__data--date");
+
+            if (dateCell == null) {
+                continue;
+            }
+
+            Element linkEl = row.selectFirst(".hr-tableSchedule__link");
+            Element timeEl = dateCell.selectFirst("p");
+
+            if (linkEl == null || timeEl == null) {
+                continue;
+            }
+
+            try {
+                LocalTime raceTime = parseTimeText(timeEl.text().trim());
+                String indexUrl = linkEl.attr("abs:href");
+                String raceUrl = indexUrl.replace("/index/", "/denma/");
+
+                schedules.add(new RaceSchedule(raceUrl, raceTime));
+            } catch (Exception e) {
+                System.out.println("開催場一覧のスケジュール解析に失敗: " + e.getMessage());
+            }
+        }
+
+        return schedules;
     }
 
     public int getRaceNumber(String raceUrl) {

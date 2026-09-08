@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -133,5 +134,50 @@ class RaceParserServiceTest {
     @Test
     void isRaceTimeRelevant_shouldReturnFalseForNull() {
         assertFalse(service.isRaceTimeRelevant(null));
+    }
+
+    @Test
+    void getRaceSchedules_shouldParseRaceNumberTimeAndUrlFromListPage() {
+        // 実際の開催場一覧ページの構造(1レース=2行、日付/リンクセルはrowspan=2で
+        // 最初の行にのみ存在する)を再現したスニペット
+        String html = "<table><tbody>"
+                + "<tr class=\"hr-tableSchedule__oddline\">"
+                + "  <td class=\"hr-tableSchedule__data hr-tableSchedule__data--date\" rowspan=\"2\">1R<p>9:50</p></td>"
+                + "  <td class=\"hr-tableSchedule__data\" rowspan=\"2\">"
+                + "    <a class=\"hr-tableSchedule__link\" href=\"https://sports.yahoo.co.jp/keiba/race/index/2601020501\">"
+                + "      <span class=\"hr-tableSchedule__title\">サラ系2歳未勝利</span>"
+                + "    </a>"
+                + "  </td>"
+                + "  <td>1着</td><td>ロジアコース</td>"
+                + "</tr>"
+                + "<tr class=\"hr-tableSchedule__oddline\"><td>2着</td><td>サトノフルーク</td></tr>"
+                + "<tr class=\"hr-tableSchedule__evenline\">"
+                + "  <td class=\"hr-tableSchedule__data hr-tableSchedule__data--date\" rowspan=\"2\">2R<p>10:20</p></td>"
+                + "  <td class=\"hr-tableSchedule__data\" rowspan=\"2\">"
+                + "    <a class=\"hr-tableSchedule__link\" href=\"https://sports.yahoo.co.jp/keiba/race/index/2601020502\">"
+                + "      <span class=\"hr-tableSchedule__title\">サラ系2歳未勝利</span>"
+                + "    </a>"
+                + "  </td>"
+                + "  <td>1着</td><td>ミハテヌユメ</td></tr>"
+                + "<tr class=\"hr-tableSchedule__evenline\"><td>2着</td><td>アルデシンザン</td></tr>"
+                + "</tbody></table>";
+
+        Document doc = Jsoup.parse(html);
+        List<RaceParserService.RaceSchedule> schedules = service.getRaceSchedules(doc);
+
+        assertEquals(2, schedules.size());
+
+        assertEquals("https://sports.yahoo.co.jp/keiba/race/denma/2601020501", schedules.get(0).raceUrl());
+        assertEquals(LocalTime.of(9, 50), schedules.get(0).raceTime());
+
+        assertEquals("https://sports.yahoo.co.jp/keiba/race/denma/2601020502", schedules.get(1).raceUrl());
+        assertEquals(LocalTime.of(10, 20), schedules.get(1).raceTime());
+    }
+
+    @Test
+    void getRaceSchedules_shouldReturnEmptyWhenNoScheduleRowsFound() {
+        Document doc = Jsoup.parse("<table><tbody><tr><td>該当なし</td></tr></tbody></table>");
+
+        assertTrue(service.getRaceSchedules(doc).isEmpty());
     }
 }

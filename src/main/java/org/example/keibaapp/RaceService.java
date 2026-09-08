@@ -90,18 +90,19 @@ public class RaceService {
                 String venueName =
                         raceParserService.extractVenueName(listDoc.title());
 
-                for (String raceUrl : raceUrls) {
+                // 開催場一覧ページには各レースの発走時刻が既に載っているため、
+                // denmaページを開く前にここで関連レースを絞り込む
+                // (以前は全レースのdenmaページを取得してから時刻判定していたため、
+                // 無関係なレースの分まで毎回取得してしまい表示が遅くなっていた)
+                for (RaceParserService.RaceSchedule schedule : raceParserService.getRaceSchedules(listDoc)) {
+                    if (!raceParserService.isRaceTimeRelevant(schedule.raceTime())) {
+                        continue;
+                    }
+
+                    String raceUrl = schedule.raceUrl();
+
                     try {
-                        // 壁時計からレース番号を推測するのではなく、denmaページを取得して
-                        // 実際の発走時刻を見てから「今表示する価値があるか」を判定する
-                        // (夏の変則開催等で発走時刻が通常と大きくずれても正しく動くようにするため)
                         Document doc = WebScraper.getHTML(raceUrl);
-
-                        LocalTime raceTime = raceParserService.parseRaceTime(doc);
-
-                        if (!raceParserService.isRaceTimeRelevant(raceTime)) {
-                            continue;
-                        }
 
                         String raceName = WebScraper.getRaceName(doc);
 
@@ -119,7 +120,7 @@ public class RaceService {
                                 raceNum,
                                 venueName,
                                 raceName,
-                                raceTime,
+                                schedule.raceTime(),
                                 course,
                                 distance,
                                 horseList
@@ -309,22 +310,22 @@ public class RaceService {
                 if (venueCount >= 3) break;
                 venueCount++;
 
-                Set<String> raceUrls = raceParserService.getRaceUrls(listDoc);
                 String venueName = raceParserService.extractVenueName(listDoc.title());
 
-                for (String raceUrl : raceUrls) {
+                // 開催場一覧ページの発走時刻で先に関連レースを絞り込んでからdenmaページを取得する
+                for (RaceParserService.RaceSchedule schedule : raceParserService.getRaceSchedules(listDoc)) {
+                    if (!raceParserService.isRaceTimeRelevant(schedule.raceTime())) continue;
+
+                    String raceUrl = schedule.raceUrl();
+
                     try {
                         Document doc = WebScraper.getHTML(raceUrl);
-
-                        LocalTime raceTime = raceParserService.parseRaceTime(doc);
-
-                        if (!raceParserService.isRaceTimeRelevant(raceTime)) continue;
 
                         RaceInfo raceInfo = new RaceInfo(
                                 raceParserService.getRaceNumber(raceUrl),
                                 venueName,
                                 WebScraper.getRaceName(doc),
-                                raceTime,
+                                schedule.raceTime(),
                                 WebScraper.getRaceCourse(doc),
                                 WebScraper.getRaceDistance(doc),
                                 buildBasicHorseList(doc)
