@@ -289,7 +289,28 @@ public class RaceService {
         return races;
     }
 
+    // /races(出馬表)専用のキャッシュ。getRaces()と同じ90分TTL・30分単位の
+    // キャッシュキーの仕組みを流用する
     public List<RaceInfo> getBasicRaces() {
+        LocalTime now = LocalTime.now(JST);
+        String currentRange = now.getHour() + ":" + (now.getMinute() / 30 * 30);
+
+        if (raceCacheService.isBasicRaceCacheValid(currentRange)) {
+            return raceCacheService.getCachedBasicRaces();
+        }
+
+        if (!hasRaceToday()) {
+            return dummyRaceFactory.createDummyRaces();
+        }
+
+        List<RaceInfo> races = fetchBasicRaces();
+
+        raceCacheService.cacheBasicRaces(currentRange, races);
+
+        return races;
+    }
+
+    private List<RaceInfo> fetchBasicRaces() {
         List<RaceInfo> allRaces = new ArrayList<>();
 
         try {
@@ -312,17 +333,34 @@ public class RaceService {
 
                 String venueName = raceParserService.extractVenueName(listDoc.title());
 
-                // 開催場一覧ページの発走時刻で先に関連レースを絞り込んでからdenmaページを取得する
+                // 開催場一覧ページの発走時刻で先に関連レースを絞り込んでからdenmaページを取得する。
+                // 出馬表は終わったレースもその日のうちは見られるようにしたいので、
+                // 過去方向には制限を設けない判定を使う
                 for (RaceParserService.RaceSchedule schedule : raceParserService.getRaceSchedules(listDoc)) {
-                    if (!raceParserService.isRaceTimeRelevant(schedule.raceTime())) continue;
+                    if (!raceParserService.isRaceStillShowableToday(schedule.raceTime())) continue;
 
                     String raceUrl = schedule.raceUrl();
+                    int raceNumber = raceParserService.getRaceNumber(raceUrl);
+
+                    // 発走時刻を過ぎたレースの出走内容はもう変わらないため、
+                    // レース単位のキャッシュがあればdenmaページを取得し直さない。
+                    // (リスト単位キャッシュのTTLが切れるたびに、既に終わったレースまで
+                    // 毎回再取得してしまい、時間が経つほどコストが増えるのを防ぐ)
+                    boolean isFinished = LocalTime.now(JST).isAfter(schedule.raceTime());
+
+                    if (isFinished) {
+                        RaceInfo cached = raceCacheService.getFinishedRace(venueName, raceNumber);
+                        if (cached != null) {
+                            allRaces.add(cached);
+                            continue;
+                        }
+                    }
 
                     try {
                         Document doc = WebScraper.getHTML(raceUrl);
 
                         RaceInfo raceInfo = new RaceInfo(
-                                raceParserService.getRaceNumber(raceUrl),
+                                raceNumber,
                                 venueName,
                                 WebScraper.getRaceName(doc),
                                 schedule.raceTime(),
@@ -333,8 +371,12 @@ public class RaceService {
 
                         allRaces.add(raceInfo);
 
+                        if (isFinished) {
+                            raceCacheService.cacheFinishedRace(venueName, raceNumber, raceInfo);
+                        }
+
                     } catch (Exception e) {
-                        System.out.println(raceParserService.getRaceNumber(raceUrl) + "R取得失敗: " + e.getMessage());
+                        System.out.println(raceNumber + "R取得失敗: " + e.getMessage());
                     }
                 }
             }

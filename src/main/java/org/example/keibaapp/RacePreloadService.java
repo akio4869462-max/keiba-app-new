@@ -22,59 +22,20 @@ public class RacePreloadService {
         return false;
     }
 
-    // 8:00 に先読み（ユーザーが9時台にアクセスした時に即表示）
-    @Scheduled(cron = "0 0 8 * * *", zone = "Asia/Tokyo")
-    public void preloadMorningRaces() {
-        if (skipIfNoRaceToday("8:00")) {
+    // 8時〜18時、毎時1分にキャッシュを更新する。
+    // RaceNotificationService.checkFavorites()はキャッシュ(TTL 90分)のみを参照し
+    // 自分ではフェッチしない設計のため、ここで定期的にキャッシュを温め続けないと、
+    // しばらくアクセスがない間にキャッシュが失効し、その間の通知チェックが
+    // 丸ごとスキップされてしまう(実際に発生した不具合)。
+    // 固定時刻を飛び飛びに並べる方式だと更新間隔が90分を超える隙間が生まれうるため、
+    // TTLより短い60分間隔で通知チェックの実行窓(8:00〜19:00)を隙間なくカバーする
+    @Scheduled(cron = "0 1 8-18 * * *", zone = "Asia/Tokyo")
+    public void refreshRaceCache() {
+        if (skipIfNoRaceToday("定期リフレッシュ")) {
             return;
         }
-        System.out.println("【事前キャッシュ】取得開始(8:00)");
-        raceService.getRaces();
-        System.out.println("【事前キャッシュ】完了(8:00)");
-    }
-
-    // 8:50 にキャッシュ更新（8:00+90分=9:30の期限切れ前にリフレッシュ）
-    // これがないと9:30頃の1R通知でキャッシュミスが起きる
-    @Scheduled(cron = "0 50 8 * * *", zone = "Asia/Tokyo")
-    public void refreshEarlyMorningRaces() {
-        if (skipIfNoRaceToday("8:50")) {
-            return;
-        }
-        System.out.println("【キャッシュ更新】リフレッシュ(8:50)");
+        System.out.println("【キャッシュ更新】定期リフレッシュ開始");
         raceService.getRaces();
         System.out.println("【キャッシュ更新】完了");
-    }
-
-    // 10:00 にキャッシュ更新（8:50+90分=10:20まで有効）
-    @Scheduled(cron = "0 0 10 * * *", zone = "Asia/Tokyo")
-    public void refreshMidMorningRaces() {
-        if (skipIfNoRaceToday("10:00")) {
-            return;
-        }
-        System.out.println("【キャッシュ更新】リフレッシュ(10:00)");
-        raceService.getRaces();
-        System.out.println("【キャッシュ更新】完了");
-    }
-
-    // 11:31 に昼帯のキャッシュを先読み
-    @Scheduled(cron = "0 31 11 * * *", zone = "Asia/Tokyo")
-    public void preloadMiddayRaces() {
-        if (skipIfNoRaceToday("11:31")) {
-            return;
-        }
-        System.out.println("【事前キャッシュ】取得開始(11:31)");
-        raceService.getRaces();
-        System.out.println("【事前キャッシュ】完了(11:31)");
-    }
-
-    // 14:01 に午後帯のキャッシュを先読み
-    @Scheduled(cron = "0 1 14 * * *", zone = "Asia/Tokyo")
-    public void preloadAfternoonRaces() {
-        if (skipIfNoRaceToday("14:01")) {
-            return;
-        }
-        System.out.println("【事前キャッシュ】取得開始(14:01)");
-        raceService.getRaces();
-        System.out.println("【事前キャッシュ】完了(14:01)");
     }
 }

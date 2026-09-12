@@ -180,4 +180,26 @@ class RaceParserServiceTest {
 
         assertTrue(service.getRaceSchedules(doc).isEmpty());
     }
+
+    @Test
+    void isRaceStillShowableToday_shouldReturnTrueForRaceLongPast() {
+        // 出馬表(/races)向けは、発走からどれだけ時間が経っていても
+        // (同日である前提で)表示対象であり続ける
+        LocalTime longPast = LocalTime.now(ZoneId.of("Asia/Tokyo")).minusMinutes(300);
+
+        assertTrue(service.isRaceStillShowableToday(longPast));
+    }
+
+    @Test
+    void isRaceStillShowableToday_shouldReturnFalseForRaceFarInTheFuture() {
+        // 未来方向の制限(3時間)は予想向けと同じ
+        LocalTime farFuture = LocalTime.now(ZoneId.of("Asia/Tokyo")).plusMinutes(200);
+
+        assertFalse(service.isRaceStillShowableToday(farFuture));
+    }
+
+    @Test
+    void isRaceStillShowableToday_shouldReturnFalseForNull() {
+        assertFalse(service.isRaceStillShowableToday(null));
+    }
 }

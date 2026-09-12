@@ -202,8 +202,20 @@ public class RaceParserService {
 
     // 夏の変則開催等で発走時刻が通常と大きくずれても正しく判定できるよう、
     // 壁時計からレース番号を推測する方式(getRaceRangeByTime)ではなく、
-    // 実際にパースした発走時刻と現在時刻の差で「今表示する価値があるか」を判定する
+    // 実際にパースした発走時刻と現在時刻の差で「今表示する価値があるか」を判定する。
+    // 予想(/predict)向け: 終わったレースの予想を出す意味は薄いため、
+    // 発走から一定時間(60分)経ったら対象から外す
     public boolean isRaceTimeRelevant(LocalTime raceTime) {
+        return isWithinRelevantWindow(raceTime, RELEVANT_PAST_MINUTES, RELEVANT_FUTURE_MINUTES);
+    }
+
+    // 出馬表(/races)向け: 終わったレースもその日のうちは見られるようにしたいため、
+    // 過去方向には制限を設けない(常に同日内の比較のため日付をまたぐ心配はない)
+    public boolean isRaceStillShowableToday(LocalTime raceTime) {
+        return isWithinRelevantWindow(raceTime, Integer.MAX_VALUE, RELEVANT_FUTURE_MINUTES);
+    }
+
+    private boolean isWithinRelevantWindow(LocalTime raceTime, int pastMinutes, int futureMinutes) {
         if (raceTime == null) {
             return false;
         }
@@ -211,8 +223,8 @@ public class RaceParserService {
         LocalTime now = LocalTime.now(ZoneId.of("Asia/Tokyo"));
         long diffMinutes = java.time.Duration.between(now, raceTime).toMinutes();
 
-        return diffMinutes >= -RELEVANT_PAST_MINUTES
-                && diffMinutes <= RELEVANT_FUTURE_MINUTES;
+        return diffMinutes >= -(long) pastMinutes
+                && diffMinutes <= futureMinutes;
     }
 
     public String extractVenueName(String text) {
