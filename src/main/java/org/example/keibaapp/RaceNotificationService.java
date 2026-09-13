@@ -13,6 +13,9 @@ public class RaceNotificationService {
 
     private static final ZoneId JST = ZoneId.of("Asia/Tokyo");
 
+    // 通知チェックは毎分実行されるため、実際の通知は発走の1〜2分前に届く
+    private static final int NOTIFY_MINUTES_BEFORE = 2;
+
     private final FavoriteHorseRepository horseRepository;
     private final FavoriteJockeyRepository jockeyRepository;
     private final RaceService raceService;
@@ -64,7 +67,7 @@ public class RaceNotificationService {
 
                     if (nameMatch || sireMatch) {
                         LocalTime now = LocalTime.now(JST);
-                        LocalTime notifyTime = race.getRaceTime().minusMinutes(5);
+                        LocalTime notifyTime = race.getRaceTime().minusMinutes(NOTIFY_MINUTES_BEFORE);
 
                         if (now.isBefore(notifyTime) || now.isAfter(race.getRaceTime())) {
                             continue;
@@ -115,7 +118,7 @@ public class RaceNotificationService {
                     if (favorite.getJockeyName()
                             .equals(horse.getJockeyName())) {
                         LocalTime now = LocalTime.now(JST);
-                        LocalTime notifyTime = race.getRaceTime().minusMinutes(5);
+                        LocalTime notifyTime = race.getRaceTime().minusMinutes(NOTIFY_MINUTES_BEFORE);
 
                         if (now.isBefore(notifyTime) || now.isAfter(race.getRaceTime())) {
                             continue;

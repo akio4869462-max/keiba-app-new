@@ -17,15 +17,16 @@ public class RaceCacheService {
 
     private static final int CACHE_TTL_MINUTES = 90;
 
-    private List<RaceInfo> cachedRaces;
-    private LocalDateTime lastFetchedAt;
-    private String cachedRange;
+    // HTTPスレッドとスケジューラスレッド(通知チェック・定期更新)から同時に読み書きされるためvolatile
+    private volatile List<RaceInfo> cachedRaces;
+    private volatile LocalDateTime lastFetchedAt;
+    private volatile String cachedRange;
 
     // 出馬表(/races)専用のキャッシュ。予想スコア等のエンリッチを行わない
     // 軽量なRaceInfoを保持する(getRaces()側のキャッシュとは別に持つ)
-    private List<RaceInfo> cachedBasicRaces;
-    private LocalDateTime basicLastFetchedAt;
-    private String basicCachedRange;
+    private volatile List<RaceInfo> cachedBasicRaces;
+    private volatile LocalDateTime basicLastFetchedAt;
+    private volatile String basicCachedRange;
 
     // 出馬表(/races)のレース単位キャッシュ。発走を終えたレースの出走内容は
     // 変わらないため、上のリスト単位キャッシュ(TTL 90分)が切れて再取得が走っても、
