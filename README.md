@@ -21,6 +21,18 @@ JavaおよびSpring Bootの学習とポートフォリオ作成を目的とし�
 
 ---
 
+## スクレイピングポリシー
+
+外部サイトへの負荷と利用規約に配慮し、以下を設計方針としています。
+
+- **個人利用・学習目的に限定**: 取得データの再配布や商用利用は行わない
+- **アクセス頻度の抑制**: 30分キャッシュ・過去走データのメモリキャッシュ・排他制御により、同一ページへの重複アクセスを排除
+- **取得タイミングの限定**: 定期実行は開催日（土日9〜17時）と結果確定チェックに限定し、常時クロールは行わない
+- **リクエスト間隔の確保**: 連続リクエストの間に待機時間（0.5〜5秒）を挿入
+- **失敗時の配慮**: 取得失敗時はリトライせず即座に打ち切るサーキットブレーカー方式
+
+---
+
 ## 起動方法
 ### Docker Composeで起動
 
@@ -112,6 +124,22 @@ http://localhost:8080/races
 ### 定期実行
 Spring Schedulerによる自動チェック（土日9〜17時のタイムゾーンを明示指定して実行）
 
+### REST API
+
+画面（Thymeleaf）とは別に、主要データをJSONで取得できるREST APIを提供
+
+| メソッド | エンドポイント | 内容 |
+|--------|--------|--------|
+| GET | `/api/v1/races` | 本日の出馬表一覧（軽量版） |
+| GET | `/api/v1/predictions` | 予想スコア付き出馬表（スコア降順） |
+| GET | `/api/v1/results/stats` | バックテスト統計（的中率・回収率・帯別成績） |
+| GET / POST / DELETE | `/api/v1/favorites/horses` | お気に入り馬のCRUD |
+| GET / POST / DELETE | `/api/v1/favorites/jockeys` | お気に入り騎手のCRUD |
+
+- springdoc-openapiによるAPIドキュメント自動生成
+- Swagger UI: http://localhost:8080/swagger-ui.html
+- レスポンスはエンティティを直接公開せず、DTO（record）に変換して返却
+
 ---
 
 ## 使用技術
@@ -125,6 +153,7 @@ Spring Schedulerによる自動チェック（土日9〜17時のタイムゾー�
 | PostgreSQL | 本番DB |
 | H2 Database | テスト・開発用 |
 | Jsoup | スクレイピング |
+| springdoc-openapi | REST APIドキュメント（Swagger UI） |
 | Maven | ビルド管理 |
 | Docker | コンテナ化 |
 | Docker Compose | 開発環境構築 |
@@ -136,7 +165,8 @@ Spring Schedulerによる自動チェック（土日9〜17時のタイムゾー�
 ## 開発規模
 
 - サービスクラス: 14クラス
-- 単体テスト: 39件
+- 単体テスト: 46件
+- REST API + Swagger UI（springdoc-openapi）
 - Docker / PostgreSQL 対応
 - AWS EC2への自動デプロイ（GitHub Actions）
 
@@ -200,8 +230,9 @@ JUnit5による単体テストを実施
 - AiPromptServiceTest
 - RaceResultStatsServiceTest
 - RaceResultCollectionServiceTest
+- ApiControllerTest（MockMvcによるREST APIのテスト）
 
-合計39テスト（全件成功）
+合計46テスト（全件成功）
 
 ---
 
@@ -249,7 +280,7 @@ GitHub Actionsを利用して自動テスト・自動デプロイを実施して
 ---
 
 ## 今後の改善予定
-- REST API化
+- REST APIの拡充（認証・ページング対応）
 - オッズのみキャッシュ期間を短縮し、リアルタイム性を向上
 - 予想ロジック精度向上（スコア帯別精度の検証結果をもとに継続改善）
 - 騎手成績データの拡充
