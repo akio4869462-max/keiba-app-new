@@ -206,4 +206,34 @@ class RaceCacheServiceTest {
 
         assertNull(cacheService.getFinishedRace("東京", 11));
     }
+
+    @Test
+    void wasOddsRefreshed_shouldReturnFalseUntilMarked() {
+        RaceCacheService cacheService = new RaceCacheService();
+
+        assertFalse(cacheService.wasOddsRefreshed("https://example.com/race/denma/1"));
+
+        cacheService.markOddsRefreshed("https://example.com/race/denma/1");
+
+        assertTrue(cacheService.wasOddsRefreshed("https://example.com/race/denma/1"));
+    }
+
+    @Test
+    void wasOddsRefreshed_shouldDistinguishDifferentUrls() {
+        RaceCacheService cacheService = new RaceCacheService();
+
+        cacheService.markOddsRefreshed("https://example.com/race/denma/1");
+
+        assertFalse(cacheService.wasOddsRefreshed("https://example.com/race/denma/2"));
+    }
+
+    @Test
+    void wasOddsRefreshed_shouldResetAfterDayRollover() {
+        RaceCacheService cacheService = new RaceCacheService();
+
+        cacheService.markOddsRefreshed("https://example.com/race/denma/1");
+        cacheService.setOddsRefreshedDateForTesting(LocalDate.now().minusDays(1));
+
+        assertFalse(cacheService.wasOddsRefreshed("https://example.com/race/denma/1"));
+    }
 }

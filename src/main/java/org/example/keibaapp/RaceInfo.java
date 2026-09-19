@@ -12,6 +12,9 @@ public class RaceInfo {
     List<Horse> horses;
     String course;
     String distance;
+    // 締切前オッズ再取得(RaceService.refreshOddsNearPost)のためのdenmaページURL。
+    // 生成元によっては設定されないことがあるためnull許容(その場合は再取得対象外)
+    String raceUrl;
 
     RaceInfo(int raceNum,
              String venue,
@@ -48,6 +51,18 @@ public class RaceInfo {
 
     public List<Horse> getHorses() {
         return horses;
+    }
+
+    public void setHorses(List<Horse> horses) {
+        this.horses = horses;
+    }
+
+    public String getRaceUrl() {
+        return raceUrl;
+    }
+
+    public void setRaceUrl(String raceUrl) {
+        this.raceUrl = raceUrl;
     }
 
     public String getDisplayRaceName() {

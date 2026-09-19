@@ -1,5 +1,6 @@
 package org.example.keibaapp;
 
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -125,6 +126,7 @@ public class RaceService {
                                 distance,
                                 horseList
                         );
+                        raceInfo.setRaceUrl(raceUrl);
 
                         horseEnrichmentService.enrichAiPrompt(raceInfo);
 
@@ -287,6 +289,51 @@ public class RaceService {
         raceCacheService.cacheRaces(currentRange, races);
 
         return races;
+    }
+
+    // 予想モデルの妙味(overlay)計算に使う重みは締切10分前オッズで較正されている
+    // (MODEL_REVISION.md §2.2)。毎時の全体リフレッシュ(getRaces())だけでは
+    // 最大1時間近く古いオッズのままになるため、発走10分前になったレースだけ
+    // そのレース1件分のdenmaページを再取得してオッズと予想モデルを更新する。
+    // 1分おきに実行するが、キャッシュが無ければ即終了し、対象レースが窓に入った
+    // 最初の1回しかネットワークアクセスしない(raceCacheServiceのガード)ため、
+    // 毎時10レース前後を取り直す全体リフレッシュよりアクセス負荷ははるかに小さい
+    @Scheduled(cron = "0 * * * * *", zone = "Asia/Tokyo")
+    public void refreshOddsNearPost() {
+        List<RaceInfo> races = raceCacheService.getCachedRaces();
+
+        if (races == null || races.isEmpty()) {
+            return;
+        }
+
+        for (RaceInfo race : races) {
+            String raceUrl = race.getRaceUrl();
+
+            if (raceUrl == null) {
+                continue;
+            }
+
+            if (!raceParserService.isWithinFinalOddsRefreshWindow(race.getRaceTime())) {
+                continue;
+            }
+
+            if (raceCacheService.wasOddsRefreshed(raceUrl)) {
+                continue;
+            }
+
+            try {
+                Document doc = WebScraper.getHTML(raceUrl);
+                List<Horse> horseList = createTodayHorseList(doc, race.getCourse(), race.getDistance());
+                race.setHorses(horseList);
+                System.out.println("【締切前オッズ再取得】完了: " + race.getDisplayRaceName());
+            } catch (Exception e) {
+                System.out.println("【締切前オッズ再取得】失敗: " + race.getDisplayRaceName() + " / " + e.getMessage());
+            } finally {
+                // 失敗時も毎分リトライして無駄なアクセスを繰り返さないよう、
+                // 成功可否によらず1回試行したら完了扱いにする
+                raceCacheService.markOddsRefreshed(raceUrl);
+            }
+        }
     }
 
     // /races(出馬表)専用のキャッシュ。getRaces()と同じ90分TTL・30分単位の

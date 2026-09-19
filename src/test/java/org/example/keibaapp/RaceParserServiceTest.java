@@ -202,4 +202,30 @@ class RaceParserServiceTest {
     void isRaceStillShowableToday_shouldReturnFalseForNull() {
         assertFalse(service.isRaceStillShowableToday(null));
     }
+
+    @Test
+    void isWithinFinalOddsRefreshWindow_shouldReturnTrueWithinTenMinutesBeforePost() {
+        LocalTime soon = LocalTime.now(ZoneId.of("Asia/Tokyo")).plusMinutes(5);
+
+        assertTrue(service.isWithinFinalOddsRefreshWindow(soon));
+    }
+
+    @Test
+    void isWithinFinalOddsRefreshWindow_shouldReturnFalseMoreThanTenMinutesBeforePost() {
+        LocalTime tooEarly = LocalTime.now(ZoneId.of("Asia/Tokyo")).plusMinutes(11);
+
+        assertFalse(service.isWithinFinalOddsRefreshWindow(tooEarly));
+    }
+
+    @Test
+    void isWithinFinalOddsRefreshWindow_shouldReturnFalseAfterPostTime() {
+        LocalTime justPast = LocalTime.now(ZoneId.of("Asia/Tokyo")).minusMinutes(1);
+
+        assertFalse(service.isWithinFinalOddsRefreshWindow(justPast));
+    }
+
+    @Test
+    void isWithinFinalOddsRefreshWindow_shouldReturnFalseForNull() {
+        assertFalse(service.isWithinFinalOddsRefreshWindow(null));
+    }
 }

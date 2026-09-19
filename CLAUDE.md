@@ -69,6 +69,9 @@ Yahoo!スポーツ競馬 → WebScraper（静的メソッド群・サーキッ�
 
 `RaceResultRecord`にも`overlay`・`popularity`・`modelVersion`（`PredictionService.MODEL_VERSION`）を記録し、将来モデルを変更した際に旧モデルの結果と混同せず比較できるようにしている。
 
+妙味(`overlay`)を較正した`MARKET_WEIGHT=0.885`は**締切10分前オッズ**を前提にしているが、`/predict`の全体キャッシュ（`getRaces()`、TTL 90分・毎時1分の`RacePreloadService`でリフレッシュ）だけでは最大1時間近く古いオッズのままになる。
+これを補うため、`RaceService.refreshOddsNearPost()`が毎分実行され、発走10分前(`RaceParserService.isWithinFinalOddsRefreshWindow`)になったレースだけそのレース1件分のdenmaページを再取得してオッズ・予想モデルを更新する。`RaceCacheService.wasOddsRefreshed`/`markOddsRefreshed`でレースごとに1日1回しかアクセスしないようガードしており、毎時10レース前後を取り直す全体リフレッシュよりアクセス負荷は小さい。
+
 ### 自己検証パイプライン
 
 ```

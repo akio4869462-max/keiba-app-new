@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -34,6 +35,13 @@ public class RaceCacheService {
     // キーに日付を含めないため、日付が変わったらクリアする
     private final Map<String, RaceInfo> finishedRaceCache = new ConcurrentHashMap<>();
     private LocalDate finishedRaceCacheDate;
+
+    // 予想(/predict)の締切前オッズ再取得(RaceService.refreshOddsNearPost)で、
+    // 同じレースに毎分何度もアクセスしないためのガード。raceUrlは日付を含むため
+    // 本来は衝突しないが、無期限に増え続けないよう他のキャッシュと同様に
+    // 日付が変わったらクリアする
+    private final Set<String> oddsRefreshedUrls = ConcurrentHashMap.newKeySet();
+    private LocalDate oddsRefreshedDate;
 
     public HorseDetailInfo getHorseDetail(String key) {
         return horseDetailCache.get(key);
@@ -123,6 +131,24 @@ public class RaceCacheService {
         }
     }
 
+    public synchronized boolean wasOddsRefreshed(String raceUrl) {
+        clearOddsRefreshedIfStale();
+        return oddsRefreshedUrls.contains(raceUrl);
+    }
+
+    public synchronized void markOddsRefreshed(String raceUrl) {
+        clearOddsRefreshedIfStale();
+        oddsRefreshedUrls.add(raceUrl);
+    }
+
+    private void clearOddsRefreshedIfStale() {
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Tokyo"));
+        if (!today.equals(oddsRefreshedDate)) {
+            oddsRefreshedUrls.clear();
+            oddsRefreshedDate = today;
+        }
+    }
+
     // テストで古いキャッシュ(前回開催日分等)の挙動を再現するためだけに用意
     // (本番コードからは呼ばない)
     void setLastFetchedAtForTesting(LocalDateTime lastFetchedAt) {
@@ -133,5 +159,11 @@ public class RaceCacheService {
     // 再現するためだけに用意(本番コードからは呼ばない)
     void setFinishedRaceCacheDateForTesting(LocalDate date) {
         this.finishedRaceCacheDate = date;
+    }
+
+    // テストで日付をまたいだ際の挙動(オッズ再取得済みフラグのクリア)を
+    // 再現するためだけに用意(本番コードからは呼ばない)
+    void setOddsRefreshedDateForTesting(LocalDate date) {
+        this.oddsRefreshedDate = date;
     }
 }

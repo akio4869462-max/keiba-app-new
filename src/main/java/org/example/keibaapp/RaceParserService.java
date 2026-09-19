@@ -215,6 +215,15 @@ public class RaceParserService {
         return isWithinRelevantWindow(raceTime, Integer.MAX_VALUE, RELEVANT_FUTURE_MINUTES);
     }
 
+    private static final int FINAL_ODDS_WINDOW_MINUTES = 10;
+
+    // 予想(/predict)の妙味(overlay)計算に使う重みは締切10分前オッズで
+    // 較正されているため(MODEL_REVISION.md §2.2)、発走10分前になったレースだけ
+    // オッズの再取得対象と判定する
+    public boolean isWithinFinalOddsRefreshWindow(LocalTime raceTime) {
+        return isWithinRelevantWindow(raceTime, 0, FINAL_ODDS_WINDOW_MINUTES);
+    }
+
     private boolean isWithinRelevantWindow(LocalTime raceTime, int pastMinutes, int futureMinutes) {
         if (raceTime == null) {
             return false;
