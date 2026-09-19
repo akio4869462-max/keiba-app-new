@@ -21,7 +21,6 @@ public class RaceCacheService {
     // HTTPスレッドとスケジューラスレッド(通知チェック・定期更新)から同時に読み書きされるためvolatile
     private volatile List<RaceInfo> cachedRaces;
     private volatile LocalDateTime lastFetchedAt;
-    private volatile String cachedRange;
 
     // 出馬表(/races)専用のキャッシュ。予想スコア等のエンリッチを行わない
     // 軽量なRaceInfoを保持する(getRaces()側のキャッシュとは別に持つ)
@@ -60,9 +59,11 @@ public class RaceCacheService {
         jockeyStatsCache.put(key, stats);
     }
 
-    public boolean isRaceCacheValid(String currentRange) {
+    // 以前は現在時刻を30分単位に丸めた値との一致も条件にしていたが、
+    // :00/:30を跨いだ瞬間に必ず無効判定になりTTLが実質機能していなかったため、
+    // 鮮度(TTL)のみで判定する
+    public boolean isRaceCacheValid() {
         return cachedRaces != null
-                && currentRange.equals(cachedRange)
                 && lastFetchedAt != null
                 && lastFetchedAt.plusMinutes(CACHE_TTL_MINUTES)
                 .isAfter(LocalDateTime.now());
@@ -84,10 +85,8 @@ public class RaceCacheService {
                 .isAfter(LocalDateTime.now());
     }
 
-    public void cacheRaces(String currentRange,
-                           List<RaceInfo> races) {
+    public void cacheRaces(List<RaceInfo> races) {
         this.cachedRaces = races;
-        this.cachedRange = currentRange;
         this.lastFetchedAt = LocalDateTime.now();
     }
 

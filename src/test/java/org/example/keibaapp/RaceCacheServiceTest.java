@@ -51,37 +51,32 @@ class RaceCacheServiceTest {
 
         List<RaceInfo> races = List.of(race);
 
-        cacheService.cacheRaces("9-12", races);
+        cacheService.cacheRaces(races);
 
-        assertTrue(cacheService.isRaceCacheValid("9-12"));
+        assertTrue(cacheService.isRaceCacheValid());
         assertEquals(races, cacheService.getCachedRaces());
-    }
-
-    @Test
-    void isRaceCacheValid_shouldReturnFalseWhenRangeIsDifferent() {
-        RaceCacheService cacheService = new RaceCacheService();
-
-        RaceInfo race = new RaceInfo(
-                11,
-                "東京",
-                "テストレース",
-                LocalTime.of(15, 40),
-                "芝",
-                "2000m",
-                List.of()
-        );
-
-        cacheService.cacheRaces("9-12", List.of(race));
-
-        assertFalse(cacheService.isRaceCacheValid("5-8"));
     }
 
     @Test
     void isRaceCacheValid_shouldReturnFalseWhenCacheIsEmpty() {
         RaceCacheService cacheService = new RaceCacheService();
 
-        assertFalse(cacheService.isRaceCacheValid("9-12"));
+        assertFalse(cacheService.isRaceCacheValid());
         assertNull(cacheService.getCachedRaces());
+    }
+
+    @Test
+    void isRaceCacheValid_shouldReturnFalseWhenStale() {
+        // :00/:30を跨いだだけでは無効にならず、TTL(90分)経過のみで無効になることを確認する
+        RaceCacheService cacheService = new RaceCacheService();
+
+        RaceInfo race = new RaceInfo(
+                11, "東京", "テストレース", LocalTime.of(15, 40), "芝", "2000m", List.of());
+
+        cacheService.cacheRaces(List.of(race));
+        cacheService.setLastFetchedAtForTesting(LocalDateTime.now().minusMinutes(91));
+
+        assertFalse(cacheService.isRaceCacheValid());
     }
 
     @Test
@@ -91,7 +86,7 @@ class RaceCacheServiceTest {
         RaceInfo race = new RaceInfo(
                 11, "東京", "テストレース", LocalTime.of(15, 40), "芝", "2000m", List.of());
 
-        cacheService.cacheRaces("9-12", List.of(race));
+        cacheService.cacheRaces(List.of(race));
 
         assertTrue(cacheService.hasCachedRaces());
     }
@@ -112,7 +107,7 @@ class RaceCacheServiceTest {
         RaceInfo race = new RaceInfo(
                 11, "東京", "テストレース", LocalTime.of(15, 40), "芝", "2000m", List.of());
 
-        cacheService.cacheRaces("9-12", List.of(race));
+        cacheService.cacheRaces(List.of(race));
         cacheService.setLastFetchedAtForTesting(LocalDateTime.now().minusDays(1));
 
         assertFalse(cacheService.hasCachedRaces());
@@ -128,7 +123,7 @@ class RaceCacheServiceTest {
                 2, "東京", "予想用", LocalTime.of(10, 30), "ダ", "1400m", List.of());
 
         cacheService.cacheBasicRaces("10:0", List.of(basicRace));
-        cacheService.cacheRaces("10:0", List.of(fullRace));
+        cacheService.cacheRaces(List.of(fullRace));
 
         assertTrue(cacheService.isBasicRaceCacheValid("10:0"));
         assertEquals(List.of(basicRace), cacheService.getCachedBasicRaces());

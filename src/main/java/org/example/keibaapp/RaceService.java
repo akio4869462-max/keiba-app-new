@@ -259,16 +259,13 @@ public class RaceService {
 
         System.out.println("★ServiceのgetRacesが呼ばれました！");
 
-        // レース番号の範囲ではなく、現在時刻を30分単位に丸めた値をキャッシュキーにする。
-        // (発走時刻ベースの関連レース判定に変えたため、レース番号の範囲では
-        // キャッシュの区切りを表現できなくなったため)
-        LocalTime now = LocalTime.now(JST);
-        String currentRange = now.getHour() + ":" + (now.getMinute() / 30 * 30);
-
-        // DEBUG
-        System.out.println("キャッシュキー=" + currentRange);
-
-        if (raceCacheService.isRaceCacheValid(currentRange)) {
+        // 以前は現在時刻を30分単位に丸めた値をキャッシュキーにして、その一致も
+        // 有効条件にしていたが、:00/:30を跨いだ瞬間に必ずキャッシュミス扱いに
+        // なり、TTL(90分)がほぼ意味を成していなかった(RacePreloadServiceが
+        // 毎時リフレッシュしても、その後:30を跨いだアクセスは全部フル取得に
+        // なってしまう)。TTLのみで判定するようにし、毎時のリフレッシュ後は
+        // 常にキャッシュを読むだけになるようにした
+        if (raceCacheService.isRaceCacheValid()) {
             System.out.println("キャッシュを使用します");
             return raceCacheService.getCachedRaces();
         }
@@ -286,7 +283,7 @@ public class RaceService {
         List<RaceInfo> races = fetchTodayRaces();
 //        List<RaceInfo> races = fetchHistoricalRaces();
 
-        raceCacheService.cacheRaces(currentRange, races);
+        raceCacheService.cacheRaces(races);
 
         return races;
     }
