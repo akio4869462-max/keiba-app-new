@@ -7,21 +7,26 @@ import java.util.Comparator;
 import java.util.List;
 
 // 予想モデル(2026-09-19改訂、keiba_score_search/analysis/MODEL_REVISION.md準拠)。
-// 単勝オッズが織り込む「市場確率」をレース内softmaxで勝率に変換するだけの式で、
-// 距離適性・コース適性・枠順・騎手成績等の加点は行わない。
-// 8年分(2019-2026、約40万出走)のオフライン検証で、これらの加点が
+// 単勝オッズが織り込む「市場確率」をレース内softmaxで勝率に変換する式に、
+// 父・騎手・生産者の市場相対残差(§8、市場情報を制御しても残る数少ない有効な
+// シグナル)を加える。距離適性・コース適性・枠順・騎手成績そのもの等の加点は
+// 行わない。8年分(2019-2026、約40万出走)のオフライン検証で、これらの加点が
 // 市場情報を制御した後は有害またはノイズと判定されたため
 // (favorite-longshot bias: 加点により人気薄が上位に来やすくなり、
 // 8年データで13番人気以下の単勝ROIは-42%、220倍超は-63%)。
 @Service
 public class PredictionService {
 
-    public static final String MODEL_VERSION = "2026-09-19-market-softmax-v1";
+    public static final String MODEL_VERSION = "2026-09-20-market-residual-v1";
 
     // レース内softmaxで市場確率(q)を勝率(p)へ変換する係数(2019-22学習データでの推定値)。
-    // 追加の特徴量が入るまではこの1項のみのため、
-    // 実質「人気順をそのまま確率に変換する」式になる(意図的な仕様)
     private static final double MARKET_WEIGHT = 0.885;
+
+    private final MarketResidualService marketResidualService;
+
+    public PredictionService(MarketResidualService marketResidualService) {
+        this.marketResidualService = marketResidualService;
+    }
 
     // 妙味(overlay = p/q - 1)がこの値以上、かつ2〜8番人気の馬だけを
     // 「買い候補」として示す(forward_rules.json "2-8_0.95"より)。
@@ -105,9 +110,15 @@ public class PredictionService {
         double sum = 0;
 
         for (int i = 0; i < n; i++) {
-            double q = (1.0 / validHorses.get(i).getOdds()) / oddsInverseSum;
+            Horse horse = validHorses.get(i);
+            double q = (1.0 / horse.getOdds()) / oddsInverseSum;
             double logit = Math.log(q / (1 - q));
-            expScores[i] = Math.exp(MARKET_WEIGHT * logit);
+
+            double residualScore = marketResidualService.sireScore(horse.getSire())
+                    + marketResidualService.jockeyScore(horse.getJockeyName())
+                    + marketResidualService.breederScore(horse.getBreeder());
+
+            expScores[i] = Math.exp(MARKET_WEIGHT * logit + residualScore);
             sum += expScores[i];
         }
 

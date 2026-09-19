@@ -31,6 +31,9 @@ public class Horse {
     private String sire;
     private String dam;
     private String damSire;
+    // 生産者名。市場相対残差(MODEL_REVISION.md §8)の照合キーとして使う。
+    // 馬詳細ページ由来のため取得できるのはHorseEnrichmentService.fetchHorseDetail経由のみ
+    private String breeder;
 
     public int getActualRank() {
         return actualRank;
@@ -239,5 +242,13 @@ public class Horse {
 
     public void setDamSire(String damSire) {
         this.damSire = damSire;
+    }
+
+    public String getBreeder() {
+        return breeder;
+    }
+
+    public void setBreeder(String breeder) {
+        this.breeder = breeder;
     }
 }

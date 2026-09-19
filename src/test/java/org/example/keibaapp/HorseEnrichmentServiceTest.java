@@ -10,7 +10,7 @@ class HorseEnrichmentServiceTest {
 
     private final HorseEnrichmentService service =
             new HorseEnrichmentService(
-                    new PredictionService(),
+                    new PredictionService(new MarketResidualService()),
                     new RaceCacheService(),
                     new AiPromptService(),
                     new AiService()

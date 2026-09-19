@@ -7,7 +7,9 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
@@ -134,7 +136,8 @@ public class WebScraper {
 
     public static HorseDetailInfo getTodayHorseDetailInfo(String horseUrl) {
         try {
-            Elements rows = getHorseResultRows(horseUrl);
+            Document doc = getHTML(horseUrl);
+            Elements rows = getHorseResultRows(doc);
 
             if (rows.isEmpty()) {
                 return HorseDetailInfo.empty();
@@ -144,7 +147,8 @@ public class WebScraper {
                     parsePastRace(rows, 1),
                     parsePastRace(rows, 2),
                     parsePastRace(rows, 3),
-                    PastRaceInfo.empty()
+                    PastRaceInfo.empty(),
+                    getBreeder(doc)
             );
 
         } catch (Exception e) {
@@ -155,7 +159,8 @@ public class WebScraper {
 
     public static HorseDetailInfo getHistoricalHorseDetailInfo(String horseUrl) {
         try {
-            Elements rows = getHorseResultRows(horseUrl);
+            Document doc = getHTML(horseUrl);
+            Elements rows = getHorseResultRows(doc);
 
             if (rows.isEmpty()) {
                 return HorseDetailInfo.empty();
@@ -165,13 +170,30 @@ public class WebScraper {
                     parsePastRace(rows, 2),
                     parsePastRace(rows, 3),
                     parsePastRace(rows, 4),
-                    parsePastRace(rows, 1)
+                    parsePastRace(rows, 1),
+                    getBreeder(doc)
             );
 
         } catch (Exception e) {
             System.out.println("馬詳細情報取得失敗: " + horseUrl + " / " + e.getMessage());
             return HorseDetailInfo.empty();
         }
+    }
+
+    // 市場相対残差(MODEL_REVISION.md §8)の照合キー用。馬詳細ページの
+    // プロフィール欄(生年月日・毛色・調教師等と同じ並び)から生産者名を取得する。
+    // このページ自体は前走情報のため既に取得済みなので追加リクエストは不要
+    public static String getBreeder(Document doc) {
+        for (Element item : doc.select(".hr-profile__item")) {
+            Element title = item.selectFirst(".hr-profile__title");
+
+            if (title != null && title.text().trim().equals("生産者")) {
+                Element text = item.selectFirst(".hr-profile__text");
+                return text != null ? text.text().trim() : "";
+            }
+        }
+
+        return "";
     }
 
     private static PastRaceInfo parsePastRace(Elements rows, int rowIndex) {
@@ -211,6 +233,14 @@ public class WebScraper {
         pastRace.setDistance(extractDistance(raceText));
         pastRace.setCourse(extractCourse(raceText));
         pastRace.setFieldSize(extractFieldSize(raceText));
+
+        // p_lat_c(MODEL_REVISION.md §6.1)用: このレースへのリンクと馬番を保持しておく。
+        // まだスコアには反映していない(パーサー基盤のみ)
+        Element raceLink = tds.get(1).selectFirst("a");
+        if (raceLink != null) {
+            pastRace.setRaceUrl(raceLink.attr("abs:href"));
+        }
+        pastRace.setUmaban(tds.get(3).text().trim());
 
         return pastRace;
     }
@@ -260,9 +290,7 @@ public class WebScraper {
         }
     }
 
-    private static Elements getHorseResultRows(String horseUrl) throws IOException {
-        Document doc = getHTML(horseUrl);
-
+    private static Elements getHorseResultRows(Document doc) {
         Elements tables = doc.select("table");
 
         if (tables.size() < 5) {
@@ -397,5 +425,84 @@ public class WebScraper {
                 "li.hr-menuWhite__item--current a.hr-menuWhite__text[href*=/keiba/race/list/]");
 
         return venueLink != null ? venueLink.text().trim() : "";
+    }
+
+    // p_lat_c(前走で外を回した度合い、MODEL_REVISION.md §6.1)用のパーサー基盤。
+    // 結果ページ(/race/result/{id})の「コーナー通過順位」セクションから、
+    // 馬番ごとの平均lat(所属する括弧グループ内で内側から何番目か。0=最内)を計算する。
+    // まだどこからも呼ばれておらず、スコアにも未反映(パーサーのみ先行実装)
+    public static Map<Integer, Double> getCornerLatMeans(Document doc) {
+        Map<Integer, List<Integer>> latsByHorse = new HashMap<>();
+
+        for (Element rankCell : doc.select(".hr-cornerRank .hr-table__data--rank")) {
+            for (CornerEntry entry : parseCornerRank(rankCell.text())) {
+                latsByHorse
+                        .computeIfAbsent(entry.horseNumber(), k -> new ArrayList<>())
+                        .add(entry.lat());
+            }
+        }
+
+        Map<Integer, Double> latMeans = new HashMap<>();
+
+        for (Map.Entry<Integer, List<Integer>> entry : latsByHorse.entrySet()) {
+            double mean = entry.getValue().stream()
+                    .mapToInt(Integer::intValue)
+                    .average()
+                    .orElse(0);
+            latMeans.put(entry.getKey(), mean);
+        }
+
+        return latMeans;
+    }
+
+    private record CornerEntry(int horseNumber, int lat) {
+    }
+
+    // TARGET形式のコーナー通過順位文字列（例: "1(*5,2)-(3,4)1"）を解析する。
+    // ra_parse.py の parse_corner 関数を移植したもの。括弧内は内→外の順で並んでおり、
+    // 馬ごとに「所属する括弧グループ内で内側から何番目か」(0=最内)がlat。
+    // 括弧の無い単独の馬はlat=0。"*"は特に意味を持たないマーカーなので単純に除去する。
+    // ハイフン・カンマ・イコール等の区切り記号はグループ境界の意味しか持たないため無視する
+    private static List<CornerEntry> parseCornerRank(String text) {
+        String s = text.replace("*", "");
+        List<CornerEntry> result = new ArrayList<>();
+        List<Integer> group = null;
+        int i = 0;
+        int n = s.length();
+
+        while (i < n) {
+            char ch = s.charAt(i);
+
+            if (ch == '(') {
+                group = new ArrayList<>();
+                i++;
+            } else if (ch == ')') {
+                if (group != null) {
+                    for (int lat = 0; lat < group.size(); lat++) {
+                        result.add(new CornerEntry(group.get(lat), lat));
+                    }
+                }
+                group = null;
+                i++;
+            } else if (Character.isDigit(ch)) {
+                int j = i;
+                while (j < n && Character.isDigit(s.charAt(j))) {
+                    j++;
+                }
+
+                int horseNumber = Integer.parseInt(s.substring(i, j));
+                i = j;
+
+                if (group != null) {
+                    group.add(horseNumber);
+                } else {
+                    result.add(new CornerEntry(horseNumber, 0));
+                }
+            } else {
+                i++;
+            }
+        }
+
+        return result;
     }
 }

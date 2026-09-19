@@ -65,12 +65,23 @@ Yahoo!スポーツ競馬 → WebScraper（静的メソッド群・サーキッ�
 根拠は `keiba_score_search/analysis/MODEL_REVISION.md`（8年・約40万出走の解析）: これらの加点は市場情報を制御すると有害またはノイズと判定され、旧式（`√オッズ × 能力スコア`）は人気薄を上位に押し上げるfavorite-longshotバイアスを引き起こしていた（予想1位の62%が20倍超、実績ROI 64.7%）。
 
 `Horse`の`predictionScore`は現在`p × 100`（モデル勝率）。あわせて`marketProbability`（市場確率`q`）・`overlay`（`p/q − 1`、妙味）・`popularity`（オッズ順の人気）・`recommended`（2〜8番人気かつoverlayが閾値以上の買い候補フラグ、参考値であり断定的な推奨ではない）を保持する。
-追加特徴量が無い現段階では、勝率の順位は単勝人気順と完全に一致する（意図的な仕様）。距離・コース・枠順・騎手等の特徴量を段階的に足す計画は`MODEL_REVISION.md` §6参照。
+2026-09-20時点では`MarketResidualService`（父・騎手・生産者の市場相対残差、下記）の項が加わっているため、勝率の順位は単勝人気順から多少入れ替わりうる。それ以外の距離・コース・枠順・騎手成績そのもの等の加点は行わない。
 
 `RaceResultRecord`にも`overlay`・`popularity`・`modelVersion`（`PredictionService.MODEL_VERSION`）を記録し、将来モデルを変更した際に旧モデルの結果と混同せず比較できるようにしている。
 
 妙味(`overlay`)を較正した`MARKET_WEIGHT=0.885`は**締切10分前オッズ**を前提にしているが、`/predict`の全体キャッシュ（`getRaces()`、TTL 90分・毎時1分の`RacePreloadService`でリフレッシュ）だけでは最大1時間近く古いオッズのままになる。
 これを補うため、`RaceService.refreshOddsNearPost()`が毎分実行され、発走10分前(`RaceParserService.isWithinFinalOddsRefreshWindow`)になったレースだけそのレース1件分のdenmaページを再取得してオッズ・予想モデルを更新する。`RaceCacheService.wasOddsRefreshed`/`markOddsRefreshed`でレースごとに1日1回しかアクセスしないようガードしており、毎時10レース前後を取り直す全体リフレッシュよりアクセス負荷は小さい。
+
+`WebScraper.getCornerLatMeans(Document)`は、`p_lat_c`(前走で外を回した度合い、`MODEL_REVISION.md` §6.1)計算用のパーサー基盤（結果ページの「コーナー通過順位」を解析し、馬番ごとの平均lat＝所属する括弧グループ内で内側から何番目かを算出）。`PastRaceInfo`にも前走のレースURL・馬番を保持するようにした。**まだどこからも呼ばれておらず、スコアには未反映**。単独導入の効果は測定誤差レベルであり、`p_hw_lat`（前走の向かい風）の実装と合わせてから`PredictionService`へ組み込む方針（`MODEL_REVISION.md` §6参照）。
+
+`p_hw_lat`（`MODEL_REVISION.md` §6.2）は単独でも統計的に意味のある効果（CI が0を除外）だが、「任意の日付・競馬場の開催ページを動的に特定する」新規インフラが要り実装規模が明確に大きいため、2026-09-19時点では見送り。効果の絶対値（CI下限+0.0001）に対してインフラの規模が見合うか微妙、というのがドキュメント側の判断。
+
+### 市場相対残差(2026-09-20実装、`MODEL_REVISION.md` §8)
+
+`MarketResidualService`が父(`sire`)・騎手(`jockeyName`)・生産者(`breeder`)ごとの市場相対残差テーブルを起動時に`src/main/resources/residuals/*.json`（`keiba_score_search`の`export_residual_tables.py`が書き出したもの）から読み込み、`PredictionService.calculateWinProbabilities`のsoftmaxスコアに`weight · (residual − mean) / sd`の形で加算する。テーブルに名前が無ければ寄与0（安全側のフォールバック。外国産馬の父名がTARGET側は英語表記でYahoo側はカタカナ表記のため一致しないケースがあるが、寄与0になるだけで誤動作はしない）。
+生産者名(`Horse.breeder`)は`HorseEnrichmentService.fetchHorseDetail`が前走情報のため既に取得している馬詳細ページ（`WebScraper.getBreeder`）から取るため、追加のスクレイピングは発生しない。
+騎手名は出馬表の表記(`"田辺 裕信"`)とテーブルのキー(`"田辺裕信"`)でスペースの有無が違うため、`MarketResidualService.jockeyScore`内で正規化してから引く。
+テーブルは静的なので鮮度が落ちる。年1回程度、`keiba_score_search`側で最新データを使い`export_residual_tables.py`を再実行し、`src/main/resources/residuals/`配下のJSON4ファイルを差し替えることを推奨（`MODEL_REVISION.md` §8.5参照）。
 
 ### 自己検証パイプライン
 

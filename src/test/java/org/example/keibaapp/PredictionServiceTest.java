@@ -3,13 +3,14 @@ package org.example.keibaapp;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class PredictionServiceTest {
 
     private final PredictionService predictionService =
-            new PredictionService();
+            new PredictionService(new MarketResidualService());
 
     private Horse horse(String umaban, double odds) {
         return new Horse(umaban, umaban, "馬" + umaban, "騎手" + umaban, "57.0", odds);
@@ -143,5 +144,28 @@ class PredictionServiceTest {
         assertTrue(target.getPredictionReason().contains("番人気"));
         assertTrue(target.getPredictionReason().contains("モデル勝率"));
         assertTrue(target.getPredictionReason().contains("妙味"));
+    }
+
+    @Test
+    void applyRaceModel_shouldRewardHorseWithPositiveMarketResidual() {
+        // オッズが全く同じ2頭でも、市場相対残差(MODEL_REVISION.md §8)が
+        // プラスの父を持つ馬の方が勝率が高くなるはず
+        MarketResidualService residualService = new MarketResidualService();
+        residualService.setTablesForTesting(
+                new MarketResidualService.ResidualTable(
+                        Map.of("優秀な父", 0.02), 0.029, 0.0005, 0.008),
+                MarketResidualService.ResidualTable.empty(),
+                MarketResidualService.ResidualTable.empty());
+
+        PredictionService serviceWithResidual = new PredictionService(residualService);
+
+        Horse strong = horse("1", 5.0);
+        strong.setSire("優秀な父");
+        Horse plain = horse("2", 5.0);
+        plain.setSire("無名の父");
+
+        serviceWithResidual.applyRaceModel(List.of(strong, plain));
+
+        assertTrue(strong.getPredictionScore() > plain.getPredictionScore());
     }
 }

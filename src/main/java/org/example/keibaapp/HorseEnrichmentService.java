@@ -59,6 +59,7 @@ public class HorseEnrichmentService {
         horse.setLastRace(detail.getLastRace());
         horse.setSecondLastRace(detail.getSecondLastRace());
         horse.setThirdLastRace(detail.getThirdLastRace());
+        horse.setBreeder(detail.getBreeder());
 
         if (isHistorical) {
             horse.setActualRace(detail.getActualRace());
