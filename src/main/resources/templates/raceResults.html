@@ -31,90 +31,168 @@
 
     <h1 class="page-title mb-4">🏁 レース結果一覧</h1>
 
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <button type="button" class="btn btn-outline-primary btn-sm" id="collectBtn" onclick="collectResults()">
+            🔄 今すぐ結果収集を実行
+        </button>
+        <span id="collectMessage" class="text-muted small"></span>
+    </div>
+
     <p class="text-muted small">
         直近<span th:text="${displayWeeks}"></span>週間分を表示しています（全期間の集計は
         <a href="/results">検証ページ</a>を参照してください）。
     </p>
 
-    <p class="text-muted" th:if="${#lists.isEmpty(raceGroups)}">
+    <p class="text-muted" th:if="${!hasRaceGroups}">
         まだ蓄積されたレースがありません。
     </p>
 
-    <div th:each="race, stat : ${raceGroups}">
+    <div th:each="dateEntry, dateStat : ${groupedRaces}" class="mb-4">
 
-    <h2 class="h5 mt-4 mb-3"
-        th:if="${stat.first or race.raceDate != raceGroups[stat.index - 1].raceDate}"
-        th:text="${race.raceDate}"></h2>
+        <h2 class="h5 mt-4 mb-3" th:text="${dateEntry.key}"></h2>
 
-    <div class="race-card mb-4">
+        <!-- 開催場タブ -->
+        <ul class="nav nav-tabs venue-tabs" role="tablist">
+            <li class="nav-item" th:each="venueEntry, venueStat : ${dateEntry.value}" role="presentation">
+                <button class="nav-link"
+                        th:classappend="${venueStat.first} ? ' active'"
+                        th:id="'vtab-' + ${dateStat.index} + '-' + ${venueStat.index}"
+                        data-bs-toggle="tab"
+                        th:attr="data-bs-target='#vpane-' + ${dateStat.index} + '-' + ${venueStat.index}, aria-controls='vpane-' + ${dateStat.index} + '-' + ${venueStat.index}"
+                        type="button"
+                        role="tab">
+                    <span th:text="${venueEntry.key}"></span>
+                    <span class="badge bg-secondary ms-1"
+                          th:text="${#lists.size(venueEntry.value)} + 'R'"></span>
+                </button>
+            </li>
+        </ul>
 
-        <div class="race-card-header">
-            <span class="race-name fw-bold" th:text="${race.displayName}"></span>
+        <!-- タブコンテンツ（開催場ごと） -->
+        <div class="tab-content venue-tab-content">
+            <div class="tab-pane fade"
+                 th:each="venueEntry, venueStat : ${dateEntry.value}"
+                 th:classappend="${venueStat.first} ? ' show active'"
+                 th:id="'vpane-' + ${dateStat.index} + '-' + ${venueStat.index}"
+                 role="tabpanel"
+                 th:attr="aria-labelledby='vtab-' + ${dateStat.index} + '-' + ${venueStat.index}">
+
+                <!-- レースタブ（開催場内のレース切り替え） -->
+                <ul class="nav nav-pills race-subtabs mb-3" role="tablist">
+                    <li class="nav-item" th:each="race, raceStat : ${venueEntry.value}" role="presentation">
+                        <button class="nav-link"
+                                th:classappend="${raceStat.first} ? ' active'"
+                                th:id="'rtab-' + ${dateStat.index} + '-' + ${venueStat.index} + '-' + ${raceStat.index}"
+                                data-bs-toggle="pill"
+                                th:attr="data-bs-target='#rpane-' + ${dateStat.index} + '-' + ${venueStat.index} + '-' + ${raceStat.index}, aria-controls='rpane-' + ${dateStat.index} + '-' + ${venueStat.index} + '-' + ${raceStat.index}"
+                                type="button"
+                                role="tab"
+                                th:text="${race.raceNumber} + 'R'"></button>
+                    </li>
+                </ul>
+
+                <div class="tab-content race-tab-content">
+                <div class="tab-pane fade"
+                     th:each="race, raceStat : ${venueEntry.value}"
+                     th:classappend="${raceStat.first} ? ' show active'"
+                     th:id="'rpane-' + ${dateStat.index} + '-' + ${venueStat.index} + '-' + ${raceStat.index}"
+                     role="tabpanel"
+                     th:attr="aria-labelledby='rtab-' + ${dateStat.index} + '-' + ${venueStat.index} + '-' + ${raceStat.index}">
+
+                <div class="race-card mb-4">
+
+                    <div class="race-card-header">
+                        <span class="race-name fw-bold" th:text="${race.displayName}"></span>
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table class="table race-table mb-0">
+                            <thead>
+                            <tr>
+                                <th class="text-center" style="width: 90px">着順</th>
+                                <th>馬名</th>
+                                <th class="text-center" style="width: 100px">予想順位</th>
+                                <th class="text-center" style="width: 90px">オッズ</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="horse : ${race.horses}"
+                                th:classappend="${horse.actualRank == 1} ? 'rank-1' : (${horse.actualRank == 2} ? 'rank-2' : (${horse.actualRank == 3} ? 'rank-3' : ''))">
+
+                                <td class="text-center fw-bold"
+                                    th:text="${horse.actualRank > 0 ? horse.actualRank + '着' : '不明'}"></td>
+
+                                <td class="horse-name">
+                                    <span th:text="${horse.horseName}"></span>
+                                    <form th:action="@{/favorite/add}" method="post">
+                                        <input type="hidden" name="horseName" th:value="${horse.horseName}" />
+                                        <button type="submit" class="btn-register">⭐ 登録</button>
+                                    </form>
+                                </td>
+
+                                <td class="text-center">
+                                    <span th:if="${horse.predictionRank == 1}" class="rank-badge rank-gold"
+                                          th:text="${horse.predictionRank} + '位'"></span>
+                                    <span th:unless="${horse.predictionRank == 1}" class="rank-badge rank-other"
+                                          th:text="${horse.predictionRank} + '位'"></span>
+                                </td>
+
+                                <td class="text-center" th:text="${horse.odds}"></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="table-wrapper" th:if="${not #lists.isEmpty(race.payouts)}">
+                        <table class="table race-table mb-0">
+                            <thead>
+                            <tr>
+                                <th style="width: 100px">券種</th>
+                                <th>組み合わせ</th>
+                                <th class="text-end" style="width: 120px">払戻金</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="payout : ${race.payouts}">
+                                <td th:text="${payout.betType}"></td>
+                                <td th:text="${payout.combination}"></td>
+                                <td class="text-end" th:text="${payout.payoutYen} + '円'"></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+                </div>
+                </div>
+
+            </div>
         </div>
-
-        <div class="table-wrapper">
-            <table class="table race-table mb-0">
-                <thead>
-                <tr>
-                    <th class="text-center" style="width: 90px">着順</th>
-                    <th>馬名</th>
-                    <th class="text-center" style="width: 100px">予想順位</th>
-                    <th class="text-center" style="width: 90px">オッズ</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="horse : ${race.horses}"
-                    th:classappend="${horse.actualRank == 1} ? 'rank-1' : (${horse.actualRank == 2} ? 'rank-2' : (${horse.actualRank == 3} ? 'rank-3' : ''))">
-
-                    <td class="text-center fw-bold"
-                        th:text="${horse.actualRank > 0 ? horse.actualRank + '着' : '不明'}"></td>
-
-                    <td class="horse-name">
-                        <span th:text="${horse.horseName}"></span>
-                        <form th:action="@{/favorite/add}" method="post">
-                            <input type="hidden" name="horseName" th:value="${horse.horseName}" />
-                            <button type="submit" class="btn-register">⭐ 登録</button>
-                        </form>
-                    </td>
-
-                    <td class="text-center">
-                        <span th:if="${horse.predictionRank == 1}" class="rank-badge rank-gold"
-                              th:text="${horse.predictionRank} + '位'"></span>
-                        <span th:unless="${horse.predictionRank == 1}" class="rank-badge rank-other"
-                              th:text="${horse.predictionRank} + '位'"></span>
-                    </td>
-
-                    <td class="text-center" th:text="${horse.odds}"></td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="table-wrapper" th:if="${not #lists.isEmpty(race.payouts)}">
-            <table class="table race-table mb-0">
-                <thead>
-                <tr>
-                    <th style="width: 100px">券種</th>
-                    <th>組み合わせ</th>
-                    <th class="text-end" style="width: 120px">払戻金</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="payout : ${race.payouts}">
-                    <td th:text="${payout.betType}"></td>
-                    <td th:text="${payout.combination}"></td>
-                    <td class="text-end" th:text="${payout.payoutYen} + '円'"></td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-
-    </div>
 
     </div>
 
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function collectResults() {
+        const btn = document.getElementById('collectBtn');
+        const message = document.getElementById('collectMessage');
+
+        btn.disabled = true;
+        message.textContent = '実行中...';
+
+        fetch('/results/collect')
+            .then(res => res.text())
+            .then(text => {
+                message.textContent = text;
+                btn.disabled = false;
+            })
+            .catch(() => {
+                message.textContent = '実行に失敗しました。時間をおいて再度お試しください。';
+                btn.disabled = false;
+            });
+    }
+</script>
 </body>
 </html>

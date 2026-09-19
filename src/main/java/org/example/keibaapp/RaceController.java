@@ -196,7 +196,10 @@ public class RaceController {
         List<RaceResultRecord> recentRecords = raceResultRecordRepository.findByRaceDateGreaterThanEqual(cutoff);
         List<RacePayout> recentPayouts = racePayoutRepository.findByRaceDateGreaterThanEqual(cutoff);
 
-        model.addAttribute("raceGroups", raceResultStatsService.buildRaceGroups(recentRecords, recentPayouts));
+        List<RaceResultGroup> raceGroups = raceResultStatsService.buildRaceGroups(recentRecords, recentPayouts);
+
+        model.addAttribute("hasRaceGroups", !raceGroups.isEmpty());
+        model.addAttribute("groupedRaces", raceResultStatsService.groupRacesByDateAndVenue(raceGroups));
         model.addAttribute("displayWeeks", RACE_RESULTS_DISPLAY_WEEKS);
 
         return "raceResults";

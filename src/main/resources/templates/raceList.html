@@ -59,7 +59,29 @@
              role="tabpanel"
              th:attr="aria-labelledby='tab-' + ${stat.index}">
 
-            <div th:each="race : ${entry.value}" class="race-card mb-4">
+            <!-- レースタブ（開催場内のレース切り替え） -->
+            <ul class="nav nav-pills race-subtabs mb-3" role="tablist">
+                <li class="nav-item" th:each="race, raceStat : ${entry.value}" role="presentation">
+                    <button class="nav-link"
+                            th:classappend="${raceStat.first} ? ' active'"
+                            th:id="'race-tab-' + ${stat.index} + '-' + ${raceStat.index}"
+                            data-bs-toggle="pill"
+                            th:attr="data-bs-target='#race-pane-' + ${stat.index} + '-' + ${raceStat.index}, aria-controls='race-pane-' + ${stat.index} + '-' + ${raceStat.index}"
+                            type="button"
+                            role="tab"
+                            th:text="${race.raceNum} + 'R'"></button>
+                </li>
+            </ul>
+
+            <div class="tab-content race-tab-content">
+            <div class="tab-pane fade"
+                 th:each="race, raceStat : ${entry.value}"
+                 th:classappend="${raceStat.first} ? ' show active'"
+                 th:id="'race-pane-' + ${stat.index} + '-' + ${raceStat.index}"
+                 role="tabpanel"
+                 th:attr="aria-labelledby='race-tab-' + ${stat.index} + '-' + ${raceStat.index}">
+
+            <div class="race-card mb-4">
 
                 <div class="race-card-header">
                     <div class="d-flex align-items-center gap-3">
@@ -139,6 +161,8 @@
                     </table>
                 </div>
 
+            </div>
+            </div>
             </div>
         </div>
     </div>

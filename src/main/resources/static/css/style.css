@@ -396,3 +396,31 @@ body {
     background: transparent;
     padding-top: 24px;
 }
+
+/* ========== Race Sub Tabs（開催場内のレース切り替え） ========== */
+.race-subtabs {
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.race-subtabs .nav-link {
+    color: #6c757d;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 20px;
+    padding: 4px 14px;
+    transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.race-subtabs .nav-link:hover {
+    color: #12203a;
+    background: #f8f5ec;
+    border-color: #e8d9a0;
+}
+
+.race-subtabs .nav-link.active {
+    color: #fff;
+    background: #12203a;
+    border-color: #12203a;
+}

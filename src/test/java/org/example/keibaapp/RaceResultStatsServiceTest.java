@@ -3,7 +3,9 @@ package org.example.keibaapp;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -125,5 +127,33 @@ class RaceResultStatsServiceTest {
 
         assertEquals("新しいレース", groups.get(0).getRaceName());
         assertEquals("古いレース", groups.get(1).getRaceName());
+    }
+
+    @Test
+    void groupRacesByDateAndVenue_shouldNestByDateThenVenuePreservingOrder() {
+        LocalDate newer = LocalDate.of(2026, 7, 4);
+        LocalDate older = LocalDate.of(2026, 6, 21);
+
+        List<RaceResultRecord> records = List.of(
+                raceRecord(newer, "東京", 1, "新東京1R", "馬1", 1, 1),
+                raceRecord(newer, "東京", 2, "新東京2R", "馬2", 1, 1),
+                raceRecord(newer, "函館", 1, "新函館1R", "馬3", 1, 1),
+                raceRecord(older, "函館", 9, "旧函館9R", "馬4", 1, 1)
+        );
+
+        List<RaceResultGroup> groups = statsService.buildRaceGroups(records, List.of());
+        Map<LocalDate, Map<String, List<RaceResultGroup>>> grouped =
+                statsService.groupRacesByDateAndVenue(groups);
+
+        assertEquals(List.of(newer, older), new ArrayList<>(grouped.keySet()));
+
+        Map<String, List<RaceResultGroup>> newerByVenue = grouped.get(newer);
+        assertEquals(2, newerByVenue.size());
+        assertEquals(2, newerByVenue.get("東京").size());
+        assertEquals(1, newerByVenue.get("函館").size());
+
+        Map<String, List<RaceResultGroup>> olderByVenue = grouped.get(older);
+        assertEquals(1, olderByVenue.size());
+        assertEquals("旧函館9R", olderByVenue.get("函館").get(0).getRaceName());
     }
 }

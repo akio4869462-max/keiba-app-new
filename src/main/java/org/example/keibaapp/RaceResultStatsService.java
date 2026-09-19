@@ -184,6 +184,22 @@ public class RaceResultStatsService {
         return groups;
     }
 
+    // 結果一覧(/results/races)で出馬表(/races)と同じ「開催日→開催場→レース」の
+    // 階層タブ切り替えができるように、buildRaceGroups()が返す並び順(日付降順・
+    // 開催場・レース番号昇順)を保ったままネストしたMapに詰め替える。
+    // LinkedHashMapを使うことで、この呼び出し元の並び順がそのまま反映される
+    public Map<LocalDate, Map<String, List<RaceResultGroup>>> groupRacesByDateAndVenue(
+            List<RaceResultGroup> raceGroups) {
+
+        return raceGroups.stream().collect(Collectors.groupingBy(
+                RaceResultGroup::getRaceDate,
+                LinkedHashMap::new,
+                Collectors.groupingBy(
+                        RaceResultGroup::getVenue,
+                        LinkedHashMap::new,
+                        Collectors.toList())));
+    }
+
     private record RaceKey(LocalDate raceDate, String venue, int raceNumber, String raceName) {
     }
 
