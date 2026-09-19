@@ -85,10 +85,7 @@ public class DummyRaceFactory {
             horse.setThirdLastRace(thirdLastRaces[i]);
         }
 
-        for (Horse horse : horses1) {
-            horse.setPredictionScore(predictionService.calculateExpectedValue(horse, horses1, "芝", "2000m"));
-            horse.setPredictionReason(predictionService.createReason(horse, "芝", "2000m"));
-        }
+        predictionService.applyRaceModel(horses1);
 
         horses1.sort(Comparator.comparingDouble(Horse::getPredictionScore).reversed());
 
@@ -99,10 +96,7 @@ public class DummyRaceFactory {
             horse.setThirdLastRace(thirdLastRaces[i]);
         }
 
-        for (Horse horse : horses2) {
-            horse.setPredictionScore(predictionService.calculateExpectedValue(horse, horses2, "ダ", "1600m"));
-            horse.setPredictionReason(predictionService.createReason(horse, "ダ", "1600m"));
-        }
+        predictionService.applyRaceModel(horses2);
 
         horses2.sort(Comparator.comparingDouble(Horse::getPredictionScore).reversed());
 

@@ -58,17 +58,16 @@ Yahoo!スポーツ競馬 → WebScraper（静的メソッド群・サーキッ�
 `RaceCacheService`は3種類のキャッシュを持つ。**レース一覧のキャッシュはTTL 90分**で、`isRaceCacheValid()`（キー一致＋鮮度）と`hasCachedRaces()`（存在＋鮮度）の両方が鮮度を見る。
 `hasCachedRaces()`は通知チェックの入口ガードを兼ねており、ここで鮮度を見ないと**非開催日に前回開催日の古いキャッシュで誤通知が飛ぶ**（実際に発生した不具合）。
 
-### 予想スコアの算出経路
+### 予想スコアの算出経路(2026-09-19改訂)
 
-`PredictionService`には紛らわしい2つの`calculateScore`がある:
+`PredictionService.applyRaceModel(horses)`が唯一のスコア算出経路（実際の呼び出し元は`RaceService.buildHorseList()` → `HorseEnrichmentService.applyRaceModel()`）。
+単勝オッズから逆算した市場確率`q`を、レース内softmax（`p = softmax(0.885 · logit(q))`）で勝率`p`に変換するだけの式で、距離適性・コース適性・枠順・騎手成績等の加点は行わない。
+根拠は `keiba_score_search/analysis/MODEL_REVISION.md`（8年・約40万出走の解析）: これらの加点は市場情報を制御すると有害またはノイズと判定され、旧式（`√オッズ × 能力スコア`）は人気薄を上位に押し上げるfavorite-longshotバイアスを引き起こしていた（予想1位の62%が20倍超、実績ROI 64.7%）。
 
-- `calculateScore(horse)` … 前3走の着順・グレードのみ
-- `calculateScore(horse, course, distance)` … 上記＋距離適性・コース適性・枠順適性・騎手成績
+`Horse`の`predictionScore`は現在`p × 100`（モデル勝率）。あわせて`marketProbability`（市場確率`q`）・`overlay`（`p/q − 1`、妙味）・`popularity`（オッズ順の人気）・`recommended`（2〜8番人気かつoverlayが閾値以上の買い候補フラグ、参考値であり断定的な推奨ではない）を保持する。
+追加特徴量が無い現段階では、勝率の順位は単勝人気順と完全に一致する（意図的な仕様）。距離・コース・枠順・騎手等の特徴量を段階的に足す計画は`MODEL_REVISION.md` §6参照。
 
-実際の順位付けに使われるのは `calculateExpectedValue(horse, allHorses, course, distance)` で、内部で**3引数版**を呼び、`√オッズ`（上限50倍）を掛けた期待値をレース内合計に対する割合（0〜100点）に正規化する。
-かつてここが1引数版を呼んでいたため、画面の「予想理由」に表示される距離・コース・騎手の加点が実際のスコアに一切反映されていない不具合があった。**予想理由の表示内容とスコア計算は必ず同じ経路を使うこと。**
-
-`HorseEnrichmentService`の`enrichTodayHorse`/`enrichHistoricalHorse`はどこからも呼ばれていないデッドコード（実際の経路は`RaceService.buildHorseList()` → `applyScore()`）。
+`RaceResultRecord`にも`overlay`・`popularity`・`modelVersion`（`PredictionService.MODEL_VERSION`）を記録し、将来モデルを変更した際に旧モデルの結果と混同せず比較できるようにしている。
 
 ### 自己検証パイプライン
 

@@ -7,8 +7,17 @@ public class Horse {
     private final String jockeyName;
     private final String jockeyWeight;
     private double odds;
+    // モデル勝率(p_model)を百分率で表したもの(0〜100)。PredictionService.applyRaceModel参照
     private double predictionScore;
     private String predictionReason;
+    // 単勝オッズから逆算した市場確率(q)を百分率で表したもの(0〜100)
+    private double marketProbability;
+    // 妙味 = predictionScore/100 / (marketProbability/100) - 1
+    private double overlay;
+    // このレース内でのオッズ順の人気(1が一番人気)。オッズ無効な馬は0
+    private int popularity;
+    // 妙味・人気帯の条件を満たす買い候補かどうか(参考値、断定的な推奨ではない)
+    private boolean recommended;
     private String horseUrl;
     private String jockeyUrl;
     private JockeyStats jockeyStats;
@@ -158,6 +167,38 @@ public class Horse {
 
     public void setPredictionReason(String predictionReason) {
         this.predictionReason = predictionReason;
+    }
+
+    public double getMarketProbability() {
+        return marketProbability;
+    }
+
+    public void setMarketProbability(double marketProbability) {
+        this.marketProbability = marketProbability;
+    }
+
+    public double getOverlay() {
+        return overlay;
+    }
+
+    public void setOverlay(double overlay) {
+        this.overlay = overlay;
+    }
+
+    public int getPopularity() {
+        return popularity;
+    }
+
+    public void setPopularity(int popularity) {
+        this.popularity = popularity;
+    }
+
+    public boolean isRecommended() {
+        return recommended;
+    }
+
+    public void setRecommended(boolean recommended) {
+        this.recommended = recommended;
     }
 
     public String getAiPrompt() {

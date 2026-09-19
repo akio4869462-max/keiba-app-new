@@ -174,7 +174,10 @@ public class RaceResultCollectionService {
                     horse.getOdds(),
                     predictionRank,
                     horse.getPredictionScore(),
-                    actualRank
+                    actualRank,
+                    horse.getOverlay(),
+                    horse.getPopularity(),
+                    PredictionService.MODEL_VERSION
             ));
 
             predictionRank++;

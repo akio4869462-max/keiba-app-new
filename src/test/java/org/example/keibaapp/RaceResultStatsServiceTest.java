@@ -16,7 +16,7 @@ class RaceResultStatsServiceTest {
 
         return new RaceResultRecord(
                 date, "テスト場", 1, "テストレース", "テスト馬",
-                odds, predictionRank, score, actualRank);
+                odds, predictionRank, score, actualRank, 0, predictionRank, "test");
     }
 
     private RaceResultRecord raceRecord(
@@ -25,7 +25,7 @@ class RaceResultStatsServiceTest {
 
         return new RaceResultRecord(
                 date, venue, raceNumber, raceName, horseName,
-                5.0, predictionRank, 50, actualRank);
+                5.0, predictionRank, 50, actualRank, 0, predictionRank, "test");
     }
 
     @Test

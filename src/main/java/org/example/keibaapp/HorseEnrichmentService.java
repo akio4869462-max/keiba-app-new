@@ -53,21 +53,6 @@ public class HorseEnrichmentService {
         return detail;
     }
 
-    private void applyRaceDetail(
-            Horse horse,          // setする対象
-            HorseDetailInfo detail,  // setする内容の元データ
-            String currentCourse,    // スコア計算に必要
-            String currentDistance   // スコア計算に必要
-    ) {
-        horse.setLastRace(detail.getLastRace());
-        horse.setSecondLastRace(detail.getSecondLastRace());
-        horse.setThirdLastRace(detail.getThirdLastRace());
-        horse.setPredictionScore(
-                predictionService.calculateScore(horse, currentCourse, currentDistance));
-        horse.setPredictionReason(
-                predictionService.createReason(horse, currentCourse, currentDistance));
-    }
-
     public void fetchHorseDetail(Horse horse, boolean isHistorical) throws InterruptedException {
         HorseDetailInfo detail = getHorseDetail(horse.getHorseUrl(), isHistorical);
 
@@ -101,46 +86,10 @@ public class HorseEnrichmentService {
         horse.setJockeyStats(stats);
     }
 
-    public void applyScore(
-            Horse horse,
-            List<Horse> allHorses,
-            String currentCourse,
-            String currentDistance) {
-        horse.setPredictionScore(
-                predictionService.calculateExpectedValue(horse, allHorses, currentCourse, currentDistance));
-        horse.setPredictionReason(
-                predictionService.createReason(horse, currentCourse, currentDistance));
-    }
-
-    public void enrichTodayHorse(
-            Horse horse,
-            String currentCourse,
-            String currentDistance) throws InterruptedException {
-        HorseDetailInfo detail =
-                getHorseDetail(horse.getHorseUrl(), false);
-
-        applyRaceDetail(horse, detail, currentCourse, currentDistance);
-
-//        horse.setAiPrompt(
-//                aiPromptService.createPrompt(
-//                        race,
-//                        horse));
-    }
-
-    public void enrichHistoricalHorse(
-            Horse horse,
-            String currentCourse,
-            String currentDistance) throws InterruptedException {
-        HorseDetailInfo detail =
-                getHorseDetail(horse.getHorseUrl(), true);
-
-        horse.setActualRace(detail.getActualRace());
-        applyRaceDetail(horse, detail,currentCourse, currentDistance);
-
-//        horse.setAiPrompt(
-//                aiPromptService.createPrompt(
-//                        race,
-//                        horse));
+    // レース内の全馬について予想モデル(市場確率・勝率・妙味・人気)をまとめて算出する。
+    // pはレース単位のsoftmaxで決まるため、1頭ずつではなくレース単位で呼ぶ
+    public void applyRaceModel(List<Horse> horses) {
+        predictionService.applyRaceModel(horses);
     }
 
     public void enrichAiPrompt(RaceInfo race) {

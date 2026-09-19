@@ -11,258 +11,137 @@ class PredictionServiceTest {
     private final PredictionService predictionService =
             new PredictionService();
 
-    @Test
-    void calculateScore_shouldReturnHighScoreForStrongHorse() {
-        Horse horse = new Horse(
-                "1",
-                "1",
-                "テストホース",
-                "テスト騎手",
-                "57.0",
-                5.0
-        );
-
-        horse.setLastRace(new PastRaceInfo("前走", 1, "GI", 1));
-        horse.setSecondLastRace(new PastRaceInfo("2走前", 2, "GII", 2));
-        horse.setThirdLastRace(new PastRaceInfo("3走前", 3, "GIII", 3));
-
-        double score = predictionService.calculateScore(horse);
-
-        assertTrue(score > 0);
+    private Horse horse(String umaban, double odds) {
+        return new Horse(umaban, umaban, "馬" + umaban, "騎手" + umaban, "57.0", odds);
     }
 
     @Test
-    void calculateScore_shouldIgnoreInvalidOdds() {
-        Horse horse = new Horse(
-                "1",
-                "1",
-                "テストホース",
-                "テスト騎手",
-                "57.0",
-                999.9
+    void applyRaceModel_shouldSumWinProbabilitiesToApproximately100() {
+        List<Horse> horses = List.of(
+                horse("1", 2.1), horse("2", 4.5), horse("3", 6.8), horse("4", 9.0),
+                horse("5", 12.5), horse("6", 15.0), horse("7", 21.0), horse("8", 28.0)
         );
 
-        horse.setLastRace(PastRaceInfo.empty());
-        horse.setSecondLastRace(PastRaceInfo.empty());
-        horse.setThirdLastRace(PastRaceInfo.empty());
+        predictionService.applyRaceModel(horses);
 
-        double score = predictionService.calculateScore(horse);
+        double total = horses.stream().mapToDouble(Horse::getPredictionScore).sum();
 
-        assertEquals(0, score);
+        assertEquals(100.0, total, 0.01);
     }
 
     @Test
-    void createReason_shouldContainRaceInformation() {
-        Horse horse = new Horse(
-                "1",
-                "1",
-                "テストホース",
-                "テスト騎手",
-                "57.0",
-                10.0
-        );
+    void applyRaceModel_shouldRankByOddsWhenNoOtherSignalExists() {
+        // 追加の特徴量が無い現行モデルでは、勝率の順位は単勝人気順と一致するはず
+        // (市場確率をそのままsoftmax変換するだけの式であるため)
+        Horse favorite = horse("1", 2.1);
+        Horse longshot = horse("2", 50.0);
 
-        horse.setLastRace(new PastRaceInfo("前走", 1, "GI", 1));
-        horse.setSecondLastRace(PastRaceInfo.empty());
-        horse.setThirdLastRace(PastRaceInfo.empty());
+        predictionService.applyRaceModel(List.of(favorite, longshot));
 
-        String reason = predictionService.createReason(horse, "芝", "2000m");
-
-        assertTrue(reason.contains("オッズ評価"));
-        assertTrue(reason.contains("前走"));
-        assertTrue(reason.contains("GI"));
-        assertTrue(reason.contains("1着"));
+        assertTrue(favorite.getPredictionScore() > longshot.getPredictionScore());
+        assertEquals(1, favorite.getPopularity());
+        assertEquals(2, longshot.getPopularity());
     }
 
     @Test
-    void calculateScore_shouldAddBonusForInnerWakuOnTurfSprint() {
-        Horse innerHorse = new Horse(
-                "1",
-                "1",
-                "テストホース",
-                "テスト騎手",
-                "57.0",
-                5.0
-        );
+    void applyRaceModel_shouldGiveFavoriteHigherWinProbabilityThanMarketImplied() {
+        // MARKET_WEIGHT(0.885) < 1 により、確率分布が市場implied(q)よりわずかに
+        // フラット化される。すなわち一番人気はq<pになり、それ以外はq>pになるはず
+        Horse favorite = horse("1", 2.1);
+        Horse others = horse("2", 4.5);
 
-        Horse outerHorse = new Horse(
-                "8",
-                "8",
-                "テストホース2",
-                "テスト騎手2",
-                "57.0",
-                5.0
-        );
+        predictionService.applyRaceModel(List.of(favorite, others));
 
-        innerHorse.setLastRace(PastRaceInfo.empty());
-        innerHorse.setSecondLastRace(PastRaceInfo.empty());
-        innerHorse.setThirdLastRace(PastRaceInfo.empty());
-
-        outerHorse.setLastRace(PastRaceInfo.empty());
-        outerHorse.setSecondLastRace(PastRaceInfo.empty());
-        outerHorse.setThirdLastRace(PastRaceInfo.empty());
-
-        double innerScore = predictionService.calculateScore(innerHorse, "芝", "1200m");
-        double outerScore = predictionService.calculateScore(outerHorse, "芝", "1200m");
-
-        assertTrue(innerScore > outerScore);
+        assertTrue(favorite.getPredictionScore() > favorite.getMarketProbability());
+        assertTrue(favorite.getOverlay() > 0);
     }
 
     @Test
-    void calculateScore_shouldIgnoreWakuOnLongDistanceRace() {
-        Horse innerHorse = new Horse(
-                "1",
-                "1",
-                "テストホース",
-                "テスト騎手",
-                "57.0",
-                5.0
-        );
+    void applyRaceModel_shouldSetZeroScoreAndSkipForInvalidOdds() {
+        Horse scratched = horse("1", 999.9);
+        Horse normal = horse("2", 5.0);
 
-        Horse outerHorse = new Horse(
-                "8",
-                "8",
-                "テストホース2",
-                "テスト騎手2",
-                "57.0",
-                5.0
-        );
+        predictionService.applyRaceModel(List.of(scratched, normal));
 
-        innerHorse.setLastRace(PastRaceInfo.empty());
-        innerHorse.setSecondLastRace(PastRaceInfo.empty());
-        innerHorse.setThirdLastRace(PastRaceInfo.empty());
-
-        outerHorse.setLastRace(PastRaceInfo.empty());
-        outerHorse.setSecondLastRace(PastRaceInfo.empty());
-        outerHorse.setThirdLastRace(PastRaceInfo.empty());
-
-        double innerScore = predictionService.calculateScore(innerHorse, "芝", "2000m");
-        double outerScore = predictionService.calculateScore(outerHorse, "芝", "2000m");
-
-        assertEquals(innerScore, outerScore);
+        assertEquals(0, scratched.getPredictionScore());
+        assertEquals(0, scratched.getPopularity());
+        assertFalse(scratched.isRecommended());
+        assertEquals(1, normal.getPopularity());
     }
 
     @Test
-    void calculateScore_shouldAddBonusForHigherWinRateJockey() {
-        Horse strongJockeyHorse = new Horse(
-                "1",
-                "1",
-                "テストホース",
-                "テスト騎手",
-                "57.0",
-                5.0
-        );
+    void applyRaceModel_shouldHandleSingleValidHorseWithoutError() {
+        Horse onlyValid = horse("1", 3.0);
+        Horse scratched = horse("2", 0);
 
-        Horse weakJockeyHorse = new Horse(
-                "2",
-                "2",
-                "テストホース2",
-                "テスト騎手2",
-                "57.0",
-                5.0
-        );
+        predictionService.applyRaceModel(List.of(onlyValid, scratched));
 
-        strongJockeyHorse.setLastRace(PastRaceInfo.empty());
-        strongJockeyHorse.setSecondLastRace(PastRaceInfo.empty());
-        strongJockeyHorse.setThirdLastRace(PastRaceInfo.empty());
-        strongJockeyHorse.setJockeyStats(new JockeyStats(0.2, 0.4));
-
-        weakJockeyHorse.setLastRace(PastRaceInfo.empty());
-        weakJockeyHorse.setSecondLastRace(PastRaceInfo.empty());
-        weakJockeyHorse.setThirdLastRace(PastRaceInfo.empty());
-        weakJockeyHorse.setJockeyStats(new JockeyStats(0.05, 0.1));
-
-        double strongScore = predictionService.calculateScore(strongJockeyHorse, "ダ", "2000m");
-        double weakScore = predictionService.calculateScore(weakJockeyHorse, "ダ", "2000m");
-
-        assertTrue(strongScore > weakScore);
+        assertEquals(100.0, onlyValid.getPredictionScore(), 0.01);
+        assertEquals(100.0, onlyValid.getMarketProbability(), 0.01);
+        assertEquals(0, onlyValid.getOverlay(), 0.01);
+        assertEquals(1, onlyValid.getPopularity());
     }
 
     @Test
-    void calculateScore_shouldTreatMissingJockeyStatsAsZero() {
-        Horse horse = new Horse(
-                "1",
-                "1",
-                "テストホース",
-                "テスト騎手",
-                "57.0",
-                5.0
+    void applyRaceModel_shouldNotRecommendWhenFieldTooSmall() {
+        // 8頭未満は妙味の推定が不安定なため、overlayが閾値を超えていても推奨しない
+        List<Horse> horses = List.of(
+                horse("1", 1.5), horse("2", 3.0), horse("3", 100.0), horse("4", 150.0)
         );
 
-        horse.setLastRace(PastRaceInfo.empty());
-        horse.setSecondLastRace(PastRaceInfo.empty());
-        horse.setThirdLastRace(PastRaceInfo.empty());
+        predictionService.applyRaceModel(horses);
 
-        double score = predictionService.calculateScore(horse, "ダ", "2000m");
-
-        assertEquals(0, score);
+        assertTrue(horses.stream().noneMatch(Horse::isRecommended));
     }
 
     @Test
-    void calculateExpectedValue_shouldSumToApproximately100AcrossField() {
-        Horse horseA = new Horse("1", "1", "馬A", "騎手A", "57.0", 5.0);
-        Horse horseB = new Horse("2", "2", "馬B", "騎手B", "57.0", 10.0);
+    void applyRaceModel_shouldRecommendMispricedMidPackHorseAboveThreshold() {
+        // 上位人気が団子状態(1.1倍が2頭)で、8番人気だけが364倍まで離れている
+        // ような歪んだオッズ形状では、市場確率(q)と比べてモデル勝率(p)の
+        // 圧縮効果により8番人気の妙味が閾値(+0.342)を超えて推奨対象になる
+        List<Horse> horses = List.of(
+                horse("1", 1.1), horse("2", 1.1), horse("3", 1.4), horse("4", 2.0),
+                horse("5", 2.1), horse("6", 2.8), horse("7", 2.9), horse("8", 364.0)
+        );
 
-        for (Horse horse : List.of(horseA, horseB)) {
-            horse.setLastRace(new PastRaceInfo("前走", 1, "GI", 1));
-            horse.setSecondLastRace(PastRaceInfo.empty());
-            horse.setThirdLastRace(PastRaceInfo.empty());
+        predictionService.applyRaceModel(horses);
+
+        Horse longshot = horses.get(7);
+        assertEquals(8, longshot.getPopularity());
+        assertTrue(longshot.getOverlay() > 0.342);
+        assertTrue(longshot.isRecommended());
+
+        for (Horse horse : horses) {
+            if (horse.isRecommended()) {
+                assertTrue(horse.getPopularity() >= 2 && horse.getPopularity() <= 8);
+                assertTrue(horse.getOverlay() >= 0.342);
+            }
         }
-
-        List<Horse> field = List.of(horseA, horseB);
-
-        double totalExpectedValue = predictionService.calculateExpectedValue(horseA, field, "芝", "2000m")
-                + predictionService.calculateExpectedValue(horseB, field, "芝", "2000m");
-
-        assertEquals(100.0, totalExpectedValue, 0.01);
     }
 
     @Test
-    void calculateExpectedValue_shouldRewardCourseAptitude() {
-        // 過去走・オッズは全く同じだが、現在のコースへの適性だけが違う2頭を比較する。
-        // calculateExpectedValueがcalculateScore(horse)(前走のみ)しか見ていなかった旧実装では
-        // この差は反映されなかったが、修正後は距離・コース適性が反映されるはず
-        Horse turfSpecialist = new Horse("1", "1", "芝実績馬", "騎手A", "57.0", 5.0);
-        Horse dirtSpecialist = new Horse("2", "2", "ダート実績馬", "騎手B", "57.0", 5.0);
+    void applyRaceModel_shouldNotRecommendFavoriteEvenWithHighOverlay() {
+        // 1番人気は妙味が高くても購入対象の人気帯(2〜8番人気)から除外される
+        List<Horse> horses = List.of(
+                horse("1", 1.1), horse("2", 1.1), horse("3", 1.4), horse("4", 2.0),
+                horse("5", 2.1), horse("6", 2.8), horse("7", 2.9), horse("8", 364.0)
+        );
 
-        PastRaceInfo turfWin = new PastRaceInfo("前走", 1, "GI", 1);
-        turfWin.setCourse("芝");
-        turfWin.setDistance("2000m");
-        turfSpecialist.setLastRace(turfWin);
-        turfSpecialist.setSecondLastRace(PastRaceInfo.empty());
-        turfSpecialist.setThirdLastRace(PastRaceInfo.empty());
+        predictionService.applyRaceModel(horses);
 
-        PastRaceInfo dirtWin = new PastRaceInfo("前走", 1, "GI", 1);
-        dirtWin.setCourse("ダ");
-        dirtWin.setDistance("2000m");
-        dirtSpecialist.setLastRace(dirtWin);
-        dirtSpecialist.setSecondLastRace(PastRaceInfo.empty());
-        dirtSpecialist.setThirdLastRace(PastRaceInfo.empty());
-
-        List<Horse> field = List.of(turfSpecialist, dirtSpecialist);
-
-        double turfRaceScore = predictionService.calculateExpectedValue(turfSpecialist, field, "芝", "2000m");
-        double dirtRaceScore = predictionService.calculateExpectedValue(dirtSpecialist, field, "芝", "2000m");
-
-        assertTrue(turfRaceScore > dirtRaceScore,
-                "芝実績馬の方が芝レースでのスコアが高くなるはず: turf=" + turfRaceScore + " dirt=" + dirtRaceScore);
+        assertEquals(1, horses.get(0).getPopularity());
+        assertFalse(horses.get(0).isRecommended());
     }
 
     @Test
-    void calculateExpectedValue_shouldReturnZeroForInvalidOdds() {
-        Horse invalidOddsHorse = new Horse("1", "1", "馬A", "騎手A", "57.0", 999.9);
-        Horse normalHorse = new Horse("2", "2", "馬B", "騎手B", "57.0", 5.0);
+    void applyRaceModel_shouldSetReasonWithPopularityAndOverlay() {
+        Horse target = horse("1", 5.0);
+        Horse other = horse("2", 8.0);
 
-        for (Horse horse : List.of(invalidOddsHorse, normalHorse)) {
-            horse.setLastRace(new PastRaceInfo("前走", 1, "GI", 1));
-            horse.setSecondLastRace(PastRaceInfo.empty());
-            horse.setThirdLastRace(PastRaceInfo.empty());
-        }
+        predictionService.applyRaceModel(List.of(target, other));
 
-        List<Horse> field = List.of(invalidOddsHorse, normalHorse);
-
-        double score = predictionService.calculateExpectedValue(invalidOddsHorse, field, "芝", "2000m");
-
-        assertEquals(0, score);
+        assertTrue(target.getPredictionReason().contains("番人気"));
+        assertTrue(target.getPredictionReason().contains("モデル勝率"));
+        assertTrue(target.getPredictionReason().contains("妙味"));
     }
 }

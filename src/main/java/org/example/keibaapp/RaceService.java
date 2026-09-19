@@ -412,6 +412,9 @@ public class RaceService {
         );
     }
 
+    // currentCourse/currentDistanceは現在の予想モデル(市場確率ベースのみ)では
+    // 未使用だが、コース・距離別の特徴量を追加する将来フェーズ(MODEL_REVISION.md §6)
+    // のためにシグネチャを維持している
     public List<Horse> buildHorseList(Document doc,
                                     String currentCourse,
                                     String currentDistance,
@@ -432,9 +435,7 @@ public class RaceService {
             horseList.add(horse);
         }
 
-        for (Horse horse : horseList) {
-            horseEnrichmentService.applyScore(horse, horseList, currentCourse, currentDistance);
-        }
+        horseEnrichmentService.applyRaceModel(horseList);
 
         sortHorsesByScore(horseList);
         return horseList;

@@ -22,6 +22,13 @@ public class RaceResultRecord {
     private double predictionScore;
     private int actualRank;
     private LocalDateTime createdAt;
+    // 妙味 = モデル勝率/市場確率 - 1(PredictionService参照)
+    private double overlay;
+    // このレース内でのオッズ順の人気(1が一番人気)
+    private int popularity;
+    // どの予想モデルで算出したかの識別子(PredictionService.MODEL_VERSION)。
+    // モデルを改訂した際に過去データと混同せず比較できるようにするため
+    private String modelVersion;
 
     public RaceResultRecord() {
     }
@@ -35,7 +42,10 @@ public class RaceResultRecord {
             double odds,
             int predictionRank,
             double predictionScore,
-            int actualRank) {
+            int actualRank,
+            double overlay,
+            int popularity,
+            String modelVersion) {
 
         this.raceDate = raceDate;
         this.venue = venue;
@@ -46,6 +56,9 @@ public class RaceResultRecord {
         this.predictionRank = predictionRank;
         this.predictionScore = predictionScore;
         this.actualRank = actualRank;
+        this.overlay = overlay;
+        this.popularity = popularity;
+        this.modelVersion = modelVersion;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -91,5 +104,17 @@ public class RaceResultRecord {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public double getOverlay() {
+        return overlay;
+    }
+
+    public int getPopularity() {
+        return popularity;
+    }
+
+    public String getModelVersion() {
+        return modelVersion;
     }
 }
