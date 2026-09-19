@@ -22,10 +22,13 @@ public class RaceResultRecord {
     private double predictionScore;
     private int actualRank;
     private LocalDateTime createdAt;
-    // 妙味 = モデル勝率/市場確率 - 1(PredictionService参照)
-    private double overlay;
-    // このレース内でのオッズ順の人気(1が一番人気)
-    private int popularity;
+    // 妙味 = モデル勝率/市場確率 - 1(PredictionService参照)。
+    // 本番の既存データに対してHibernateがNOT NULL制約付きでALTER TABLEしようとして
+    // 失敗する(既存行はNULLになるため)ことを避けるため、boxed型でnullable列にする。
+    // 追加前のレコードはnullになる(旧モデルのデータのため欠損して当然)
+    private Double overlay;
+    // このレース内でのオッズ順の人気(1が一番人気)。overlayと同じ理由でboxed型
+    private Integer popularity;
     // どの予想モデルで算出したかの識別子(PredictionService.MODEL_VERSION)。
     // モデルを改訂した際に過去データと混同せず比較できるようにするため
     private String modelVersion;
@@ -106,11 +109,11 @@ public class RaceResultRecord {
         return createdAt;
     }
 
-    public double getOverlay() {
+    public Double getOverlay() {
         return overlay;
     }
 
-    public int getPopularity() {
+    public Integer getPopularity() {
         return popularity;
     }
 
