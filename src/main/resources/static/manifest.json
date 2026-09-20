@@ -1,0 +1,18 @@
+{
+  "name": "競馬予想アプリ",
+  "short_name": "競馬予想",
+  "description": "出馬表の確認・予想・的中検証をスマホのホーム画面から使える競馬予想アプリ",
+  "id": "/races",
+  "start_url": "/races",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "lang": "ja",
+  "background_color": "#f0f2f5",
+  "theme_color": "#12203a",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

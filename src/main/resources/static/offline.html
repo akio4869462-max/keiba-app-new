@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>オフライン | 競馬予想アプリ</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#12203a">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            background: #f0f2f5;
+            font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+            color: #1a1a2e;
+        }
+        .wrap {
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 32px 20px;
+            box-sizing: border-box;
+        }
+        .emoji { font-size: 56px; margin-bottom: 8px; }
+        h1 {
+            font-size: 1.3rem;
+            color: #12203a;
+            margin: 0 0 10px;
+        }
+        p {
+            color: #55597a;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            max-width: 320px;
+            margin: 0 0 22px;
+        }
+        button {
+            background: #12203a;
+            color: #c9a227;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 22px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="emoji">🏇</div>
+        <h1>オフラインです</h1>
+        <p>電波の届く場所に戻ってから、もう一度お試しください。<br>直前まで見ていたページはそのまま開ける場合があります。</p>
+        <button onclick="location.reload()">再読み込み</button>
+    </div>
+</body>
+</html>
