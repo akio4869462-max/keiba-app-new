@@ -29,9 +29,15 @@ public class PredictionService {
     }
 
     // 妙味(overlay = p/q - 1)がこの値以上、かつ2〜8番人気の馬だけを
-    // 「買い候補」として示す(forward_rules.json "2-8_0.95"より)。
+    // 「買い候補」として示す。
+    // 元々の0.342は「市場+13シグナル+走路バイアス族」というリッチなモデルの
+    // overlay分布で較正された値で、本番実装(市場+父・騎手・生産者の3項のみ)には
+    // スケールが合わず実質発火しなかった(8年・2〜8番人気198,210頭中22頭=0.011%のみ)。
+    // 実装済み構成の重み(residual_weights.json)でoverlay分布を再計算し、
+    // 2〜8番人気のTRAIN(2019-22)期間95%分位に再較正した値
+    // (MODEL_REVISION.md §8.8、2026-09-20)。
     // 2019-22学習→2023-26検証でも信頼区間は0をまたぎ、断定的な推奨ではない参考値
-    static final double OVERLAY_THRESHOLD = 0.342;
+    static final double OVERLAY_THRESHOLD = 0.074;
     static final int RECOMMEND_POPULARITY_MIN = 2;
     static final int RECOMMEND_POPULARITY_MAX = 8;
     private static final int MIN_FIELD_SIZE_FOR_RECOMMEND = 8;

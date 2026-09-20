@@ -80,8 +80,10 @@ Yahoo!スポーツ競馬 → WebScraper（静的メソッド群・サーキッ�
 
 `MarketResidualService`が父(`sire`)・騎手(`jockeyName`)・生産者(`breeder`)ごとの市場相対残差テーブルを起動時に`src/main/resources/residuals/*.json`（`keiba_score_search`の`export_residual_tables.py`が書き出したもの）から読み込み、`PredictionService.calculateWinProbabilities`のsoftmaxスコアに`weight · (residual − mean) / sd`の形で加算する。テーブルに名前が無ければ寄与0（安全側のフォールバック。外国産馬の父名がTARGET側は英語表記でYahoo側はカタカナ表記のため一致しないケースがあるが、寄与0になるだけで誤動作はしない）。
 生産者名(`Horse.breeder`)は`HorseEnrichmentService.fetchHorseDetail`が前走情報のため既に取得している馬詳細ページ（`WebScraper.getBreeder`）から取るため、追加のスクレイピングは発生しない。
-騎手名は出馬表の表記(`"田辺 裕信"`)とテーブルのキー(`"田辺裕信"`)でスペースの有無が違うため、`MarketResidualService.jockeyScore`内で正規化してから引く。
-テーブルは静的なので鮮度が落ちる。年1回程度、`keiba_score_search`側で最新データを使い`export_residual_tables.py`を再実行し、`src/main/resources/residuals/`配下のJSON4ファイルを差し替えることを推奨（`MODEL_REVISION.md` §8.5参照）。
+騎手名は出馬表の表記(`"田辺 裕信"`)とテーブルのキー(`"田辺裕信"`)でスペースの有無が違うため、`MarketResidualService.jockeyScore`内で正規化してから引く。あわせて外国人騎手はYahoo側が`"C.ルメール"`のようにイニシャル+ピリオド付きで表示するが、テーブル側は大半を姓のみ(`"ルメール"`)で保持しているため、`normalizeJockeyName`でイニシャルも除去する（`"ルメートル"`のような別人の姓まで書き換えないよう、除去するのは先頭のイニシャル+ピリオドのみ。`MODEL_REVISION.md` §8.7）。
+生産者名もYahoo側が法人化された生産者に`"(有)社台コーポレーション白老ファーム"`のように法人格プレフィックスを付けて表示する一方、テーブル側は1件もプレフィックスを含まないため、`normalizeBreeder`で`(有)`等を除去してから照合する（`MODEL_REVISION.md` §8.6）。
+`OVERLAY_THRESHOLD`は当初`0.342`（「市場+13シグナル+走路バイアス族」という別のリッチなモデルのoverlay分布で較正された値）だったが、実装済みの市場+3項モデルではスケールが合わず実質発火しなかった（8年・2〜8番人気198,210頭中22頭=0.011%のみ）。実装済み構成向けに再較正した`0.074`に変更済み（`MODEL_REVISION.md` §8.8、2026-09-20）。
+テーブルは静的なので鮮度が落ちる。年1回程度、`keiba_score_search`側で最新データを使い`export_residual_tables.py`を再実行し、`src/main/resources/residuals/`配下のJSON4ファイルを差し替えることを推奨（`MODEL_REVISION.md` §8.5参照）。§6の`p_hw_lat`等を追加実装した際はoverlay分布が再度変わるため、`OVERLAY_THRESHOLD`もその都度再較正が必要。
 
 ### 自己検証パイプライン
 

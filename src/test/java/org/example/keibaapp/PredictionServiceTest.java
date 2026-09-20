@@ -99,7 +99,7 @@ class PredictionServiceTest {
     void applyRaceModel_shouldRecommendMispricedMidPackHorseAboveThreshold() {
         // 上位人気が団子状態(1.1倍が2頭)で、8番人気だけが364倍まで離れている
         // ような歪んだオッズ形状では、市場確率(q)と比べてモデル勝率(p)の
-        // 圧縮効果により8番人気の妙味が閾値(+0.342)を超えて推奨対象になる
+        // 圧縮効果により8番人気の妙味が閾値を超えて推奨対象になる
         List<Horse> horses = List.of(
                 horse("1", 1.1), horse("2", 1.1), horse("3", 1.4), horse("4", 2.0),
                 horse("5", 2.1), horse("6", 2.8), horse("7", 2.9), horse("8", 364.0)
@@ -109,15 +109,36 @@ class PredictionServiceTest {
 
         Horse longshot = horses.get(7);
         assertEquals(8, longshot.getPopularity());
-        assertTrue(longshot.getOverlay() > 0.342);
+        assertTrue(longshot.getOverlay() > PredictionService.OVERLAY_THRESHOLD);
         assertTrue(longshot.isRecommended());
 
         for (Horse horse : horses) {
             if (horse.isRecommended()) {
                 assertTrue(horse.getPopularity() >= 2 && horse.getPopularity() <= 8);
-                assertTrue(horse.getOverlay() >= 0.342);
+                assertTrue(horse.getOverlay() >= PredictionService.OVERLAY_THRESHOLD);
             }
         }
+    }
+
+    @Test
+    void applyRaceModel_shouldRecommendAtRecalibratedThresholdButNotAtOldThreshold() {
+        // MODEL_REVISION.md §8.8: 旧閾値0.342は「市場+13シグナル+走路バイアス族」
+        // という別モデルの分布で較正された値で、実装済みの市場+3項モデルでは
+        // 理論最大値(+0.318)にも届かず実質発火しなかった。8番人気の妙味が
+        // 0.074(新閾値)は超えるが0.342(旧閾値)は超えない値になるオッズ形状で、
+        // 再較正後の閾値が実際に使われていることを確認する
+        List<Horse> horses = List.of(
+                horse("1", 1.5), horse("2", 2.0), horse("3", 3.0), horse("4", 6.0),
+                horse("5", 9.0), horse("6", 15.0), horse("7", 30.0), horse("8", 200.0)
+        );
+
+        predictionService.applyRaceModel(horses);
+
+        Horse eighthPopularity = horses.get(7);
+        assertEquals(8, eighthPopularity.getPopularity());
+        assertTrue(eighthPopularity.getOverlay() > 0.074);
+        assertTrue(eighthPopularity.getOverlay() < 0.342);
+        assertTrue(eighthPopularity.isRecommended());
     }
 
     @Test

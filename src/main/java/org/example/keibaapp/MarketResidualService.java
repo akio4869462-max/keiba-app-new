@@ -104,13 +104,33 @@ public class MarketResidualService {
     }
 
     public double breederScore(String breederName) {
-        return breederTable.score(breederName);
+        return breederTable.score(normalizeBreeder(breederName));
     }
 
-    // 出馬表の表記は姓と名の間にスペースが入る(例:"田辺 裕信")が、
-    // テーブルのキーはスペース無し(例:"田辺裕信")なので正規化してから引く
+    // 出馬表の表記は姓と名の間にスペースが入る(例:"田辺 裕信")が、テーブルの
+    // キーはスペース無し(例:"田辺裕信")。また外国人騎手はYahoo側が
+    // "C.ルメール"のようにイニシャル+ピリオドを付けて表示するが、TARGET側の
+    // テーブルは大半を姓のみ("ルメール")で保持しているため、イニシャルも除去する
+    // (MODEL_REVISION.md §8.7、2026-09-20)
     private String normalizeJockeyName(String jockeyName) {
-        return jockeyName == null ? null : jockeyName.replace(" ", "").replace("　", "");
+        if (jockeyName == null) {
+            return null;
+        }
+
+        String noSpace = jockeyName.replace(" ", "").replace("　", "");
+
+        return noSpace.replaceAll("^[A-Za-zＡ-Ｚａ-ｚ][.．]", "");
+    }
+
+    // Yahoo側は法人化された生産者に"(有)社台コーポレーション白老ファーム"のように
+    // 法人格プレフィックスを付けて表示するが、TARGET側のテーブルはプレフィックスを
+    // 含まない(0/1,546件)ため、法人格を除去してから照合する(MODEL_REVISION.md §8.6、2026-09-20)
+    private String normalizeBreeder(String breeder) {
+        if (breeder == null) {
+            return null;
+        }
+
+        return breeder.replaceAll("^[（(](有|株式会社|株|合資|合名|同)[）)]", "").trim();
     }
 
     // テストで実データファイルに依存せず既知のテーブルを注入するためだけに用意
