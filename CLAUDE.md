@@ -101,6 +101,8 @@ RaceResultStatsService でオッズ帯別・スコア帯別・週別・回収率
 
 `getHorseDetail(url, historical=true)`は**意図的にキャッシュしない**。結果待ちのポーリングに使われるため、キャッシュすると未確定時点のデータが固定されてしまう。
 
+`/results/models`（`RaceController.resultsByModel`）は`modelVersion`ごとに予想1位の的中率・回収率・オッズ帯別成績を並べて比較する画面（`RaceResultRecordRepository.findByModelVersion`/`findByModelVersionIsNull`/`findDistinctModelVersions`＋既存の`RaceResultStatsService`の集計に`buildModelStat`を繋いだもの）。`modelVersion`を記録し始める前の旧レコードはnullで、「旧モデル(版数未記録)」として表示される。各モデル`MODEL_EVAL_TARGET_RACES`(400)レース未満の間は「参考値」の注記を出す（的中率・回収率の誤差が大きく優劣を判断できないため）。
+
 回収率（ROI）は**100%が収支トントン**の「回収率」方式（`totalReturn / totalStake * 100`）。0%基準の利益率ではない。
 
 ### 定期実行の設計方針

@@ -154,6 +154,61 @@ public class RaceResultStatsService {
         return totalReturn / totalStake * 100;
     }
 
+    // モデル別比較で「統計的に比較できる」目安とするレース数(予想1位を買ったレース数)。
+    // 勝率・回収率の標準誤差が大きいため、これに満たない間は参考値として扱う
+    public static final int MODEL_EVAL_TARGET_RACES = 400;
+
+    // 旧レコード(modelVersionを記録し始める前)はmodelVersionがnullになる
+    public static final String LEGACY_MODEL_LABEL = "旧モデル(版数未記録)";
+
+    // 1つのモデル版数分のレコードから、予想1位の的中率・回収率・オッズ帯別成績をまとめる。
+    // 集計自体は/resultsと同じ既存メソッド(予想1位=predictionRankが1のレコード)を使う
+    public ModelStat buildModelStat(String modelVersion, List<RaceResultRecord> records) {
+        List<RaceResultRecord> topPicks = records.stream()
+                .filter(r -> r.getPredictionRank() == 1)
+                .collect(Collectors.toList());
+
+        int raceCount = topPicks.size();
+
+        LocalDate firstDate = records.stream()
+                .map(RaceResultRecord::getRaceDate)
+                .min(Comparator.naturalOrder())
+                .orElse(null);
+        LocalDate lastDate = records.stream()
+                .map(RaceResultRecord::getRaceDate)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+
+        return new ModelStat(
+                modelVersion,
+                modelVersion == null ? LEGACY_MODEL_LABEL : modelVersion,
+                raceCount,
+                rate(countWins(topPicks), raceCount),
+                rate(countTop3(topPicks), raceCount),
+                calculateRoi(topPicks),
+                buildOddsBandStats(topPicks),
+                firstDate,
+                lastDate,
+                raceCount < MODEL_EVAL_TARGET_RACES);
+    }
+
+    // 画面表示用の並び順: 現行モデル → 他の版数(直近のレースがあるものから) → 旧モデル(版数未記録)。
+    // 旧モデルとの比較が一番見たいので、現行モデルを先頭に置いて隣に旧モデルが来るようにする
+    public List<ModelStat> sortModelStats(List<ModelStat> stats, String currentModelVersion) {
+        List<ModelStat> sorted = new ArrayList<>(stats);
+
+        sorted.sort(Comparator
+                .comparingInt((ModelStat m) -> {
+                    if (m.getModelVersion() == null) {
+                        return 2;
+                    }
+                    return m.getModelVersion().equals(currentModelVersion) ? 0 : 1;
+                })
+                .thenComparing(ModelStat::getLastDate, Comparator.nullsLast(Comparator.reverseOrder())));
+
+        return sorted;
+    }
+
     public List<RaceResultGroup> buildRaceGroups(List<RaceResultRecord> allRecords, List<RacePayout> allPayouts) {
         Map<RaceKey, List<RaceResultRecord>> grouped = allRecords.stream()
                 .collect(Collectors.groupingBy(
@@ -210,6 +265,78 @@ public class RaceResultStatsService {
         return topPicks.stream()
                 .mapToDouble(r -> r.getActualRank() == 1 ? r.getOdds() : 0)
                 .sum();
+    }
+
+    public static class ModelStat {
+        private final String modelVersion;
+        private final String label;
+        private final int raceCount;
+        private final double winRate;
+        private final double top3Rate;
+        private final double roi;
+        private final List<OddsBandStat> oddsBandStats;
+        private final LocalDate firstDate;
+        private final LocalDate lastDate;
+        private final boolean smallSample;
+
+        public ModelStat(String modelVersion, String label, int raceCount, double winRate,
+                         double top3Rate, double roi, List<OddsBandStat> oddsBandStats,
+                         LocalDate firstDate, LocalDate lastDate, boolean smallSample) {
+            this.modelVersion = modelVersion;
+            this.label = label;
+            this.raceCount = raceCount;
+            this.winRate = winRate;
+            this.top3Rate = top3Rate;
+            this.roi = roi;
+            this.oddsBandStats = oddsBandStats;
+            this.firstDate = firstDate;
+            this.lastDate = lastDate;
+            this.smallSample = smallSample;
+        }
+
+        public String getModelVersion() {
+            return modelVersion;
+        }
+
+        public String getLabel() {
+            return label;
+        }
+
+        public int getRaceCount() {
+            return raceCount;
+        }
+
+        public double getWinRate() {
+            return winRate;
+        }
+
+        public double getTop3Rate() {
+            return top3Rate;
+        }
+
+        public double getRoi() {
+            return roi;
+        }
+
+        public List<OddsBandStat> getOddsBandStats() {
+            return oddsBandStats;
+        }
+
+        public LocalDate getFirstDate() {
+            return firstDate;
+        }
+
+        public LocalDate getLastDate() {
+            return lastDate;
+        }
+
+        public boolean isSmallSample() {
+            return smallSample;
+        }
+
+        public int getTargetRaces() {
+            return MODEL_EVAL_TARGET_RACES;
+        }
     }
 
     public static class OddsBandStat {

@@ -190,6 +190,31 @@ public class RaceController {
         return "results";
     }
 
+    // 予想モデルの版数ごとに、予想1位の的中率・回収率・オッズ帯別成績を並べて比較する。
+    // 新モデルのレースが十分溜まった時点で、旧モデルからの改善幅を確認するための画面
+    @GetMapping("/results/models")
+    public String resultsByModel(Model model) {
+        List<RaceResultStatsService.ModelStat> stats = new ArrayList<>();
+
+        for (String version : raceResultRecordRepository.findDistinctModelVersions()) {
+            stats.add(raceResultStatsService.buildModelStat(
+                    version, raceResultRecordRepository.findByModelVersion(version)));
+        }
+
+        List<RaceResultRecord> legacyRecords = raceResultRecordRepository.findByModelVersionIsNull();
+
+        if (!legacyRecords.isEmpty()) {
+            stats.add(raceResultStatsService.buildModelStat(null, legacyRecords));
+        }
+
+        model.addAttribute("modelStats",
+                raceResultStatsService.sortModelStats(stats, PredictionService.MODEL_VERSION));
+        model.addAttribute("currentModelVersion", PredictionService.MODEL_VERSION);
+        model.addAttribute("targetRaces", RaceResultStatsService.MODEL_EVAL_TARGET_RACES);
+
+        return "resultsModels";
+    }
+
     @GetMapping("/results/races")
     public String resultsByRace(Model model) {
         LocalDate cutoff = LocalDate.now(JST).minusWeeks(RACE_RESULTS_DISPLAY_WEEKS);

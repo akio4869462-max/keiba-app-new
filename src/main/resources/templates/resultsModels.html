@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>モデル別成績</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg">
+    <div class="container-fluid px-4">
+        <span class="navbar-brand">🏇 競馬予想アプリ</span>
+        <div class="d-flex gap-1 ms-auto">
+            <a class="nav-link" href="/races">📋 出馬表</a>
+            <a class="nav-link" href="/predict">🎯 予想</a>
+            <a class="nav-link" href="/favorites">⭐ お気に入り馬</a>
+            <a class="nav-link" href="/favoritesJockey">⭐ お気に入り騎手</a>
+            <a class="nav-link active" href="/results">📊 検証</a>
+            <a class="nav-link" href="/results/races">🏁 結果</a>
+            <a class="nav-link" href="/favorites/today">🌅 今日の予定</a>
+            <a class="nav-link" href="/status">⚙️ 状況</a>
+        </div>
+    </div>
+</nav>
+
+<div class="page-wrapper">
+
+    <a href="/results" class="back-link">← 検証ページへ戻る</a>
+
+    <h1 class="page-title mb-4">🧪 モデル別成績</h1>
+
+    <p class="text-muted small">
+        予想モデルの版数ごとに、予想1位を単勝1点ずつ購入した場合の的中率・回収率を並べて比較します
+        (集計方法は<a href="/results">検証ページ</a>と同じです)。
+        目標は各モデル <strong th:text="${targetRaces}"></strong> レース以上で、これに満たない間は参考値です。
+    </p>
+
+    <p class="text-muted" th:if="${#lists.isEmpty(modelStats)}">
+        まだ蓄積されたデータがありません。
+    </p>
+
+    <!-- 比較サマリー -->
+    <div class="table-wrapper mb-4" th:unless="${#lists.isEmpty(modelStats)}">
+        <table class="table race-table mb-0">
+            <thead>
+            <tr>
+                <th>モデル</th>
+                <th>期間</th>
+                <th class="text-center">レース数</th>
+                <th class="text-center">単勝的中率</th>
+                <th class="text-center">複勝的中率</th>
+                <th class="text-center">単勝回収率</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="m : ${modelStats}">
+                <td>
+                    <span th:text="${m.label}"></span>
+                    <span class="badge bg-primary ms-1"
+                          th:if="${m.modelVersion != null and m.modelVersion == currentModelVersion}">現行</span>
+                    <span class="badge bg-warning text-dark ms-1" th:if="${m.smallSample}">参考値</span>
+                </td>
+                <td class="small">
+                    <span th:if="${m.firstDate != null}" th:text="${m.firstDate} + ' 〜 ' + ${m.lastDate}"></span>
+                </td>
+                <td class="text-center" th:text="${m.raceCount}"></td>
+                <td class="text-center" th:text="${#numbers.formatDecimal(m.winRate, 1, 1)} + '%'"></td>
+                <td class="text-center" th:text="${#numbers.formatDecimal(m.top3Rate, 1, 1)} + '%'"></td>
+                <td class="text-center fw-bold" th:text="${#numbers.formatDecimal(m.roi, 1, 1)} + '%'"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p class="text-muted small" th:unless="${#lists.isEmpty(modelStats)}">
+        ※回収率は100%が収支トントンです。
+    </p>
+
+    <!-- モデルごとの詳細 -->
+    <div th:each="m : ${modelStats}" class="mb-5">
+        <h2 class="h5 mb-3">
+            <span th:text="${m.label}"></span>
+            <span class="badge bg-primary ms-1"
+                  th:if="${m.modelVersion != null and m.modelVersion == currentModelVersion}">現行</span>
+        </h2>
+
+        <div class="alert alert-warning py-2 small" th:if="${m.smallSample}">
+            サンプル件数が少ないため参考値です(<span th:text="${m.raceCount}"></span> / <span
+                th:text="${m.targetRaces}"></span> レース)。
+            この件数では的中率・回収率の誤差が大きく、モデル間の優劣は判断できません。
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number" th:text="${m.raceCount}"></div>
+                    <div class="stat-label">予想1位のレース数</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number"
+                         th:text="${#numbers.formatDecimal(m.winRate, 1, 1)} + '%'"></div>
+                    <div class="stat-label">単勝的中率</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number"
+                         th:text="${#numbers.formatDecimal(m.top3Rate, 1, 1)} + '%'"></div>
+                    <div class="stat-label">複勝的中率</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number"
+                         th:text="${#numbers.formatDecimal(m.roi, 1, 1)} + '%'"></div>
+                    <div class="stat-label">単勝回収率</div>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="h6 mb-2">オッズ帯別 予想1位の的中率</h3>
+        <div class="row g-3">
+            <div class="col-md-4" th:each="band : ${m.oddsBandStats}">
+                <div class="stat-card">
+                    <div class="stat-label fw-bold" th:text="${band.label}"></div>
+                    <div class="stat-number"
+                         th:text="${#numbers.formatDecimal(band.winRate, 1, 1)} + '%'"></div>
+                    <div class="stat-label">単勝的中率</div>
+                    <div class="stat-number"
+                         th:text="${#numbers.formatDecimal(band.top3Rate, 1, 1)} + '%'"></div>
+                    <div class="stat-label">複勝的中率 (対象 <span th:text="${band.total}"></span> 件)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

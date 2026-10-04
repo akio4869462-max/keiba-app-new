@@ -156,4 +156,90 @@ class RaceResultStatsServiceTest {
         assertEquals(1, olderByVenue.size());
         assertEquals("旧函館9R", olderByVenue.get("函館").get(0).getRaceName());
     }
+
+    private RaceResultRecord modelRecord(
+            LocalDate date, String modelVersion, int predictionRank, double odds, int actualRank) {
+
+        return new RaceResultRecord(
+                date, "東京", 1, "テストレース", "馬", odds, predictionRank, 50, actualRank,
+                0, predictionRank, modelVersion);
+    }
+
+    @Test
+    void buildModelStat_shouldAggregateOnlyTopPicksOfThatModel() {
+        // 予想1位のみが集計対象(2位以下のレコードは無視される)。
+        // 3レースのうち1レース的中(オッズ4.0)、1頭が3着内 -> 的中率33.3%、回収率4.0/3=133.3%
+        List<RaceResultRecord> records = List.of(
+                modelRecord(LocalDate.of(2026, 9, 20), "v2", 1, 4.0, 1),
+                modelRecord(LocalDate.of(2026, 9, 20), "v2", 2, 10.0, 2),
+                modelRecord(LocalDate.of(2026, 9, 21), "v2", 1, 6.0, 3),
+                modelRecord(LocalDate.of(2026, 9, 27), "v2", 1, 8.0, 5)
+        );
+
+        RaceResultStatsService.ModelStat stat = statsService.buildModelStat("v2", records);
+
+        assertEquals("v2", stat.getLabel());
+        assertEquals(3, stat.getRaceCount());
+        assertEquals(100.0 / 3, stat.getWinRate(), 0.001);
+        assertEquals(200.0 / 3, stat.getTop3Rate(), 0.001);
+        assertEquals(4.0 / 3 * 100, stat.getRoi(), 0.001);
+        assertEquals(LocalDate.of(2026, 9, 20), stat.getFirstDate());
+        assertEquals(LocalDate.of(2026, 9, 27), stat.getLastDate());
+        assertEquals(3, stat.getOddsBandStats().size());
+    }
+
+    @Test
+    void buildModelStat_shouldLabelNullVersionAsLegacyModel() {
+        RaceResultRecord legacy = modelRecord(LocalDate.of(2026, 7, 4), null, 1, 5.0, 1);
+
+        RaceResultStatsService.ModelStat stat = statsService.buildModelStat(null, List.of(legacy));
+
+        assertEquals(RaceResultStatsService.LEGACY_MODEL_LABEL, stat.getLabel());
+        assertNull(stat.getModelVersion());
+    }
+
+    @Test
+    void buildModelStat_shouldFlagSmallSampleBelowTargetRaceCount() {
+        List<RaceResultRecord> few = List.of(modelRecord(LocalDate.of(2026, 9, 20), "v2", 1, 5.0, 1));
+
+        assertTrue(statsService.buildModelStat("v2", few).isSmallSample());
+    }
+
+    @Test
+    void buildModelStat_shouldNotFlagSmallSampleAtTargetRaceCount() {
+        List<RaceResultRecord> enough = new ArrayList<>();
+        for (int i = 0; i < RaceResultStatsService.MODEL_EVAL_TARGET_RACES; i++) {
+            enough.add(modelRecord(LocalDate.of(2026, 9, 20), "v2", 1, 5.0, 2));
+        }
+
+        assertFalse(statsService.buildModelStat("v2", enough).isSmallSample());
+    }
+
+    @Test
+    void buildModelStat_shouldReturnZeroRatesWhenNoRecords() {
+        RaceResultStatsService.ModelStat stat = statsService.buildModelStat("v2", List.of());
+
+        assertEquals(0, stat.getRaceCount());
+        assertEquals(0, stat.getWinRate());
+        assertEquals(0, stat.getRoi());
+        assertNull(stat.getFirstDate());
+        assertTrue(stat.isSmallSample());
+    }
+
+    @Test
+    void sortModelStats_shouldPutCurrentFirstAndLegacyLast() {
+        RaceResultStatsService.ModelStat legacy = statsService.buildModelStat(
+                null, List.of(modelRecord(LocalDate.of(2026, 7, 4), null, 1, 5.0, 1)));
+        RaceResultStatsService.ModelStat older = statsService.buildModelStat(
+                "v1", List.of(modelRecord(LocalDate.of(2026, 9, 13), "v1", 1, 5.0, 1)));
+        RaceResultStatsService.ModelStat current = statsService.buildModelStat(
+                "v2", List.of(modelRecord(LocalDate.of(2026, 9, 20), "v2", 1, 5.0, 1)));
+
+        List<RaceResultStatsService.ModelStat> sorted =
+                statsService.sortModelStats(List.of(legacy, older, current), "v2");
+
+        assertEquals("v2", sorted.get(0).getModelVersion());
+        assertEquals("v1", sorted.get(1).getModelVersion());
+        assertNull(sorted.get(2).getModelVersion());
+    }
 }
