@@ -40,7 +40,7 @@ public class PredictionService {
     static final double OVERLAY_THRESHOLD = 0.074;
     static final int RECOMMEND_POPULARITY_MIN = 2;
     static final int RECOMMEND_POPULARITY_MAX = 8;
-    private static final int MIN_FIELD_SIZE_FOR_RECOMMEND = 8;
+    static final int MIN_FIELD_SIZE_FOR_RECOMMEND = 8;
 
     private boolean hasValidOdds(Horse horse) {
         return horse.getOdds() > 0 && horse.getOdds() < 999.9;

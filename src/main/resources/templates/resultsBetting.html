@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>買い方シミュレーション</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg">
+    <div class="container-fluid px-4">
+        <span class="navbar-brand">🏇 競馬予想アプリ</span>
+        <div class="d-flex gap-1 ms-auto">
+            <a class="nav-link" href="/races">📋 出馬表</a>
+            <a class="nav-link" href="/predict">🎯 予想</a>
+            <a class="nav-link" href="/favorites">⭐ お気に入り馬</a>
+            <a class="nav-link" href="/favoritesJockey">⭐ お気に入り騎手</a>
+            <a class="nav-link active" href="/results">📊 検証</a>
+            <a class="nav-link" href="/results/races">🏁 結果</a>
+            <a class="nav-link" href="/favorites/today">🌅 今日の予定</a>
+            <a class="nav-link" href="/status">⚙️ 状況</a>
+        </div>
+    </div>
+</nav>
+
+<div class="page-wrapper">
+
+    <a href="/results" class="back-link">← 検証ページへ戻る</a>
+
+    <h1 class="page-title mb-4">🎰 買い方シミュレーション</h1>
+
+    <p class="text-muted small">
+        「買い候補」(推奨馬)を過去のレースで実際に買っていた場合の成績です。
+        単勝・複勝は推奨馬1頭につき100円、三連複は推奨馬を軸に、同じレースの予想順位上位
+        <strong th:text="${rule.partnerCount}"></strong>頭(軸を除く)へ流して1点100円で購入したものとして計算しています。
+        1レースに推奨馬が複数いれば、それぞれを軸として買います。払戻金データが無いレースは購入しなかったものとして除いています。
+    </p>
+
+    <div class="alert alert-warning py-2 small" th:if="${simulation.smallSample}">
+        サンプル件数が少ないため参考値です(推奨馬 <span th:text="${simulation.recommendedCount}"></span> 頭 /
+        目安 <span th:text="${simulation.minReliablePicks}"></span> 頭)。
+        この件数では回収率の誤差が大きく、買い方の優劣は判断できません。
+    </div>
+
+    <!-- 買い方の調整 -->
+    <form method="get" action="/results/betting" class="row g-2 align-items-end mb-4">
+        <div class="col-auto">
+            <label class="form-label small mb-0" for="minPopularity">人気(下限)</label>
+            <input class="form-control form-control-sm" type="number" min="1" name="minPopularity"
+                   id="minPopularity" th:value="${rule.minPopularity}">
+        </div>
+        <div class="col-auto">
+            <label class="form-label small mb-0" for="maxPopularity">人気(上限)</label>
+            <input class="form-control form-control-sm" type="number" min="1" name="maxPopularity"
+                   id="maxPopularity" th:value="${rule.maxPopularity}">
+        </div>
+        <div class="col-auto">
+            <label class="form-label small mb-0" for="overlayThreshold">妙味(overlay)の閾値</label>
+            <input class="form-control form-control-sm" type="number" step="0.001" name="overlayThreshold"
+                   id="overlayThreshold" th:value="${rule.overlayThreshold}">
+        </div>
+        <div class="col-auto">
+            <label class="form-label small mb-0" for="partnerCount">三連複の相手頭数</label>
+            <input class="form-control form-control-sm" type="number" min="2" name="partnerCount"
+                   id="partnerCount" th:value="${rule.partnerCount}">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-outline-primary btn-sm">この条件で再計算</button>
+            <a href="/results/betting" class="btn btn-link btn-sm">デフォルトに戻す</a>
+        </div>
+    </form>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-number" th:text="${simulation.recommendedCount}"></div>
+                <div class="stat-label">推奨馬の頭数</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-number" th:text="${simulation.raceCount}"></div>
+                <div class="stat-label">対象レース数</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-number" style="font-size: 1.1rem"
+                     th:text="${simulation.firstDate != null} ? ${simulation.firstDate} + ' 〜 ' + ${simulation.lastDate} : '—'"></div>
+                <div class="stat-label">対象期間</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-wrapper mb-4">
+        <table class="table race-table mb-0">
+            <thead>
+            <tr>
+                <th>券種</th>
+                <th class="text-center">購入数(軸/馬)</th>
+                <th class="text-center">的中数</th>
+                <th class="text-center">的中率</th>
+                <th class="text-end">投資額</th>
+                <th class="text-end">払戻額</th>
+                <th class="text-end">損益</th>
+                <th class="text-center">回収率</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="r : ${simulation.results}">
+                <td class="fw-bold" th:text="${r.betType}"></td>
+                <td class="text-center" th:text="${r.betCount}"></td>
+                <td class="text-center" th:text="${r.hitCount}"></td>
+                <td class="text-center" th:text="${#numbers.formatDecimal(r.hitRate, 1, 1)} + '%'"></td>
+                <td class="text-end" th:text="${#numbers.formatInteger(r.totalStakeYen, 1, 'COMMA')} + '円'"></td>
+                <td class="text-end" th:text="${#numbers.formatInteger(r.totalReturnYen, 1, 'COMMA')} + '円'"></td>
+                <td class="text-end" th:text="${#numbers.formatInteger(r.profitYen, 1, 'COMMA')} + '円'"></td>
+                <td class="text-center fw-bold" th:text="${#numbers.formatDecimal(r.roi, 1, 1)} + '%'"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p class="text-muted small">※回収率は100%が収支トントンです。</p>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

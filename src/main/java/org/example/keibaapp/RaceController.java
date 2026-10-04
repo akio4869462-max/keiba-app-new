@@ -3,6 +3,7 @@ package org.example.keibaapp;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.time.LocalDate;
@@ -29,6 +30,7 @@ public class RaceController {
     private final RaceResultRecordRepository raceResultRecordRepository;
     private final RacePayoutRepository racePayoutRepository;
     private final RaceResultStatsService raceResultStatsService;
+    private final BettingSimulationService bettingSimulationService;
     private final RaceResultCollectionService raceResultCollectionService;
     private final TrackedRaceUrlRepository trackedRaceUrlRepository;
     private final FavoriteHorseService favoriteHorseService;
@@ -41,6 +43,7 @@ public class RaceController {
             RaceResultRecordRepository raceResultRecordRepository,
             RacePayoutRepository racePayoutRepository,
             RaceResultStatsService raceResultStatsService,
+            BettingSimulationService bettingSimulationService,
             RaceResultCollectionService raceResultCollectionService,
             TrackedRaceUrlRepository trackedRaceUrlRepository,
             FavoriteHorseService favoriteHorseService,
@@ -52,6 +55,7 @@ public class RaceController {
         this.raceResultRecordRepository = raceResultRecordRepository;
         this.racePayoutRepository = racePayoutRepository;
         this.raceResultStatsService = raceResultStatsService;
+        this.bettingSimulationService = bettingSimulationService;
         this.raceResultCollectionService = raceResultCollectionService;
         this.trackedRaceUrlRepository = trackedRaceUrlRepository;
         this.favoriteHorseService = favoriteHorseService;
@@ -221,6 +225,32 @@ public class RaceController {
         model.addAttribute("targetRaces", RaceResultStatsService.MODEL_EVAL_TARGET_RACES);
 
         return "resultsModels";
+    }
+
+    // 「推奨馬を実際に買っていたら」のシミュレーション。買い方のルールはクエリで調整できる
+    // (未指定はBettingSimulationService.BettingRule.defaultRule())
+    @GetMapping("/results/betting")
+    public String resultsByBetting(
+            Model model,
+            @RequestParam(required = false) Integer minPopularity,
+            @RequestParam(required = false) Integer maxPopularity,
+            @RequestParam(required = false) Double overlayThreshold,
+            @RequestParam(required = false) Integer partnerCount) {
+
+        BettingSimulationService.BettingRule defaults = BettingSimulationService.BettingRule.defaultRule();
+
+        BettingSimulationService.BettingRule rule = new BettingSimulationService.BettingRule(
+                minPopularity != null ? minPopularity : defaults.minPopularity(),
+                maxPopularity != null ? maxPopularity : defaults.maxPopularity(),
+                overlayThreshold != null ? overlayThreshold : defaults.overlayThreshold(),
+                defaults.minFieldSize(),
+                partnerCount != null ? Math.max(2, partnerCount) : defaults.partnerCount());
+
+        model.addAttribute("simulation", bettingSimulationService.simulate(
+                raceResultRecordRepository.findAll(), racePayoutRepository.findAll(), rule));
+        model.addAttribute("rule", rule);
+
+        return "resultsBetting";
     }
 
     @GetMapping("/results/races")

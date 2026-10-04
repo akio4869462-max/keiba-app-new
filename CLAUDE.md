@@ -106,6 +106,8 @@ RaceResultStatsService でオッズ帯別・スコア帯別・週別・回収率
 `/results`の「券種別の回収率」は確定払戻金（`RacePayout`）ベースで、予想1位を1点100円ずつ購入した場合の単勝・複勝の回収率を並べる（`RaceResultStatsService.buildBetTypeRoi`/`calculateRoiForBetType`、betTypeは引数。単勝・複勝のみ対応）。払戻金データが無いレースは購入していないものとして投資額にも含めない。
 的中判定は`RaceResultRecord.umaban`（馬番、nullable。2026-10-04から記録開始）と`RacePayout.combination`（馬番）を突き合わせる。**馬番が無い旧レコードは、払戻行が結果ページの掲載順＝着順で保存されている性質を使い、k着ならk番目の払戻行とみなす**（複勝の払戻行が着順順であることは実データ20レースで確認済み。同着で払戻行が増えるケースのみ1頭分ずれうる）。複勝は払戻行の数がそのまま払戻対象頭数（8頭以上は3着以内、7頭以下は2着以内）になるため、頭数は別途見ない。
 
+`/results/betting`（`BettingSimulationService`）は「買い候補(推奨馬)を実際に買っていたら」のシミュレーション。推奨馬は`PredictionService`の`recommended`と同じ条件（2〜8番人気・overlay≥`OVERLAY_THRESHOLD`・8頭以上）を、保存済みの`RaceResultRecord.overlay`/`popularity`から再現して判定する（これらを記録し始めた2026-09-19以降のレコードのみ対象）。券種は単勝・複勝（推奨馬1頭100円）と、推奨馬を軸に同レースの予想順位上位5頭（軸を除く）へ流す三連複（10点=1000円。1レースに推奨馬が複数なら各馬を軸に購入）。三連複の的中は「軸と相手2頭で3着以内が埋まったか」＝着順だけで判定でき、馬番の無い旧レコードでも計算できる。買い方のルールは`BettingRule`に切り出してあり、画面のクエリ（`minPopularity`/`maxPopularity`/`overlayThreshold`/`partnerCount`）で調整できる。実際の買い方に合わせて変更する場合はここを直す。
+
 回収率（ROI）は**100%が収支トントン**の「回収率」方式（`totalReturn / totalStake * 100`）。0%基準の利益率ではない。
 
 ### 定期実行の設計方針

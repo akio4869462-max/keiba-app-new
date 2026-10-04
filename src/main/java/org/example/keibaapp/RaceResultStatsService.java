@@ -392,6 +392,10 @@ public class RaceResultStatsService {
         public double getRoi() {
             return totalStakeYen == 0 ? 0 : totalReturnYen * 100.0 / totalStakeYen;
         }
+
+        public long getProfitYen() {
+            return totalReturnYen - totalStakeYen;
+        }
     }
 
     public static class ModelStat {
