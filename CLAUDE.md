@@ -103,6 +103,9 @@ RaceResultStatsService でオッズ帯別・スコア帯別・週別・回収率
 
 `/results/models`（`RaceController.resultsByModel`）は`modelVersion`ごとに予想1位の的中率・回収率・オッズ帯別成績を並べて比較する画面（`RaceResultRecordRepository.findByModelVersion`/`findByModelVersionIsNull`/`findDistinctModelVersions`＋既存の`RaceResultStatsService`の集計に`buildModelStat`を繋いだもの）。`modelVersion`を記録し始める前の旧レコードはnullで、「旧モデル(版数未記録)」として表示される。各モデル`MODEL_EVAL_TARGET_RACES`(400)レース未満の間は「参考値」の注記を出す（的中率・回収率の誤差が大きく優劣を判断できないため）。
 
+`/results`の「券種別の回収率」は確定払戻金（`RacePayout`）ベースで、予想1位を1点100円ずつ購入した場合の単勝・複勝の回収率を並べる（`RaceResultStatsService.buildBetTypeRoi`/`calculateRoiForBetType`、betTypeは引数。単勝・複勝のみ対応）。払戻金データが無いレースは購入していないものとして投資額にも含めない。
+的中判定は`RaceResultRecord.umaban`（馬番、nullable。2026-10-04から記録開始）と`RacePayout.combination`（馬番）を突き合わせる。**馬番が無い旧レコードは、払戻行が結果ページの掲載順＝着順で保存されている性質を使い、k着ならk番目の払戻行とみなす**（複勝の払戻行が着順順であることは実データ20レースで確認済み。同着で払戻行が増えるケースのみ1頭分ずれうる）。複勝は払戻行の数がそのまま払戻対象頭数（8頭以上は3着以内、7頭以下は2着以内）になるため、頭数は別途見ない。
+
 回収率（ROI）は**100%が収支トントン**の「回収率」方式（`totalReturn / totalStake * 100`）。0%基準の利益率ではない。
 
 ### 定期実行の設計方針

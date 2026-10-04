@@ -32,6 +32,10 @@ public class RaceResultRecord {
     // どの予想モデルで算出したかの識別子(PredictionService.MODEL_VERSION)。
     // モデルを改訂した際に過去データと混同せず比較できるようにするため
     private String modelVersion;
+    // この馬の馬番。払戻金(RacePayout.combination)は馬番で表記されるため、
+    // 複勝など他券種の的中判定・回収額の突き合わせに使う。
+    // 記録し始める前の旧レコードはnull(NOT NULL制約でALTER TABLEが失敗しないようboxed型)
+    private Integer umaban;
 
     public RaceResultRecord() {
     }
@@ -48,7 +52,8 @@ public class RaceResultRecord {
             int actualRank,
             double overlay,
             int popularity,
-            String modelVersion) {
+            String modelVersion,
+            Integer umaban) {
 
         this.raceDate = raceDate;
         this.venue = venue;
@@ -62,6 +67,7 @@ public class RaceResultRecord {
         this.overlay = overlay;
         this.popularity = popularity;
         this.modelVersion = modelVersion;
+        this.umaban = umaban;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -119,5 +125,9 @@ public class RaceResultRecord {
 
     public String getModelVersion() {
         return modelVersion;
+    }
+
+    public Integer getUmaban() {
+        return umaban;
     }
 }

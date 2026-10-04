@@ -177,7 +177,8 @@ public class RaceResultCollectionService {
                     actualRank,
                     horse.getOverlay(),
                     horse.getPopularity(),
-                    PredictionService.MODEL_VERSION
+                    PredictionService.MODEL_VERSION,
+                    parseUmaban(horse.getUmaban())
             ));
 
             predictionRank++;
@@ -189,6 +190,15 @@ public class RaceResultCollectionService {
         System.out.println("【結果収集】完了: " + raceUrl);
 
         return true;
+    }
+
+    // 馬番は"8"のような文字列で保持されている。取れなければnull(旧レコードと同じ扱い)
+    static Integer parseUmaban(String umaban) {
+        if (umaban == null || !umaban.trim().matches("\\d+")) {
+            return null;
+        }
+
+        return Integer.parseInt(umaban.trim());
     }
 
     // 結果ページ(denmaをresultに置き換えたURL)から全馬券種の払戻金を取得して保存する。

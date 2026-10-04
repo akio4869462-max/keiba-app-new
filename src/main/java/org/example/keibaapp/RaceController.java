@@ -187,6 +187,14 @@ public class RaceController {
         model.addAttribute("roiBetCount", topPicks.size());
         model.addAttribute("roiTotalReturn", raceResultStatsService.totalReturn(topPicks));
 
+        // 確定払戻金ベースの券種別回収率(単勝と複勝を並べて比較する)
+        List<RacePayout> allPayouts = racePayoutRepository.findAll();
+        model.addAttribute("betTypeRois", List.of(
+                raceResultStatsService.buildBetTypeRoi(
+                        topPicks, allPayouts, RaceResultStatsService.BET_TYPE_WIN),
+                raceResultStatsService.buildBetTypeRoi(
+                        topPicks, allPayouts, RaceResultStatsService.BET_TYPE_PLACE)));
+
         return "results";
     }
 

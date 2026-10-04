@@ -61,4 +61,13 @@ class RaceResultCollectionServiceTest {
 
         assertFalse(RaceResultCollectionService.isConfirmedForThisRace(horse, "芝", "2000m"));
     }
+
+    @Test
+    void parseUmaban_shouldParseDigitsAndReturnNullOtherwise() {
+        assertEquals(8, RaceResultCollectionService.parseUmaban("8"));
+        assertEquals(12, RaceResultCollectionService.parseUmaban(" 12 "));
+        assertNull(RaceResultCollectionService.parseUmaban(null));
+        assertNull(RaceResultCollectionService.parseUmaban(""));
+        assertNull(RaceResultCollectionService.parseUmaban("中止"));
+    }
 }

@@ -18,7 +18,7 @@ class RaceResultStatsServiceTest {
 
         return new RaceResultRecord(
                 date, "テスト場", 1, "テストレース", "テスト馬",
-                odds, predictionRank, score, actualRank, 0, predictionRank, "test");
+                odds, predictionRank, score, actualRank, 0, predictionRank, "test", null);
     }
 
     private RaceResultRecord raceRecord(
@@ -27,7 +27,7 @@ class RaceResultStatsServiceTest {
 
         return new RaceResultRecord(
                 date, venue, raceNumber, raceName, horseName,
-                5.0, predictionRank, 50, actualRank, 0, predictionRank, "test");
+                5.0, predictionRank, 50, actualRank, 0, predictionRank, "test", null);
     }
 
     @Test
@@ -162,7 +162,7 @@ class RaceResultStatsServiceTest {
 
         return new RaceResultRecord(
                 date, "東京", 1, "テストレース", "馬", odds, predictionRank, 50, actualRank,
-                0, predictionRank, modelVersion);
+                0, predictionRank, modelVersion, null);
     }
 
     @Test
@@ -241,5 +241,109 @@ class RaceResultStatsServiceTest {
         assertEquals("v2", sorted.get(0).getModelVersion());
         assertEquals("v1", sorted.get(1).getModelVersion());
         assertNull(sorted.get(2).getModelVersion());
+    }
+
+    private static final LocalDate PAYOUT_DATE = LocalDate.of(2026, 9, 20);
+
+    private RaceResultRecord pick(int raceNumber, int actualRank, Integer umaban) {
+        return new RaceResultRecord(
+                PAYOUT_DATE, "阪神", raceNumber, "テストレース", "馬", 5.0, 1, 50, actualRank,
+                0, 1, "v2", umaban);
+    }
+
+    private RacePayout payout(int raceNumber, String betType, String combination, int yen) {
+        return new RacePayout(PAYOUT_DATE, "阪神", raceNumber, betType, combination, yen);
+    }
+
+    // 複勝は結果ページの掲載順(=着順)で、1着馬・2着馬・3着馬の順に払戻行が並ぶ
+    private List<RacePayout> placePayouts(int raceNumber, int first, int second, int third) {
+        return List.of(
+                payout(raceNumber, "複勝", "8", first),
+                payout(raceNumber, "複勝", "2", second),
+                payout(raceNumber, "複勝", "4", third));
+    }
+
+    @Test
+    void calculateRoiForBetType_shouldAddPayoutWhenPlaceBetHits() {
+        // 2着に入った馬(馬番2)の複勝払戻120円 -> 100円購入で120円回収、回収率120%
+        List<RaceResultRecord> picks = List.of(pick(4, 2, 2));
+
+        double roi = statsService.calculateRoiForBetType(
+                picks, placePayouts(4, 190, 120, 830), "複勝");
+
+        assertEquals(120.0, roi, 0.001);
+    }
+
+    @Test
+    void calculateRoiForBetType_shouldReturnZeroWhenPlaceBetMisses() {
+        // 4着(複勝の払戻対象外)は的中しないので回収額0、購入はカウントされる
+        List<RaceResultRecord> picks = List.of(pick(4, 4, 3));
+
+        RaceResultStatsService.BetTypeRoi result = statsService.buildBetTypeRoi(
+                picks, placePayouts(4, 190, 120, 830), "複勝");
+
+        assertEquals(1, result.getBetCount());
+        assertEquals(0, result.getHitCount());
+        assertEquals(0.0, result.getRoi(), 0.001);
+    }
+
+    @Test
+    void calculateRoiForBetType_shouldExcludeRacesWithoutPayoutDataFromStake() {
+        // 払戻データが無いレース(取得失敗等)は購入していないものとして扱い、投資額にも含めない。
+        // 含めると的中レース1つ(120円)+データ欠損1レースで回収率が60%に見えてしまう
+        List<RaceResultRecord> picks = List.of(pick(4, 2, 2), pick(5, 1, 8));
+
+        RaceResultStatsService.BetTypeRoi result = statsService.buildBetTypeRoi(
+                picks, placePayouts(4, 190, 120, 830), "複勝");
+
+        assertEquals(1, result.getBetCount());
+        assertEquals(120.0, result.getRoi(), 0.001);
+    }
+
+    @Test
+    void calculateRoiForBetType_shouldReturnZeroWhenNoPayoutDataAtAll() {
+        double roi = statsService.calculateRoiForBetType(List.of(pick(4, 1, 8)), List.of(), "複勝");
+
+        assertEquals(0.0, roi, 0.001);
+    }
+
+    @Test
+    void calculateRoiForBetType_shouldFallBackToFinishOrderWhenUmabanIsMissing() {
+        // 馬番を記録し始める前の旧レコード(umaban=null)は、着順がk着ならk番目の払戻行とみなす。
+        // 3着(払戻行の3番目=830円)に入ったケース
+        List<RaceResultRecord> picks = List.of(pick(4, 3, null));
+
+        double roi = statsService.calculateRoiForBetType(
+                picks, placePayouts(4, 190, 120, 830), "複勝");
+
+        assertEquals(830.0, roi, 0.001);
+    }
+
+    @Test
+    void calculateRoiForBetType_shouldNotPayThirdPlaceWhenOnlyTwoPlacesArePaid() {
+        // 7頭立て以下は複勝が2着以内のみで払戻行が2つ。3着は的中にならない
+        List<RacePayout> twoPlaces = List.of(
+                payout(4, "複勝", "8", 190),
+                payout(4, "複勝", "2", 120));
+
+        RaceResultStatsService.BetTypeRoi result = statsService.buildBetTypeRoi(
+                List.of(pick(4, 3, 4)), twoPlaces, "複勝");
+
+        assertEquals(0, result.getHitCount());
+    }
+
+    @Test
+    void calculateRoiForBetType_shouldComputeWinBetFromConfirmedPayout() {
+        List<RacePayout> win = List.of(payout(4, "単勝", "8", 1300), payout(4, "複勝", "8", 190));
+
+        double roi = statsService.calculateRoiForBetType(List.of(pick(4, 1, 8)), win, "単勝");
+
+        assertEquals(1300.0, roi, 0.001);
+    }
+
+    @Test
+    void calculateRoiForBetType_shouldRejectUnsupportedBetType() {
+        assertThrows(IllegalArgumentException.class,
+                () -> statsService.calculateRoiForBetType(List.of(), List.of(), "馬連"));
     }
 }

@@ -18,7 +18,7 @@ class RaceResultRecordRepositoryTest {
     private RaceResultRecord record(LocalDate date, String horseName, String modelVersion) {
         return new RaceResultRecord(
                 date, "東京", 1, "テストレース", horseName,
-                5.0, 1, 50, 1, 0.0, 1, modelVersion);
+                5.0, 1, 50, 1, 0.0, 1, modelVersion, null);
     }
 
     @Test

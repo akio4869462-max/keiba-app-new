@@ -209,6 +209,89 @@ public class RaceResultStatsService {
         return sorted;
     }
 
+    public static final String BET_TYPE_WIN = "単勝";
+    public static final String BET_TYPE_PLACE = "複勝";
+
+    // 1レースにつき100円ずつ購入した場合の払戻金は、RacePayout.payoutYen(100円あたり)と同じ単位
+    private static final int STAKE_YEN_PER_BET = 100;
+
+    // モデルの推奨馬(topPicks)を1頭ずつ購入した場合の、券種別の回収率(%、100が収支トントン)。
+    // 単勝・複勝のように「1頭を選ぶ」券種のみ対応する(馬連など複数頭の組み合わせは未対応)。
+    // 払戻金データが無いレース(取得に失敗した等)は購入していないものとして扱い、
+    // 投資額にも含めない(含めると払戻データ欠損が不的中に見えて回収率が不当に下がるため)
+    public double calculateRoiForBetType(
+            List<RaceResultRecord> topPicks, List<RacePayout> allPayouts, String betType) {
+
+        return buildBetTypeRoi(topPicks, allPayouts, betType).getRoi();
+    }
+
+    public BetTypeRoi buildBetTypeRoi(
+            List<RaceResultRecord> topPicks, List<RacePayout> allPayouts, String betType) {
+
+        if (!BET_TYPE_WIN.equals(betType) && !BET_TYPE_PLACE.equals(betType)) {
+            throw new IllegalArgumentException("未対応の券種です: " + betType);
+        }
+
+        // 同じレース・同じ券種の払戻行は、結果ページの掲載順(=着順。複勝は1着馬・2着馬・3着馬の順、
+        // 実データ20レースで確認)で保存されている。保存順(id)を保ったまま取り出す
+        Map<PayoutKey, List<RacePayout>> payoutsByRace = allPayouts.stream()
+                .filter(p -> betType.equals(p.getBetType()))
+                .sorted(Comparator.comparing(RacePayout::getId, Comparator.nullsLast(Comparator.naturalOrder())))
+                .collect(Collectors.groupingBy(
+                        p -> new PayoutKey(p.getRaceDate(), p.getVenue(), p.getRaceNumber()),
+                        LinkedHashMap::new,
+                        Collectors.toList()));
+
+        int betCount = 0;
+        int hitCount = 0;
+        long totalReturnYen = 0;
+
+        for (RaceResultRecord pick : topPicks) {
+            List<RacePayout> payouts = payoutsByRace.get(
+                    new PayoutKey(pick.getRaceDate(), pick.getVenue(), pick.getRaceNumber()));
+
+            if (payouts == null || payouts.isEmpty()) {
+                continue;
+            }
+
+            betCount++;
+
+            RacePayout hit = findHitPayout(pick, payouts);
+
+            if (hit != null) {
+                hitCount++;
+                totalReturnYen += hit.getPayoutYen();
+            }
+        }
+
+        return new BetTypeRoi(betType, betCount, hitCount, (long) betCount * STAKE_YEN_PER_BET, totalReturnYen);
+    }
+
+    // 的中した払戻行を返す(不的中ならnull)。
+    // 複勝は出走頭数で払戻の対象が2着以内/3着以内に変わるが、払戻行の数がそのまま
+    // 「払戻の対象になった頭数」なので、頭数を別途見る必要はない。
+    // 馬番がある場合は払戻行の馬番(combination)と突き合わせる。馬番を記録し始める前の
+    // 旧レコードは馬番が無いため、払戻行が着順順であることを使い、着順がk着なら
+    // k番目の払戻行とみなす(同着で払戻行が増えるケースのみ1頭分ずれうるが稀)
+    private RacePayout findHitPayout(RaceResultRecord pick, List<RacePayout> payouts) {
+        if (pick.getUmaban() != null) {
+            String umaban = String.valueOf(pick.getUmaban());
+
+            return payouts.stream()
+                    .filter(p -> umaban.equals(p.getCombination() == null ? null : p.getCombination().trim()))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        int rank = pick.getActualRank();
+
+        if (rank >= 1 && rank <= payouts.size()) {
+            return payouts.get(rank - 1);
+        }
+
+        return null;
+    }
+
     public List<RaceResultGroup> buildRaceGroups(List<RaceResultRecord> allRecords, List<RacePayout> allPayouts) {
         Map<RaceKey, List<RaceResultRecord>> grouped = allRecords.stream()
                 .collect(Collectors.groupingBy(
@@ -265,6 +348,50 @@ public class RaceResultStatsService {
         return topPicks.stream()
                 .mapToDouble(r -> r.getActualRank() == 1 ? r.getOdds() : 0)
                 .sum();
+    }
+
+    public static class BetTypeRoi {
+        private final String betType;
+        private final int betCount;
+        private final int hitCount;
+        private final long totalStakeYen;
+        private final long totalReturnYen;
+
+        public BetTypeRoi(String betType, int betCount, int hitCount, long totalStakeYen, long totalReturnYen) {
+            this.betType = betType;
+            this.betCount = betCount;
+            this.hitCount = hitCount;
+            this.totalStakeYen = totalStakeYen;
+            this.totalReturnYen = totalReturnYen;
+        }
+
+        public String getBetType() {
+            return betType;
+        }
+
+        public int getBetCount() {
+            return betCount;
+        }
+
+        public int getHitCount() {
+            return hitCount;
+        }
+
+        public long getTotalStakeYen() {
+            return totalStakeYen;
+        }
+
+        public long getTotalReturnYen() {
+            return totalReturnYen;
+        }
+
+        public double getHitRate() {
+            return betCount == 0 ? 0 : hitCount * 100.0 / betCount;
+        }
+
+        public double getRoi() {
+            return totalStakeYen == 0 ? 0 : totalReturnYen * 100.0 / totalStakeYen;
+        }
     }
 
     public static class ModelStat {

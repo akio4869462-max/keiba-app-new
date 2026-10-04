@@ -96,6 +96,35 @@
         </div>
     </div>
 
+    <!-- 券種別の回収率(確定払戻金ベース) -->
+    <h2 class="h5 mb-3">券種別の回収率(予想1位を1点ずつ購入、確定払戻金ベース)</h2>
+    <p class="text-muted small">
+        上の単勝回収率はレース時点のオッズから計算していますが、こちらは確定した払戻金から計算しています。
+        払戻金データが無いレースは購入しなかったものとして除いています。
+    </p>
+    <div class="table-wrapper mb-4">
+        <table class="table race-table mb-0">
+            <thead>
+            <tr>
+                <th>券種</th>
+                <th class="text-center">購入レース数</th>
+                <th class="text-center">的中数</th>
+                <th class="text-center">的中率</th>
+                <th class="text-center">回収率(100%が収支トントン)</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="r : ${betTypeRois}">
+                <td class="fw-bold" th:text="${r.betType}"></td>
+                <td class="text-center" th:text="${r.betCount}"></td>
+                <td class="text-center" th:text="${r.hitCount}"></td>
+                <td class="text-center" th:text="${#numbers.formatDecimal(r.hitRate, 1, 1)} + '%'"></td>
+                <td class="text-center fw-bold" th:text="${#numbers.formatDecimal(r.roi, 1, 1)} + '%'"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
     <!-- オッズ帯別の的中率 -->
     <h2 class="h5 mb-3">オッズ帯別 予想1位の的中率</h2>
     <div class="row g-3 mb-4">
