@@ -27,12 +27,21 @@ docker compose down                      # 検証後は必ず片付ける
 docker exec keiba-postgres psql -U keiba -d keibadb -c "SELECT ..."
 ```
 
-**`ApiControllerTest`は現在ApplicationContextの起動に失敗する**（未コミットの作りかけREST APIに付随するテスト。修正は保留中のタスク）。
-それ以外の全テストを流したい場合は除外する:
+**ローカルのJDKが25だと`ApiControllerTest`が失敗する**（Mockito(Byte Buddy)がJava 25未対応のため。コードの問題ではなく、CI(`.github/workflows/test.yml`)とDockerfileはJDK 21で通る）。ローカルがJDK 25の場合は除外するか、Byte Buddyの実験フラグで回避する:
 
 ```bash
 ./mvnw test -Dtest='!ApiControllerTest' -DfailIfNoTests=false
+./mvnw test -DargLine="-Dnet.bytebuddy.experimental=true"   # JDK 25で全件流す場合
 ```
+
+**CI(Linux/JDK 21/UTC)と同じ条件で確認したいとき**はDockerで実行できる（`faketime`で時刻も固定できる。時刻依存のテストは日中だけ通って夜に落ちる/WindowsとLinuxで結果が変わる、ということが過去にあった）:
+
+```bash
+tar --exclude=./target --exclude=./.git -c . | docker run --rm -i -v m2cache:/root/.m2 eclipse-temurin:21-jdk   bash -c 'mkdir /work && tar -x -C /work && cd /work && sed -i "s/
+$//" mvnw && chmod +x mvnw && ./mvnw -B test'
+```
+
+**時刻に依存するテストは実時計から「現在+N分」を作らない**。日付またぎで壊れるのに加え、判定側が少し後の現在時刻と比べて分に切り捨てるため境界がずれ、Linuxでは落ちWindowsでは通る（時計の刻みが粗い）ことがある。`RaceParserService`は`Clock`を差し替えられるので、テストでは固定時計を渡す（`RaceParserServiceTest`参照）。
 
 ## デプロイ
 
@@ -142,7 +151,3 @@ RaceResultStatsService でオッズ帯別・スコア帯別・週別・回収率
 4. `docker compose down`で片付ける
 
 ローカルDBは**永続化ボリュームを持たない**ため、`docker compose down`のたびに中身が消える。過去の検証データは本番にしか存在しない。
-
-## 未コミットの作業
-
-`ApiController.java` / `ApiControllerTest.java`（＋`pom.xml`のspringdoc依存、`README.md`のAPI節）は`/api/v1`配下のREST API + Swagger UIを追加する一連の作りかけ。テストのコンテキスト起動エラーを解消してからコミットする予定。

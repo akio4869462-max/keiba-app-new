@@ -5,6 +5,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -16,6 +17,23 @@ import java.util.regex.Pattern;
 
 @Service
 public class RaceParserService {
+
+    private static final ZoneId JST = ZoneId.of("Asia/Tokyo");
+
+    // 発走時刻と現在時刻の差で判定するメソッドが「今」を参照するための時計。
+    // テストで「現在+N分」のような時刻を作ると、日付またぎや分への切り捨て(判定側が
+    // 少し後の現在時刻と比べるため境界がずれる)で環境により結果が変わるため、
+    // テストでは固定時計を渡せるようにしている
+    private final Clock clock;
+
+    public RaceParserService() {
+        this(Clock.system(JST));
+    }
+
+    RaceParserService(Clock clock) {
+        this.clock = clock;
+    }
+
     private static final Pattern VENUE_PATTERN = Pattern.compile("(函館|...)競馬場");
 
     public Set<String> getRaceUrls(Document listDoc) {
@@ -187,7 +205,7 @@ public class RaceParserService {
 
     // fetchHistoricalRaces（過去データ再取得用のデバッグ経路）が引き続き使用する
     public int[] getRaceRangeByTime() {
-        LocalTime now = LocalTime.now(ZoneId.of("Asia/Tokyo"));
+        LocalTime now = LocalTime.now(clock);
         if (now.isBefore(LocalTime.of(11, 30))) {
             return new int[]{1, 4};
         } else if (now.isBefore(LocalTime.of(14, 0))) {
@@ -229,7 +247,7 @@ public class RaceParserService {
             return false;
         }
 
-        LocalTime now = LocalTime.now(ZoneId.of("Asia/Tokyo"));
+        LocalTime now = LocalTime.now(clock);
         long diffMinutes = java.time.Duration.between(now, raceTime).toMinutes();
 
         return diffMinutes >= -(long) pastMinutes

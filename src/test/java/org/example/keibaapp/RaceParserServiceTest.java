@@ -5,6 +5,8 @@ import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -103,37 +105,52 @@ class RaceParserServiceTest {
         assertNull(horse.getDamSire());
     }
 
+    // 発走時刻と現在時刻の差で判定するテストは、実時計から「現在+N分」を作ると
+    // 日付またぎ(23時台に+30分が翌日0時台になる)や、判定側が少し後の現在時刻と
+    // 比べることによる分への切り捨てで環境により結果が変わる(Linuxでは落ち、
+    // 時計の刻みが粗いWindowsでは通るなど)ため、正午(JST)に固定した時計を使う
+    private static final LocalTime FIXED_NOW = LocalTime.of(12, 0);
+
+    private final RaceParserService fixedService = new RaceParserService(
+            Clock.fixed(LocalDate.of(2026, 10, 4).atTime(FIXED_NOW).atZone(ZoneId.of("Asia/Tokyo")).toInstant(),
+                    ZoneId.of("Asia/Tokyo")));
+
+    private LocalTime fromNow(int minutes) {
+        return FIXED_NOW.plusMinutes(minutes);
+    }
+
     @Test
     void isRaceTimeRelevant_shouldReturnTrueForRaceStartingSoon() {
-        LocalTime soon = LocalTime.now(ZoneId.of("Asia/Tokyo")).plusMinutes(30);
-
-        assertTrue(service.isRaceTimeRelevant(soon));
+        assertTrue(fixedService.isRaceTimeRelevant(fromNow(30)));
     }
 
     @Test
     void isRaceTimeRelevant_shouldReturnTrueForRaceThatJustFinished() {
-        LocalTime justPast = LocalTime.now(ZoneId.of("Asia/Tokyo")).minusMinutes(30);
-
-        assertTrue(service.isRaceTimeRelevant(justPast));
+        assertTrue(fixedService.isRaceTimeRelevant(fromNow(-30)));
     }
 
     @Test
     void isRaceTimeRelevant_shouldReturnFalseForRaceFarInTheFuture() {
-        LocalTime farFuture = LocalTime.now(ZoneId.of("Asia/Tokyo")).plusMinutes(200);
-
-        assertFalse(service.isRaceTimeRelevant(farFuture));
+        assertFalse(fixedService.isRaceTimeRelevant(fromNow(200)));
     }
 
     @Test
     void isRaceTimeRelevant_shouldReturnFalseForRaceLongPast() {
-        LocalTime longPast = LocalTime.now(ZoneId.of("Asia/Tokyo")).minusMinutes(90);
+        assertFalse(fixedService.isRaceTimeRelevant(fromNow(-90)));
+    }
 
-        assertFalse(service.isRaceTimeRelevant(longPast));
+    @Test
+    void isRaceTimeRelevant_shouldIncludeExactWindowBoundaries() {
+        // 窓は発走60分後〜180分前(両端を含む)
+        assertTrue(fixedService.isRaceTimeRelevant(fromNow(180)));
+        assertFalse(fixedService.isRaceTimeRelevant(fromNow(181)));
+        assertTrue(fixedService.isRaceTimeRelevant(fromNow(-60)));
+        assertFalse(fixedService.isRaceTimeRelevant(fromNow(-61)));
     }
 
     @Test
     void isRaceTimeRelevant_shouldReturnFalseForNull() {
-        assertFalse(service.isRaceTimeRelevant(null));
+        assertFalse(fixedService.isRaceTimeRelevant(null));
     }
 
     @Test
@@ -185,47 +202,45 @@ class RaceParserServiceTest {
     void isRaceStillShowableToday_shouldReturnTrueForRaceLongPast() {
         // 出馬表(/races)向けは、発走からどれだけ時間が経っていても
         // (同日である前提で)表示対象であり続ける
-        LocalTime longPast = LocalTime.now(ZoneId.of("Asia/Tokyo")).minusMinutes(300);
-
-        assertTrue(service.isRaceStillShowableToday(longPast));
+        assertTrue(fixedService.isRaceStillShowableToday(LocalTime.of(7, 0)));
     }
 
     @Test
     void isRaceStillShowableToday_shouldReturnFalseForRaceFarInTheFuture() {
         // 未来方向の制限(3時間)は予想向けと同じ
-        LocalTime farFuture = LocalTime.now(ZoneId.of("Asia/Tokyo")).plusMinutes(200);
-
-        assertFalse(service.isRaceStillShowableToday(farFuture));
+        assertFalse(fixedService.isRaceStillShowableToday(fromNow(200)));
+        assertTrue(fixedService.isRaceStillShowableToday(fromNow(180)));
     }
 
     @Test
     void isRaceStillShowableToday_shouldReturnFalseForNull() {
-        assertFalse(service.isRaceStillShowableToday(null));
+        assertFalse(fixedService.isRaceStillShowableToday(null));
     }
 
     @Test
     void isWithinFinalOddsRefreshWindow_shouldReturnTrueWithinTenMinutesBeforePost() {
-        LocalTime soon = LocalTime.now(ZoneId.of("Asia/Tokyo")).plusMinutes(5);
-
-        assertTrue(service.isWithinFinalOddsRefreshWindow(soon));
+        assertTrue(fixedService.isWithinFinalOddsRefreshWindow(fromNow(5)));
     }
 
     @Test
     void isWithinFinalOddsRefreshWindow_shouldReturnFalseMoreThanTenMinutesBeforePost() {
-        LocalTime tooEarly = LocalTime.now(ZoneId.of("Asia/Tokyo")).plusMinutes(11);
+        assertFalse(fixedService.isWithinFinalOddsRefreshWindow(fromNow(11)));
+    }
 
-        assertFalse(service.isWithinFinalOddsRefreshWindow(tooEarly));
+    @Test
+    void isWithinFinalOddsRefreshWindow_shouldIncludeExactBoundaries() {
+        // 発走10分前ちょうどと発走時刻ちょうどは窓に含まれる
+        assertTrue(fixedService.isWithinFinalOddsRefreshWindow(fromNow(10)));
+        assertTrue(fixedService.isWithinFinalOddsRefreshWindow(fromNow(0)));
     }
 
     @Test
     void isWithinFinalOddsRefreshWindow_shouldReturnFalseAfterPostTime() {
-        LocalTime justPast = LocalTime.now(ZoneId.of("Asia/Tokyo")).minusMinutes(1);
-
-        assertFalse(service.isWithinFinalOddsRefreshWindow(justPast));
+        assertFalse(fixedService.isWithinFinalOddsRefreshWindow(fromNow(-1)));
     }
 
     @Test
     void isWithinFinalOddsRefreshWindow_shouldReturnFalseForNull() {
-        assertFalse(service.isWithinFinalOddsRefreshWindow(null));
+        assertFalse(fixedService.isWithinFinalOddsRefreshWindow(null));
     }
 }
