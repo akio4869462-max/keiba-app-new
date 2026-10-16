@@ -214,4 +214,78 @@ class WebScraperTest {
 
         assertEquals("", WebScraper.getBreeder(doc));
     }
+
+    // 結果ページの最小再現(実ページ 2609040504 の構造)。着順・馬番・オッズ・コーナー通過順位
+    private Document resultPageDoc(String statusText, String dateText, String meetingText) {
+        String html = "<html><body>"
+                + "<div class=\"hr-predictRaceInfo\"><div class=\"hr-predictRaceInfo__data\">"
+                + "<div class=\"hr-predictRaceInfo__date\">"
+                + "<div class=\"hr-predictRaceInfo__text\">" + dateText + "</div>"
+                + "<div class=\"hr-predictRaceInfo__text\">" + meetingText + "</div>"
+                + "<div class=\"hr-predictRaceInfo__text\">11:20発走</div></div>"
+                + "<div class=\"hr-predictRaceInfo__status\">"
+                + "<span class=\"hr-predictRaceInfo__text\">" + statusText + "</span></div>"
+                + "</div></div>"
+                + "<section id=\"raceresult\"><table class=\"hr-table\"><tbody>"
+                + resultRow("1", "6", "8", "4", "13.0")
+                + resultRow("2", "2", "2", "2", "3.0")
+                + resultRow("中止", "5", "5", "1", "1.7")
+                + resultRow("取消", "3", "3", "", "")
+                + "</tbody></table></section>"
+                + "<div class=\"hr-cornerRank\"><table class=\"hr-table\"><tbody>"
+                + "<tr class=\"hr-table__row\"><td class=\"hr-table__data hr-table__data--corner\">1コーナー</td>"
+                + "<td class=\"hr-table__data hr-table__data--rank\">(8,2)5</td></tr>"
+                + "</tbody></table></div>"
+                + "</body></html>";
+
+        return Jsoup.parse(html);
+    }
+
+    private String resultRow(String rank, String waku, String umaban, String popularity, String odds) {
+        String oddsCell = odds.isEmpty() ? "" : popularity + "<p>(" + odds + ")</p>";
+
+        return "<tr class=\"hr-table__row\">"
+                + "<td class=\"hr-table__data hr-table__data--number\">" + rank + "</td>"
+                + "<td class=\"hr-table__data hr-table__data--number\"><span>" + waku + "</span></td>"
+                + "<td class=\"hr-table__data hr-table__data--number\">" + umaban + "</td>"
+                + "<td class=\"hr-table__data hr-table__data--name\">馬" + umaban + "</td>"
+                + "<td class=\"hr-table__data hr-table__data--time\">1:34.0</td>"
+                + "<td class=\"hr-table__data hr-table__data--order\">03-03<p>34.0</p></td>"
+                + "<td class=\"hr-table__data hr-table__data--name\">騎手</td>"
+                + "<td class=\"hr-table__data hr-table__data--odds\">" + oddsCell + "</td>"
+                + "<td class=\"hr-table__data hr-table__data--name\">調教師</td></tr>";
+    }
+
+    @Test
+    void parseResultPage_shouldReadDateVenueSurfaceRowsAndLat() {
+        Document doc = resultPageDoc("芝 1600m", "2026年7月12日（日）", "2回小倉6日");
+
+        ResultPageInfo page = WebScraper.parseResultPage(doc);
+
+        assertEquals(java.time.LocalDate.of(2026, 7, 12), page.date());
+        assertEquals("小倉", page.venue());
+        assertEquals("芝", page.surface());
+        assertEquals(4, page.rows().size());
+
+        // 着順が数字の馬は1以上、中止は0。取消はオッズが無いので0
+        assertEquals(new ResultPageInfo.ResultRow(8, 1, 13.0), page.rows().get(0));
+        assertEquals(new ResultPageInfo.ResultRow(5, 0, 1.7), page.rows().get(2));
+        assertEquals(new ResultPageInfo.ResultRow(3, 0, 0.0), page.rows().get(3));
+
+        assertEquals(0.0, page.latMeans().get(8));
+        assertEquals(1.0, page.latMeans().get(2));
+    }
+
+    @Test
+    void parseResultPage_shouldClassifyDirtAndJumpRaces() {
+        assertEquals("ダ", WebScraper.parseResultPage(
+                resultPageDoc("ダート 1200m", "2026年7月12日（日）", "2回福島6日")).surface());
+        assertEquals("障害", WebScraper.parseResultPage(
+                resultPageDoc("障害・芝 3140m", "2026年9月19日（土）", "4回阪神5日")).surface());
+    }
+
+    @Test
+    void parseResultPage_shouldReturnNullWhenHeaderMissing() {
+        assertNull(WebScraper.parseResultPage(Jsoup.parse("<html><body>結果なし</body></html>")));
+    }
 }

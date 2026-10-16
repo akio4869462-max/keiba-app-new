@@ -34,6 +34,10 @@ public class Horse {
     // 生産者名。市場相対残差(MODEL_REVISION.md §8)の照合キーとして使う。
     // 馬詳細ページ由来のため取得できるのはHorseEnrichmentService.fetchHorseDetail経由のみ
     private String breeder;
+    // 前走の走路バイアス特徴(MODEL_REVISION.md §3.1/§6。TrackBiasService参照)。
+    // 前走が障害戦・地方/海外・統計が未取得のときはnullで、スコアへの寄与は0になる
+    private Double pHwLat;
+    private Double pLatC;
 
     public int getActualRank() {
         return actualRank;
@@ -250,5 +254,21 @@ public class Horse {
 
     public void setBreeder(String breeder) {
         this.breeder = breeder;
+    }
+
+    public Double getPHwLat() {
+        return pHwLat;
+    }
+
+    public void setPHwLat(Double pHwLat) {
+        this.pHwLat = pHwLat;
+    }
+
+    public Double getPLatC() {
+        return pLatC;
+    }
+
+    public void setPLatC(Double pLatC) {
+        this.pLatC = pLatC;
     }
 }

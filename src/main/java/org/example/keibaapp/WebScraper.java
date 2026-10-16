@@ -6,6 +6,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -453,6 +454,93 @@ public class WebScraper {
         }
 
         return latMeans;
+    }
+
+    private static final Pattern RACE_DATE_PATTERN = Pattern.compile("(\\d{4})年(\\d{1,2})月(\\d{1,2})日");
+    private static final Pattern MEETING_PATTERN = Pattern.compile("\\d+回(\\D+?)\\d+日");
+    private static final Pattern ODDS_PATTERN = Pattern.compile("\\(([0-9.]+)\\)");
+
+    // 結果ページ(/race/result/{id})から走路バイアス(MODEL_REVISION.md §3.1/§6)の計算に必要な
+    // 日付・開催場・芝ダ・着順・オッズ・コーナー通過順位(lat)を取り出す。
+    // 日付や開催場が読めない場合はnullを返す(呼び出し側で「バイアス不明」として扱う)
+    public static ResultPageInfo parseResultPage(Document doc) {
+        Element header = doc.selectFirst(".hr-predictRaceInfo");
+
+        if (header == null) {
+            return null;
+        }
+
+        Elements dateTexts = header.select(".hr-predictRaceInfo__date .hr-predictRaceInfo__text");
+        Matcher dateMatcher = dateTexts.isEmpty() ? null : RACE_DATE_PATTERN.matcher(dateTexts.get(0).text());
+
+        if (dateMatcher == null || !dateMatcher.find()) {
+            return null;
+        }
+
+        LocalDate date = LocalDate.of(
+                Integer.parseInt(dateMatcher.group(1)),
+                Integer.parseInt(dateMatcher.group(2)),
+                Integer.parseInt(dateMatcher.group(3)));
+
+        String venue = "";
+        if (dateTexts.size() >= 2) {
+            Matcher meeting = MEETING_PATTERN.matcher(dateTexts.get(1).text());
+            if (meeting.find()) {
+                venue = meeting.group(1).trim();
+            }
+        }
+
+        if (venue.isEmpty()) {
+            return null;
+        }
+
+        Element status = header.selectFirst(".hr-predictRaceInfo__status .hr-predictRaceInfo__text");
+        String statusText = status != null ? status.text() : "";
+        String surface;
+
+        if (statusText.contains("障害")) {
+            surface = "障害";
+        } else if (statusText.contains("ダート")) {
+            surface = "ダ";
+        } else if (statusText.contains("芝")) {
+            surface = "芝";
+        } else {
+            return null;
+        }
+
+        List<ResultPageInfo.ResultRow> rows = new ArrayList<>();
+
+        for (Element row : doc.select("#raceresult table.hr-table tbody tr")) {
+            Elements tds = row.select("td");
+
+            if (tds.size() < 8) {
+                continue;
+            }
+
+            String umabanText = tds.get(2).text().trim();
+
+            if (!umabanText.matches("\\d+")) {
+                continue;
+            }
+
+            String rankText = tds.get(0).text().trim();
+            int rank = rankText.matches("\\d+") ?Integer.parseInt(rankText) : 0;
+
+            // 人気<p>(オッズ)</p> のセル。取消・除外はオッズが無いので0にする
+            Element oddsCell = row.selectFirst("td.hr-table__data--odds");
+            double odds = 0;
+
+            if (oddsCell != null) {
+                Matcher oddsMatcher = ODDS_PATTERN.matcher(oddsCell.text());
+                if (oddsMatcher.find()) {
+                    odds = Double.parseDouble(oddsMatcher.group(1));
+                }
+            }
+
+            rows.add(new ResultPageInfo.ResultRow(Integer.parseInt(umabanText), rank, odds));
+        }
+
+        return new ResultPageInfo(date, venue, surface, rows, getCornerLatMeans(doc));
     }
 
     private record CornerEntry(int horseNumber, int lat) {

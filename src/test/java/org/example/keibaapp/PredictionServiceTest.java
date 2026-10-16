@@ -189,4 +189,43 @@ class PredictionServiceTest {
 
         assertTrue(strong.getPredictionScore() > plain.getPredictionScore());
     }
+
+    @Test
+    void trackBiasScore_shouldBeZeroWhenFeaturesMissing() {
+        assertEquals(0.0, PredictionService.trackBiasScore(horse("1", 3.0)));
+    }
+
+    @Test
+    void trackBiasScore_shouldFollowFittedWeightsAndStandardization() {
+        Horse h = horse("1", 3.0);
+        h.setPHwLat(-0.000053 + 0.028542);   // z=+1
+        h.setPLatC(0.004691 - 2 * 0.52549);  // z=-2
+
+        assertEquals(0.056 * 1 + 0.0272 * -2, PredictionService.trackBiasScore(h), 1e-9);
+    }
+
+    @Test
+    void trackBiasScore_shouldClipExtremeValues() {
+        // p_hw_lat は裾が重く(zで±10超)、外れ値1頭が妙味を歪めないよう±4に制限する
+        Horse h = horse("1", 3.0);
+        h.setPHwLat(0.4);   // z約14
+
+        assertEquals(0.056 * 4.0, PredictionService.trackBiasScore(h), 1e-9);
+    }
+
+    @Test
+    void applyRaceModel_shouldRaiseWinProbabilityOfHorseWithPositiveTrackBias() {
+        Horse withBias = horse("1", 6.0);
+        Horse same = horse("2", 6.0);
+        withBias.setPHwLat(0.05);
+        withBias.setPLatC(0.8);
+
+        predictionService.applyRaceModel(List.of(
+                withBias, same, horse("3", 2.0), horse("4", 4.0), horse("5", 9.0), horse("6", 12.0),
+                horse("7", 20.0), horse("8", 30.0)));
+
+        // 同じオッズなら、前走の走路バイアス特徴が正の馬のほうが勝率が高い
+        assertTrue(withBias.getPredictionScore() > same.getPredictionScore());
+        assertTrue(withBias.getOverlay() > same.getOverlay());
+    }
 }

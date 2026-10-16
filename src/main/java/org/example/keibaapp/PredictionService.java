@@ -8,8 +8,8 @@ import java.util.List;
 
 // 予想モデル(2026-09-19改訂、keiba_score_search/analysis/MODEL_REVISION.md準拠)。
 // 単勝オッズが織り込む「市場確率」をレース内softmaxで勝率に変換する式に、
-// 父・騎手・生産者の市場相対残差(§8、市場情報を制御しても残る数少ない有効な
-// シグナル)を加える。距離適性・コース適性・枠順・騎手成績そのもの等の加点は
+// 父・騎手・生産者の市場相対残差(§8)と前走の走路バイアス(§8.11)という、
+// 市場情報を制御しても残る数少ない有効なシグナルを加える。距離適性・コース適性・枠順・騎手成績そのもの等の加点は
 // 行わない。8年分(2019-2026、約40万出走)のオフライン検証で、これらの加点が
 // 市場情報を制御した後は有害またはノイズと判定されたため
 // (favorite-longshot bias: 加点により人気薄が上位に来やすくなり、
@@ -17,10 +17,23 @@ import java.util.List;
 @Service
 public class PredictionService {
 
-    public static final String MODEL_VERSION = "2026-09-20-market-residual-v1";
+    public static final String MODEL_VERSION = "2026-10-17-market-residual-bias-v2";
 
     // レース内softmaxで市場確率(q)を勝率(p)へ変換する係数(2019-22学習データでの推定値)。
     private static final double MARKET_WEIGHT = 0.885;
+
+    // 前走の走路バイアス特徴の重みと標準化定数(MODEL_REVISION.md §8.11、
+    // keiba_score_search の fit_bias_weights.py。TRAIN 2019-22で市場+父・騎手・生産者
+    // +この2項を勝ちの条件付きロジットで同時フィットした値)。s_i に
+    // weight * clip((raw - mean) / sd, ±BIAS_Z_CLIP) を加算する。特徴が無ければ寄与0。
+    // p_hw_lat は裾が重く(zで±10超)、外れ値が妙味を歪めるためzを制限している
+    private static final double W_HW_LAT = 0.056;
+    private static final double HW_LAT_MEAN = -0.000053;
+    private static final double HW_LAT_SD = 0.028542;
+    private static final double W_LAT_C = 0.0272;
+    private static final double LAT_C_MEAN = 0.004691;
+    private static final double LAT_C_SD = 0.52549;
+    private static final double BIAS_Z_CLIP = 4.0;
 
     private final MarketResidualService marketResidualService;
 
@@ -36,8 +49,10 @@ public class PredictionService {
     // 実装済み構成の重み(residual_weights.json)でoverlay分布を再計算し、
     // 2〜8番人気のTRAIN(2019-22)期間95%分位に再較正した値
     // (MODEL_REVISION.md §8.8、2026-09-20)。
-    // 2019-22学習→2023-26検証でも信頼区間は0をまたぎ、断定的な推奨ではない参考値
-    static final double OVERLAY_THRESHOLD = 0.074;
+    // 2019-22学習→2023-26検証でも信頼区間は0をまたぎ、断定的な推奨ではない参考値。
+    // 前走の走路バイアス2項を加えた構成ではoverlayの分布が広がるため、同じ手続きで
+    // 再較正した(2〜8番人気のTRAIN 95%分位、検証期間でも0.140でほぼ一致。§8.11)
+    static final double OVERLAY_THRESHOLD = 0.142;
     static final int RECOMMEND_POPULARITY_MIN = 2;
     static final int RECOMMEND_POPULARITY_MAX = 8;
     static final int MIN_FIELD_SIZE_FOR_RECOMMEND = 8;
@@ -124,7 +139,7 @@ public class PredictionService {
                     + marketResidualService.jockeyScore(horse.getJockeyName())
                     + marketResidualService.breederScore(horse.getBreeder());
 
-            expScores[i] = Math.exp(MARKET_WEIGHT * logit + residualScore);
+            expScores[i] = Math.exp(MARKET_WEIGHT * logit + residualScore + trackBiasScore(horse));
             sum += expScores[i];
         }
 
@@ -133,6 +148,23 @@ public class PredictionService {
         }
 
         return p;
+    }
+
+    // 前走の走路バイアス特徴(p_hw_lat: 前走で馬場の流れに逆らって走らされた度合い、
+    // p_lat_c: 前走で外を回した度合い)のスコア。TrackBiasServiceが付与しなかった馬は0
+    static double trackBiasScore(Horse horse) {
+        return biasTerm(horse.getPHwLat(), W_HW_LAT, HW_LAT_MEAN, HW_LAT_SD)
+                + biasTerm(horse.getPLatC(), W_LAT_C, LAT_C_MEAN, LAT_C_SD);
+    }
+
+    private static double biasTerm(Double raw, double weight, double mean, double sd) {
+        if (raw == null || raw.isNaN()) {
+            return 0;
+        }
+
+        double z = (raw - mean) / sd;
+
+        return weight * Math.max(-BIAS_Z_CLIP, Math.min(BIAS_Z_CLIP, z));
     }
 
     private String createReason(int popularity, double q, double p, double overlay, boolean recommended) {

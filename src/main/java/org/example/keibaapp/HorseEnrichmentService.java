@@ -10,14 +10,17 @@ public class HorseEnrichmentService {
     private final RaceCacheService raceCacheService;
     private final AiPromptService aiPromptService;
     private final AiService aiService;
+    private final TrackBiasService trackBiasService;
     private static final boolean DEBUG_AI_PROMPT = true;
 
     public HorseEnrichmentService(
             PredictionService predictionService,
             RaceCacheService raceCacheService,
             AiPromptService aiPromptService,
-            AiService aiService) {
+            AiService aiService,
+            TrackBiasService trackBiasService) {
 
+        this.trackBiasService = trackBiasService;
         this.predictionService = predictionService;
         this.raceCacheService = raceCacheService;
         this.aiPromptService = aiPromptService;
@@ -64,6 +67,15 @@ public class HorseEnrichmentService {
         if (isHistorical) {
             horse.setActualRace(detail.getActualRace());
         }
+    }
+
+    // 前走の走路バイアス特徴(p_hw_lat / p_lat_c)を付与する。結果確定後に繰り返し呼ばれる
+    // historicalモードでは通信せず、取得済みの統計だけを使う(特徴が無ければ寄与0)
+    public void enrichTrackBias(Horse horse, boolean isHistorical) {
+        trackBiasService.featuresFor(horse.getLastRace(), !isHistorical).ifPresent(features -> {
+            horse.setPHwLat(features.pHwLat());
+            horse.setPLatC(features.pLatC());
+        });
     }
 
     public void enrichJockeyStats(Horse horse) throws InterruptedException {

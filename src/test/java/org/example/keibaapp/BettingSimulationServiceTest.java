@@ -33,14 +33,18 @@ class BettingSimulationServiceTest {
         return records;
     }
 
+    // 閾値そのもの(モデル変更のたびに再較正される)に依存しないよう、相対値で書く
+    private static final double HIT = PredictionService.OVERLAY_THRESHOLD + 0.05;
+    private static final double BELOW = PredictionService.OVERLAY_THRESHOLD - 0.02;
+
     private double[] flat(int size) {
         return new double[size];
     }
 
-    // 馬番5(人気5・妙味0.1)だけが推奨条件を満たす8頭立て
+    // 馬番5(人気5・妙味が閾値以上)だけが推奨条件を満たす8頭立て
     private double[] oneRecommendedAtFifth() {
         double[] overlays = flat(8);
-        overlays[4] = 0.1;
+        overlays[4] = HIT;
         return overlays;
     }
 
@@ -52,8 +56,8 @@ class BettingSimulationServiceTest {
     void selectRecommended_shouldApplyPopularityBandThresholdAndFieldSize() {
         double[] overlays = flat(8);
         overlays[0] = 0.5;   // 1番人気: 人気帯の外
-        overlays[3] = 0.05;  // 4番人気: 閾値(0.074)未満
-        overlays[4] = 0.1;   // 5番人気: 該当
+        overlays[3] = BELOW; // 4番人気: 閾値未満
+        overlays[4] = HIT;   // 5番人気: 該当
         List<RaceResultRecord> records = race(1, overlays, new int[]{1, 2, 3, 4, 5, 6, 7, 8});
 
         List<RaceResultRecord> recommended = service.selectRecommended(records, rule);
@@ -66,7 +70,7 @@ class BettingSimulationServiceTest {
     void selectRecommended_shouldExcludeSmallField() {
         // 7頭立て(最小頭数8未満)は、条件を満たす馬がいても推奨しない
         double[] overlays = flat(7);
-        overlays[4] = 0.1;
+        overlays[4] = HIT;
         List<RaceResultRecord> records = race(1, overlays, new int[]{1, 2, 3, 4, 5, 6, 7});
 
         assertTrue(service.selectRecommended(records, rule).isEmpty());

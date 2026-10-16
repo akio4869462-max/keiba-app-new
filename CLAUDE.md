@@ -74,16 +74,25 @@ Yahoo!スポーツ競馬 → WebScraper（静的メソッド群・サーキッ�
 根拠は `keiba_score_search/analysis/MODEL_REVISION.md`（8年・約40万出走の解析）: これらの加点は市場情報を制御すると有害またはノイズと判定され、旧式（`√オッズ × 能力スコア`）は人気薄を上位に押し上げるfavorite-longshotバイアスを引き起こしていた（予想1位の62%が20倍超、実績ROI 64.7%）。
 
 `Horse`の`predictionScore`は現在`p × 100`（モデル勝率）。あわせて`marketProbability`（市場確率`q`）・`overlay`（`p/q − 1`、妙味）・`popularity`（オッズ順の人気）・`recommended`（2〜8番人気かつoverlayが閾値以上の買い候補フラグ、参考値であり断定的な推奨ではない）を保持する。
-2026-09-20時点では`MarketResidualService`（父・騎手・生産者の市場相対残差、下記）の項が加わっているため、勝率の順位は単勝人気順から多少入れ替わりうる。それ以外の距離・コース・枠順・騎手成績そのもの等の加点は行わない。
+2026-10-17時点では`MarketResidualService`（父・騎手・生産者の市場相対残差、下記）と前走の走路バイアス（`TrackBiasService`、下記）の項が加わっているため、勝率の順位は単勝人気順から多少入れ替わりうる。それ以外の距離・コース・枠順・騎手成績そのもの等の加点は行わない。
 
 `RaceResultRecord`にも`overlay`・`popularity`・`modelVersion`（`PredictionService.MODEL_VERSION`）を記録し、将来モデルを変更した際に旧モデルの結果と混同せず比較できるようにしている。
 
 妙味(`overlay`)を較正した`MARKET_WEIGHT=0.885`は**締切10分前オッズ**を前提にしているが、`/predict`の全体キャッシュ（`getRaces()`、TTL 90分・毎時1分の`RacePreloadService`でリフレッシュ）だけでは最大1時間近く古いオッズのままになる。
 これを補うため、`RaceService.refreshOddsNearPost()`が毎分実行され、発走10分前(`RaceParserService.isWithinFinalOddsRefreshWindow`)になったレースだけそのレース1件分のdenmaページを再取得してオッズ・予想モデルを更新する。`RaceCacheService.wasOddsRefreshed`/`markOddsRefreshed`でレースごとに1日1回しかアクセスしないようガードしており、毎時10レース前後を取り直す全体リフレッシュよりアクセス負荷は小さい。
 
-`WebScraper.getCornerLatMeans(Document)`は、`p_lat_c`(前走で外を回した度合い、`MODEL_REVISION.md` §6.1)計算用のパーサー基盤（結果ページの「コーナー通過順位」を解析し、馬番ごとの平均lat＝所属する括弧グループ内で内側から何番目かを算出）。`PastRaceInfo`にも前走のレースURL・馬番を保持するようにした。**まだどこからも呼ばれておらず、スコアには未反映**。単独導入の効果は測定誤差レベルであり、`p_hw_lat`（前走の向かい風）の実装と合わせてから`PredictionService`へ組み込む方針（`MODEL_REVISION.md` §6参照）。
+### 前走の走路バイアス(2026-10-17実装、`MODEL_REVISION.md` §8.11)
 
-`p_hw_lat`（`MODEL_REVISION.md` §6.2）は単独でも統計的に意味のある効果（CI が0を除外）だが、「任意の日付・競馬場の開催ページを動的に特定する」新規インフラが要り実装規模が明確に大きいため、2026-09-19時点では見送り。効果の絶対値（CI下限+0.0001）に対してインフラの規模が見合うか微妙、というのがドキュメント側の判断。
+`PredictionService.trackBiasScore`が、前走の走路バイアス2項をsoftmaxスコアに加算する（`weight · clip((raw − mean)/sd, ±4)`、特徴が無い馬は寄与0）:
+- `p_lat_c` … 前走で外を回した度合い（前走の自分のlat − 前走レース全馬の平均lat）
+- `p_hw_lat` … 前走の向かい風。前走日の走路バイアス（前走と**同じ日・同じ場・同じ芝ダの自レースを除く全レース**から推定）×(−`p_lat_c`)。市場は着順しか見ず「馬場の流れに逆らって走らされた不運」を割り引いていない、という仮説
+
+仕組み（`TrackBiasService`）: Yahooのレース番号は`YY+場+回+日+R`の10桁で、同じ開催日の全レースは先頭8桁が共通・末尾2桁が01〜12。そのため**開催日の一覧ページを探さず、前走のURL（`PastRaceInfo.raceUrl`）だけから全12レースの結果ページURLを組み立てられる**。各結果ページ（`WebScraper.parseResultPage`）から着順・オッズ・コーナー通過順位(lat)を取り、`TrackBiasCalculator`がレースごとの`bm`（市場で回帰した着順の残差とlatの傾き）と`se`を求め、同日のレースを精度重み(1/se²)で平均して前年の場×芝ダ平均(`residuals/bias_priors.json`)へ縮小する。計算は`keiba_score_search`の`bias_v4.py`の移植で、2026-07-12の小倉・福島の実データで**TARGET由来の値と小数4桁まで一致**を確認済み（`TrackBiasCalculatorTest`に実値を固定）。
+- 過去のレース結果は不変なので`RaceBiasStat`テーブルに永続化し一度だけ取得する。初回は1開催日あたり最大12ページ（1ページ0.5秒待つ）なので、デプロイ後最初の出馬表読み込みは数分長くなりうる。以降は未取得の開催日の分だけで済む
+- 通信してよいのは`isHistorical=false`の通常経路のみ。結果収集のポーリング（`historical=true`）は取得済みの統計だけを使い、揃っていなければ寄与0
+- 前走が障害戦・地方/海外（開催場コードが01〜10でない）・馬番がlatに無い・同日の他レースが一部でも取得できない場合は特徴なし（寄与0）。取得失敗は30分間再試行しない。存在しないレース(404)は印をDBに残す。当日以降のレースは結果が未確定の恐れがあるため保存しない
+- 検証2023-26で現行3項に対し勝ちlog-loss改善 +0.00140 [+0.00037, +0.00246]（CIが0を除外）。**当日バイアス`today_lat`は追加効果が出ない(+0.00004)ため見送り**。重みは`PredictionService`の定数（`fit_bias_weights.py`の出力。再推定は`keiba_score_search/analysis/fit_bias_weights.py --write`）
+- `MODEL_VERSION`は`2026-10-17-market-residual-bias-v2`に更新（`/results/models`で旧モデルと分けて比較できる）。`OVERLAY_THRESHOLD`は0.142に再較正（下記）
 
 ### 市場相対残差(2026-09-20実装、`MODEL_REVISION.md` §8)
 
@@ -91,9 +100,9 @@ Yahoo!スポーツ競馬 → WebScraper（静的メソッド群・サーキッ�
 生産者名(`Horse.breeder`)は`HorseEnrichmentService.fetchHorseDetail`が前走情報のため既に取得している馬詳細ページ（`WebScraper.getBreeder`）から取るため、追加のスクレイピングは発生しない。
 騎手名は出馬表の表記(`"田辺 裕信"`)とテーブルのキー(`"田辺裕信"`)でスペースの有無が違うため、`MarketResidualService.jockeyScore`内で正規化してから引く。あわせて外国人騎手はYahoo側が`"C.ルメール"`のようにイニシャル+ピリオド付きで表示するが、テーブル側は大半を姓のみ(`"ルメール"`)で保持しているため、`normalizeJockeyName`でイニシャルも除去する（`"ルメートル"`のような別人の姓まで書き換えないよう、除去するのは先頭のイニシャル+ピリオドのみ。`MODEL_REVISION.md` §8.7）。
 生産者名もYahoo側が法人化された生産者に`"(有)社台コーポレーション白老ファーム"`のように法人格プレフィックスを付けて表示する一方、テーブル側は1件もプレフィックスを含まないため、`normalizeBreeder`で`(有)`等を除去してから照合する（`MODEL_REVISION.md` §8.6）。
-`OVERLAY_THRESHOLD`は当初`0.342`（「市場+13シグナル+走路バイアス族」という別のリッチなモデルのoverlay分布で較正された値）だったが、実装済みの市場+3項モデルではスケールが合わず実質発火しなかった（8年・2〜8番人気198,210頭中22頭=0.011%のみ）。実装済み構成向けに再較正した`0.074`に変更済み（`MODEL_REVISION.md` §8.8、2026-09-20）。
+`OVERLAY_THRESHOLD`は当初`0.342`（「市場+13シグナル+走路バイアス族」という別のリッチなモデルのoverlay分布で較正された値）だったが、実装済みの市場+3項モデルではスケールが合わず実質発火しなかった（8年・2〜8番人気198,210頭中22頭=0.011%のみ）。実装済み構成向けに再較正した`0.074`に変更済み（`MODEL_REVISION.md` §8.8、2026-09-20）。さらに前走の走路バイアス2項を足してoverlayの分布が広がったため、同じ手続き（2〜8番人気のTRAIN 95%分位）で`0.142`に再較正した（検証期間でも0.140でほぼ一致、§8.11）。`/results/betting`は保存済みの`overlay`にこの現行閾値を当てるので、旧モデル版のレコードは分布が違い該当が減る（画面のクエリ`overlayThreshold`で調整できる）。
 **母・母父（`Horse.dam`/`damSire`）の市場相対残差は検証済みで不採用**（`MODEL_REVISION.md` §8.9、2026-10-04）。父と同じ仕組みで母・母父のテーブルを作って現行3項に足し、検証期間(2023-26)で評価したところ追加効果の信頼区間は全て0をまたぎ（母 −0.00037、母父 +0.00003）、母は過学習気味だった。血統は市場が織り込み済みという§3.3の結論と整合するため、`MarketResidualService`に`dam`/`damSire`テーブルは足していない。再検討する場合は`keiba_score_search`側の`fit_residual_weights.py`で再評価してから。
-テーブルは静的なので鮮度が落ちる。年1回程度、`keiba_score_search`側で最新データを使い`export_residual_tables.py`を再実行し、`src/main/resources/residuals/`配下のJSON4ファイルを差し替えることを推奨（`MODEL_REVISION.md` §8.5参照）。§6の`p_hw_lat`等を追加実装した際はoverlay分布が再度変わるため、`OVERLAY_THRESHOLD`もその都度再較正が必要。
+テーブルは静的なので鮮度が落ちる。年1回程度、`keiba_score_search`側で最新データを使い`export_residual_tables.py`を再実行し、`src/main/resources/residuals/`配下のJSON4ファイルを差し替えることを推奨（`MODEL_REVISION.md` §8.5参照）。項を追加するとoverlay分布が変わるため、`OVERLAY_THRESHOLD`もその都度再較正が必要。
 
 ### 自己検証パイプライン
 

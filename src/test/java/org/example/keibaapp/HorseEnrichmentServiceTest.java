@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 class HorseEnrichmentServiceTest {
 
@@ -13,7 +14,8 @@ class HorseEnrichmentServiceTest {
                     new PredictionService(new MarketResidualService()),
                     new RaceCacheService(),
                     new AiPromptService(),
-                    new AiService()
+                    new AiService(),
+                    new TrackBiasService(mock(RaceBiasStatRepository.class))
             );
 
     @Test

@@ -474,6 +474,7 @@ public class RaceService {
             Horse horse = raceParserService.createHorse(tds);
 
             horseEnrichmentService.fetchHorseDetail(horse, isHistorical);
+            horseEnrichmentService.enrichTrackBias(horse, isHistorical);
             horseEnrichmentService.enrichJockeyStats(horse);
 
             horseList.add(horse);
