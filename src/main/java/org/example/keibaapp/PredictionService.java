@@ -17,7 +17,7 @@ import java.util.List;
 @Service
 public class PredictionService {
 
-    public static final String MODEL_VERSION = "2026-10-17-market-residual-bias-v2";
+    public static final String MODEL_VERSION = "2026-10-18-market-residual-bias-fuku-v3";
 
     // レース内softmaxで市場確率(q)を勝率(p)へ変換する係数(2019-22学習データでの推定値)。
     private static final double MARKET_WEIGHT = 0.885;
@@ -34,6 +34,9 @@ public class PredictionService {
     private static final double LAT_C_MEAN = 0.004691;
     private static final double LAT_C_SD = 0.52549;
     private static final double BIAS_Z_CLIP = 4.0;
+    // 複勝ギャップ(FukuGapCalculator、§8.12)。発走10分前の再取得時だけ付与される
+    private static final double W_FUKU_GAP = 0.0420;
+    private static final double FUKU_GAP_SD = 0.2154776;
 
     private final MarketResidualService marketResidualService;
 
@@ -53,6 +56,9 @@ public class PredictionService {
     // 前走の走路バイアス2項を加えた構成ではoverlayの分布が広がるため、同じ手続きで
     // 再較正した(2〜8番人気のTRAIN 95%分位、検証期間でも0.140でほぼ一致。§8.11)
     static final double OVERLAY_THRESHOLD = 0.142;
+    // 発走10分前の再取得で複勝ギャップが付いたレースは、項が増えてoverlayの分布がさらに広がるため、
+    // 同じ手続きで再較正した閾値を使う(2〜8番人気のTRAIN 95%分位0.166、検証期間0.160。§8.12)
+    static final double OVERLAY_THRESHOLD_WITH_FUKU_GAP = 0.166;
     static final int RECOMMEND_POPULARITY_MIN = 2;
     static final int RECOMMEND_POPULARITY_MAX = 8;
     static final int MIN_FIELD_SIZE_FOR_RECOMMEND = 8;
@@ -90,6 +96,9 @@ public class PredictionService {
         }
 
         double[] winProbabilities = calculateWinProbabilities(validHorses, oddsInverseSum);
+        double overlayThreshold = validHorses.stream().anyMatch(h -> h.getFukuGap() != null)
+                ? OVERLAY_THRESHOLD_WITH_FUKU_GAP
+                : OVERLAY_THRESHOLD;
 
         List<Horse> byPopularity = new ArrayList<>(validHorses);
         byPopularity.sort(Comparator.comparingDouble(Horse::getOdds));
@@ -105,7 +114,7 @@ public class PredictionService {
             boolean recommended = validHorses.size() >= MIN_FIELD_SIZE_FOR_RECOMMEND
                     && popularity >= RECOMMEND_POPULARITY_MIN
                     && popularity <= RECOMMEND_POPULARITY_MAX
-                    && overlay >= OVERLAY_THRESHOLD;
+                    && overlay >= overlayThreshold;
 
             horse.setMarketProbability(q * 100);
             horse.setPredictionScore(p * 100);
@@ -139,7 +148,7 @@ public class PredictionService {
                     + marketResidualService.jockeyScore(horse.getJockeyName())
                     + marketResidualService.breederScore(horse.getBreeder());
 
-            expScores[i] = Math.exp(MARKET_WEIGHT * logit + residualScore + trackBiasScore(horse));
+            expScores[i] = Math.exp(MARKET_WEIGHT * logit + residualScore + trackBiasScore(horse) + fukuGapScore(horse));
             sum += expScores[i];
         }
 
@@ -155,6 +164,10 @@ public class PredictionService {
     static double trackBiasScore(Horse horse) {
         return biasTerm(horse.getPHwLat(), W_HW_LAT, HW_LAT_MEAN, HW_LAT_SD)
                 + biasTerm(horse.getPLatC(), W_LAT_C, LAT_C_MEAN, LAT_C_SD);
+    }
+
+    static double fukuGapScore(Horse horse) {
+        return biasTerm(horse.getFukuGap(), W_FUKU_GAP, 0.0, FUKU_GAP_SD);
     }
 
     private static double biasTerm(Double raw, double weight, double mean, double sd) {

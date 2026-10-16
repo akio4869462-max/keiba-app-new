@@ -94,6 +94,14 @@ Yahoo!スポーツ競馬 → WebScraper（静的メソッド群・サーキッ�
 - 検証2023-26で現行3項に対し勝ちlog-loss改善 +0.00140 [+0.00037, +0.00246]（CIが0を除外）。**当日バイアス`today_lat`は追加効果が出ない(+0.00004)ため見送り**。重みは`PredictionService`の定数（`fit_bias_weights.py`の出力。再推定は`keiba_score_search/analysis/fit_bias_weights.py --write`）
 - `MODEL_VERSION`は`2026-10-17-market-residual-bias-v2`に更新（`/results/models`で旧モデルと分けて比較できる）。`OVERLAY_THRESHOLD`は0.142に再較正（下記）
 
+### 複勝ギャップ(2026-10-18実装、`MODEL_REVISION.md` §8.12)
+
+締切10分前の単勝と複勝を比べ、**複勝プールで単勝より相対的に人気している馬**を拾う項（`FukuGapCalculator`、`Horse.fukuGap`）。複勝プールが先に情報を織り込み単勝があとから追いつくため、正のギャップの馬は勝率が市場の想定を上回る。検証2023-26で現行モデルに対し勝ちlog-loss +0.00280 [+0.00204, +0.00356]。
+- `RaceService.refreshOddsNearPost`（発走10分前に1レースだけ再取得）の後で、`HorseEnrichmentService.enrichFukuGap`が単勝・複勝オッズページ（`/race/odds/tfw/{id}`、`WebScraper.parseWinPlaceOdds`）を**1回だけ**取得してギャップを付け、モデルを再計算して並べ替える。毎時の一覧取得ではギャップなし（寄与0）。取得失敗時もギャップなしで続行
+- ギャップが付いたレースの`recommended`は`OVERLAY_THRESHOLD_WITH_FUKU_GAP`(0.166)で判定（付かなければ0.142）
+- `MODEL_VERSION`は`2026-10-18-market-residual-bias-fuku-v3`。**注意**: 結果収集（`RaceResultCollectionService`）が記録する`overlay`は確定後の再取得ページ由来でギャップを含まないため、`/results/models`の版数比較は「10分前時点の予想」そのものではない
+- 朝のオッズの動き（`mom`、+0.0013）は朝オッズの記録が要るため見送り。回収率は上位5%で0.99、上位2%で1.33（CI [1.00,1.70]）と点推定は良いが信頼区間が広く、100%超の根拠にはならない
+
 ### 市場相対残差(2026-09-20実装、`MODEL_REVISION.md` §8)
 
 `MarketResidualService`が父(`sire`)・騎手(`jockeyName`)・生産者(`breeder`)ごとの市場相対残差テーブルを起動時に`src/main/resources/residuals/*.json`（`keiba_score_search`の`export_residual_tables.py`が書き出したもの）から読み込み、`PredictionService.calculateWinProbabilities`のsoftmaxスコアに`weight · (residual − mean) / sd`の形で加算する。テーブルに名前が無ければ寄与0（安全側のフォールバック。外国産馬の父名がTARGET側は英語表記でYahoo側はカタカナ表記のため一致しないケースがあるが、寄与0になるだけで誤動作はしない）。

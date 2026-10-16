@@ -228,4 +228,34 @@ class PredictionServiceTest {
         assertTrue(withBias.getPredictionScore() > same.getPredictionScore());
         assertTrue(withBias.getOverlay() > same.getOverlay());
     }
+
+    @Test
+    void fukuGapScore_shouldBeZeroWhenMissingAndClipped() {
+        assertEquals(0.0, PredictionService.fukuGapScore(horse("1", 3.0)));
+
+        Horse h = horse("1", 3.0);
+        h.setFukuGap(0.2154776);   // z=+1
+        assertEquals(0.0420, PredictionService.fukuGapScore(h), 1e-9);
+
+        h.setFukuGap(5.0);         // 極端な値は±4に制限
+        assertEquals(0.0420 * 4, PredictionService.fukuGapScore(h), 1e-9);
+    }
+
+    @Test
+    void applyRaceModel_shouldRaiseWinProbabilityOfHorseWithPositiveFukuGap() {
+        Horse supported = horse("1", 6.0);
+        Horse same = horse("2", 6.0);
+        supported.setFukuGap(0.5);
+
+        predictionService.applyRaceModel(List.of(
+                supported, same, horse("3", 2.0), horse("4", 4.0), horse("5", 9.0), horse("6", 12.0),
+                horse("7", 20.0), horse("8", 30.0)));
+
+        assertTrue(supported.getPredictionScore() > same.getPredictionScore());
+    }
+
+    @Test
+    void applyRaceModel_shouldUseStricterThresholdWhenFukuGapIsPresent() {
+        assertTrue(PredictionService.OVERLAY_THRESHOLD_WITH_FUKU_GAP > PredictionService.OVERLAY_THRESHOLD);
+    }
 }

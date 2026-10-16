@@ -78,6 +78,27 @@ public class HorseEnrichmentService {
         });
     }
 
+    // 発走10分前の再取得時に、単勝・複勝オッズページから複勝ギャップを付与する。
+    // 取得に失敗してもギャップなし(寄与0)で続行する
+    public void enrichFukuGap(List<Horse> horses, String raceUrl) throws InterruptedException {
+        Thread.sleep(500);
+
+        try {
+            WebScraper.WinPlaceOdds odds = WebScraper.parseWinPlaceOdds(
+                    WebScraper.getHTML(raceUrl.replace("/race/denma/", "/race/odds/tfw/")));
+
+            java.util.Map<Integer, Double> gaps = FukuGapCalculator.compute(odds.win(), odds.placeMid());
+
+            for (Horse horse : horses) {
+                if (horse.getUmaban() != null && horse.getUmaban().trim().matches("\\d+")) {
+                    horse.setFukuGap(gaps.get(Integer.parseInt(horse.getUmaban().trim())));
+                }
+            }
+        } catch (java.io.IOException e) {
+            System.out.println("複勝ギャップの取得に失敗(寄与0で続行): " + raceUrl + " / " + e.getMessage());
+        }
+    }
+
     public void enrichJockeyStats(Horse horse) throws InterruptedException {
         String jockeyUrl = horse.getJockeyUrl();
 

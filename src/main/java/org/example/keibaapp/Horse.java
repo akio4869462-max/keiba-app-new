@@ -38,6 +38,9 @@ public class Horse {
     // 前走が障害戦・地方/海外・統計が未取得のときはnullで、スコアへの寄与は0になる
     private Double pHwLat;
     private Double pLatC;
+    // 複勝ギャップ(FukuGapCalculator、MODEL_REVISION.md §8.12)。発走10分前の再取得時だけ付与され、
+    // それ以外(毎時の一覧取得など)はnullで、スコアへの寄与は0になる
+    private Double fukuGap;
 
     public int getActualRank() {
         return actualRank;
@@ -270,5 +273,13 @@ public class Horse {
 
     public void setPLatC(Double pLatC) {
         this.pLatC = pLatC;
+    }
+
+    public Double getFukuGap() {
+        return fukuGap;
+    }
+
+    public void setFukuGap(Double fukuGap) {
+        this.fukuGap = fukuGap;
     }
 }

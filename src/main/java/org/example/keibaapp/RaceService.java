@@ -321,6 +321,10 @@ public class RaceService {
             try {
                 Document doc = WebScraper.getHTML(raceUrl);
                 List<Horse> horseList = createTodayHorseList(doc, race.getCourse(), race.getDistance());
+                // 締切10分前の単勝と複勝を見比べる複勝ギャップを付けて、予想モデルを計算し直す
+                horseEnrichmentService.enrichFukuGap(horseList, raceUrl);
+                horseEnrichmentService.applyRaceModel(horseList);
+                sortHorsesByScore(horseList);
                 race.setHorses(horseList);
                 System.out.println("【締切前オッズ再取得】完了: " + race.getDisplayRaceName());
             } catch (Exception e) {

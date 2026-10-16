@@ -524,7 +524,7 @@ public class WebScraper {
             }
 
             String rankText = tds.get(0).text().trim();
-            int rank = rankText.matches("\\d+") ?Integer.parseInt(rankText) : 0;
+            int rank = rankText.matches("\\d+") ? Integer.parseInt(rankText) : 0;
 
             // 人気<p>(オッズ)</p> のセル。取消・除外はオッズが無いので0にする
             Element oddsCell = row.selectFirst("td.hr-table__data--odds");
@@ -541,6 +541,44 @@ public class WebScraper {
         }
 
         return new ResultPageInfo(date, venue, surface, rows, getCornerLatMeans(doc));
+    }
+
+    // 単勝・複勝オッズページ(/race/odds/tfw/{id})から、馬番ごとの単勝オッズと
+    // 複勝オッズの下限・上限の中間(複勝mid)を取り出す。取消・除外などオッズが読めない馬は含めない。
+    // 複勝ギャップ(MODEL_REVISION.md §8.12)の計算に使う
+    public record WinPlaceOdds(Map<Integer, Double> win, Map<Integer, Double> placeMid) {
+    }
+
+    public static WinPlaceOdds parseWinPlaceOdds(Document doc) {
+        Map<Integer, Double> win = new HashMap<>();
+        Map<Integer, Double> placeMid = new HashMap<>();
+
+        for (Element row : doc.select("#raceodds_table tr")) {
+            Elements tds = row.select("td");
+
+            if (tds.size() < 5 || !tds.get(1).text().trim().matches("\\d+")) {
+                continue;
+            }
+
+            int umaban = Integer.parseInt(tds.get(1).text().trim());
+            String winText = tds.get(3).text().trim();
+            Elements placeValues = tds.get(4).select("span");
+
+            if (!winText.matches("[0-9.]+") || placeValues.size() < 2) {
+                continue;
+            }
+
+            try {
+                double lo = Double.parseDouble(placeValues.get(0).text().trim());
+                double hi = Double.parseDouble(placeValues.get(1).text().trim());
+                win.put(umaban, Double.parseDouble(winText));
+                placeMid.put(umaban, (lo + hi) / 2);
+            } catch (NumberFormatException e) {
+                // 読めない行は対象外にする
+            }
+        }
+
+        return new WinPlaceOdds(win, placeMid);
     }
 
     private record CornerEntry(int horseNumber, int lat) {
