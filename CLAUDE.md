@@ -131,6 +131,15 @@ RaceResultStatsService でオッズ帯別・スコア帯別・週別・回収率
 
 `RaceParserService.getRaceRangeByTime()`（壁時計からレース番号を推測する旧方式）は`fetchHistoricalRaces()`のデバッグ経路でのみ残存。新規コードでは使わない。
 
+### お気に入り通知（`RaceNotificationService`）
+
+通知窓は発走2分前〜発走で、毎分のチェックの間に取りこぼすと次が無い。そのため以下を守る:
+
+- **通知済みの判定キーは「馬(騎手)名＋開催場＋レース番号＋日付」**。レース名は同日に複数レースで同名（`サラ系2歳未勝利`等）になるため使わない（以前は騎手側がレース名キーで、同名の2レース目の通知が届かなかった）。`NotificationHistory`/`NotificationJockeyHistory`の`venue`・`raceNumber`は既存テーブルに足したカラムなので`String`/`Integer`（NULL許容）。旧レコードはNULLで、移行直後に限り当日通知済みのレースが1回だけ再通知されうる。
+- 馬の通知と騎手の通知は`try/catch`で独立させる（馬側の例外で騎手側が丸ごと飛ぶのを防ぐ）。
+- 送信（`trySend`）に失敗したら**通知済みとして記録しない**。通知窓の間は次の分に再試行される。
+- 時刻は`Clock`注入（テストは`RaceNotificationServiceTest`で固定時計）。
+
 ### 外部サイトへの配慮
 
 - `WebScraper.getHTML()`にサーキットブレーカー。非4xxの失敗が3回続くと5分間すべてのスクレイピングを停止する。**4xx（404等）は個別URLの問題なのでブレーカーにカウントしない**（1頭分の404で全体が止まる不具合があったため）
