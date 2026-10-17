@@ -41,6 +41,11 @@ public class Horse {
     // 複勝ギャップ(FukuGapCalculator、MODEL_REVISION.md §8.12)。発走10分前の再取得時だけ付与され、
     // それ以外(毎時の一覧取得など)はnullで、スコアへの寄与は0になる
     private Double fukuGap;
+    // 発走10分前の馬連・ワイド・馬単の板から作った馬ごとのシェア(PoolShareCalculator)。
+    // 前向きに記録して効果を確かめる段階で、まだ予想モデルには使わない
+    private Double umarenShare;
+    private Double wideShare;
+    private Double exactaFirstShare;
 
     public int getActualRank() {
         return actualRank;
@@ -281,5 +286,29 @@ public class Horse {
 
     public void setFukuGap(Double fukuGap) {
         this.fukuGap = fukuGap;
+    }
+
+    public Double getUmarenShare() {
+        return umarenShare;
+    }
+
+    public void setUmarenShare(Double umarenShare) {
+        this.umarenShare = umarenShare;
+    }
+
+    public Double getWideShare() {
+        return wideShare;
+    }
+
+    public void setWideShare(Double wideShare) {
+        this.wideShare = wideShare;
+    }
+
+    public Double getExactaFirstShare() {
+        return exactaFirstShare;
+    }
+
+    public void setExactaFirstShare(Double exactaFirstShare) {
+        this.exactaFirstShare = exactaFirstShare;
     }
 }

@@ -581,6 +581,53 @@ public class WebScraper {
         return new WinPlaceOdds(win, placeMid);
     }
 
+    // 馬連・ワイド・馬単のオッズページ(/race/odds/ur|wide|ut/{id})は、最初の馬ごとに1つの表があり、
+    // 表の見出しが最初の馬、各行の見出しが相手の馬、セルがオッズ(ワイドは「下限 - 上限」)。
+    // 順序のある馬単は first→second(first が1着)、馬連・ワイドは表に出てくる組をそのまま返す。
+    // ワイドは下限と上限の中間を odds にする
+    public record PairOdds(int first, int second, double odds) {
+    }
+
+    public static List<PairOdds> parsePairOdds(Document doc) {
+        List<PairOdds> pairs = new ArrayList<>();
+
+        for (Element table : doc.select("table.hr-tableLeftTop--oddsW")) {
+            Element head = table.selectFirst("thead th");
+
+            if (head == null || !head.text().trim().matches("\\d+")) {
+                continue;
+            }
+
+            int first = Integer.parseInt(head.text().trim());
+
+            for (Element row : table.select("tbody tr")) {
+                Element secondCell = row.selectFirst("th");
+                Element oddsCell = row.selectFirst("td");
+
+                if (secondCell == null || oddsCell == null || !secondCell.text().trim().matches("\\d+")) {
+                    continue;
+                }
+
+                List<Double> values = new ArrayList<>();
+
+                for (Element span : oddsCell.select("span")) {
+                    if (span.text().trim().matches("[0-9.]+")) {
+                        values.add(Double.parseDouble(span.text().trim()));
+                    }
+                }
+
+                if (!values.isEmpty()) {
+                    double odds = values.size() >= 2
+                            ? (values.get(0) + values.get(values.size() - 1)) / 2
+                            : values.get(0);
+                    pairs.add(new PairOdds(first, Integer.parseInt(secondCell.text().trim()), odds));
+                }
+            }
+        }
+
+        return pairs;
+    }
+
     private record CornerEntry(int horseNumber, int lat) {
     }
 

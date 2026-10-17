@@ -27,6 +27,11 @@ public class OddsSnapshot {
     // 直前の一覧取得(通常は最大1時間前)時点の単勝オッズ。朝オッズの代わりの参考値
     private Double earlierWinOdds;
     private Double fukuGap;
+    // 10分前の馬連・ワイド・馬単の板から作った馬ごとのシェア(PoolShareCalculator)。
+    // 確定時点の板では単勝との食い違いが勝ちを予測した。10分前でも効くかを前向きに確かめるための記録
+    private Double umarenShare;
+    private Double wideShare;
+    private Double exactaFirstShare;
     // モデル勝率・市場確率(いずれも百分率)
     private Double winProbability;
     private Double marketProbability;
@@ -59,6 +64,17 @@ public class OddsSnapshot {
         this.modelVersion = modelVersion;
         this.capturedAt = capturedAt;
     }
+
+    public OddsSnapshot withPoolShares(Double umarenShare, Double wideShare, Double exactaFirstShare) {
+        this.umarenShare = umarenShare;
+        this.wideShare = wideShare;
+        this.exactaFirstShare = exactaFirstShare;
+        return this;
+    }
+
+    public Double getUmarenShare() { return umarenShare; }
+    public Double getWideShare() { return wideShare; }
+    public Double getExactaFirstShare() { return exactaFirstShare; }
 
     public Long getId() { return id; }
     public LocalDate getRaceDate() { return raceDate; }

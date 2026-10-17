@@ -92,6 +92,45 @@ public class ForwardEvaluationService {
         return new Evaluation(snapshotRaceKeys.size(), evaluatedRaceKeys.size(), first, last, groups, small);
     }
 
+    // オフライン解析(keiba_score_search側)で、10分前の板から作ったシェアなどの効果を測るためのCSV。
+    // 払戻金データがあるレースだけ、的中(won=1/0)と単勝払戻額(100円あたり、外れは0)を付ける。
+    // 本番DBへ直接アクセスできないため、画面経由で取り出せるようにしてある
+    public String exportCsv(List<OddsSnapshot> snapshots, List<RacePayout> payouts) {
+        Map<String, Map<Integer, Integer>> winPayouts = new HashMap<>();
+
+        for (RacePayout payout : payouts) {
+            if ("単勝".equals(payout.getBetType()) && payout.getCombination().trim().matches("\\d+")) {
+                winPayouts.computeIfAbsent(raceKey(payout.getRaceDate(), payout.getVenue(), payout.getRaceNumber()),
+                        k -> new HashMap<>()).put(Integer.parseInt(payout.getCombination().trim()), payout.getPayoutYen());
+            }
+        }
+
+        StringBuilder csv = new StringBuilder(
+                "race_date,venue,race_number,umaban,win_odds,earlier_win_odds,fuku_gap,win_probability,"
+                        + "market_probability,overlay,popularity,recommended,umaren_share,wide_share,"
+                        + "exacta_first_share,model_version,captured_at,won,win_payout_yen\n");
+
+        for (OddsSnapshot s : snapshots) {
+            Map<Integer, Integer> racePayouts = winPayouts.get(raceKey(s.getRaceDate(), s.getVenue(), s.getRaceNumber()));
+            String won = racePayouts == null ? "" : (racePayouts.containsKey(s.getUmaban()) ? "1" : "0");
+            String payout = racePayouts == null ? "" : String.valueOf(racePayouts.getOrDefault(s.getUmaban(), 0));
+
+            csv.append(String.join(",",
+                    String.valueOf(s.getRaceDate()), s.getVenue(), String.valueOf(s.getRaceNumber()),
+                    String.valueOf(s.getUmaban()), num(s.getWinOdds()), num(s.getEarlierWinOdds()),
+                    num(s.getFukuGap()), num(s.getWinProbability()), num(s.getMarketProbability()),
+                    num(s.getOverlay()), String.valueOf(s.getPopularity()), String.valueOf(s.getRecommended()),
+                    num(s.getUmarenShare()), num(s.getWideShare()), num(s.getExactaFirstShare()),
+                    String.valueOf(s.getModelVersion()), String.valueOf(s.getCapturedAt()), won, payout)).append('\n');
+        }
+
+        return csv.toString();
+    }
+
+    private static String num(Double value) {
+        return value == null ? "" : String.valueOf(value);
+    }
+
     private static boolean inPopularityBand(OddsSnapshot s) {
         return s.getPopularity() != null && s.getPopularity() >= PredictionService.RECOMMEND_POPULARITY_MIN
                 && s.getPopularity() <= PredictionService.RECOMMEND_POPULARITY_MAX;

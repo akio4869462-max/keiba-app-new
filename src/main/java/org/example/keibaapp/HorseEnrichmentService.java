@@ -99,6 +99,40 @@ public class HorseEnrichmentService {
         }
     }
 
+    // 発走10分前の再取得時に、馬連・ワイド・馬単の板から馬ごとのシェアを付ける(前向き記録用で、
+    // モデルには使わない)。プールごとに独立して取得し、失敗したプールはnullのまま続行する
+    public void enrichPoolShares(List<Horse> horses, String raceUrl) throws InterruptedException {
+        java.util.Map<Integer, Double> umaren = fetchShares(raceUrl, "ur", true);
+        java.util.Map<Integer, Double> wide = fetchShares(raceUrl, "wide", true);
+        java.util.Map<Integer, Double> exacta = fetchShares(raceUrl, "ut", false);
+
+        for (Horse horse : horses) {
+            try {
+                int umaban = Integer.parseInt(horse.getUmaban().trim());
+                horse.setUmarenShare(umaren.get(umaban));
+                horse.setWideShare(wide.get(umaban));
+                horse.setExactaFirstShare(exacta.get(umaban));
+            } catch (NumberFormatException | NullPointerException e) {
+                // 馬番が読めない馬はシェアなし
+            }
+        }
+    }
+
+    private java.util.Map<Integer, Double> fetchShares(String raceUrl, String pool, boolean symmetric)
+            throws InterruptedException {
+        Thread.sleep(500);
+
+        try {
+            List<WebScraper.PairOdds> pairs = WebScraper.parsePairOdds(
+                    WebScraper.getHTML(raceUrl.replace("/race/denma/", "/race/odds/" + pool + "/")));
+
+            return symmetric ? PoolShareCalculator.symmetricShares(pairs) : PoolShareCalculator.firstShares(pairs);
+        } catch (java.io.IOException e) {
+            System.out.println("板の取得に失敗(" + pool + "): " + raceUrl + " / " + e.getMessage());
+            return java.util.Map.of();
+        }
+    }
+
     public void enrichJockeyStats(Horse horse) throws InterruptedException {
         String jockeyUrl = horse.getJockeyUrl();
 

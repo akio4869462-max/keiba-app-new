@@ -269,6 +269,13 @@ public class RaceController {
         return "resultsForward";
     }
 
+    // オフライン解析用の10分前スナップショットCSV(板のシェア・的中・単勝払戻額つき)
+    @GetMapping(value = "/results/forward/export.csv", produces = "text/csv;charset=UTF-8")
+    @ResponseBody
+    public String exportForwardCsv() {
+        return forwardEvaluationService.exportCsv(oddsSnapshotRepository.findAll(), racePayoutRepository.findAll());
+    }
+
     @GetMapping("/results/races")
     public String resultsByRace(Model model) {
         LocalDate cutoff = LocalDate.now(JST).minusWeeks(RACE_RESULTS_DISPLAY_WEEKS);

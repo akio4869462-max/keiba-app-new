@@ -326,6 +326,7 @@ public class RaceService {
                 List<Horse> horseList = createTodayHorseList(doc, race.getCourse(), race.getDistance());
                 // 締切10分前の単勝と複勝を見比べる複勝ギャップを付けて、予想モデルを計算し直す
                 horseEnrichmentService.enrichFukuGap(horseList, raceUrl);
+                horseEnrichmentService.enrichPoolShares(horseList, raceUrl);
                 horseEnrichmentService.applyRaceModel(horseList);
                 sortHorsesByScore(horseList);
                 List<Horse> previousHorses = race.getHorses();

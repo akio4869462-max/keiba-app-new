@@ -64,7 +64,8 @@ public class OddsSnapshotService {
                     Integer.parseInt(horse.getUmaban().trim()), horse.getName(),
                     horse.getOdds(), earlierOdds.get(horse.getUmaban()), horse.getFukuGap(),
                     horse.getPredictionScore(), horse.getMarketProbability(), horse.getOverlay(),
-                    horse.getPopularity(), horse.isRecommended(), PredictionService.MODEL_VERSION, now));
+                    horse.getPopularity(), horse.isRecommended(), PredictionService.MODEL_VERSION, now)
+                    .withPoolShares(horse.getUmarenShare(), horse.getWideShare(), horse.getExactaFirstShare()));
         }
 
         repository.saveAll(snapshots);
