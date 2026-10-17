@@ -22,6 +22,7 @@ public class RaceService {
     private final HorseEnrichmentService horseEnrichmentService;
     private final RaceParserService raceParserService;
     private final TrackedRaceUrlRepository trackedRaceUrlRepository;
+    private final OddsSnapshotService oddsSnapshotService;
 
     public RaceService(
             CsvExporter csvExporter,
@@ -29,7 +30,8 @@ public class RaceService {
             RaceCacheService raceCacheService,
             HorseEnrichmentService horseEnrichmentService,
             RaceParserService raceParserService,
-            TrackedRaceUrlRepository trackedRaceUrlRepository) {
+            TrackedRaceUrlRepository trackedRaceUrlRepository,
+            OddsSnapshotService oddsSnapshotService) {
 
         this.csvExporter = csvExporter;
         this.dummyRaceFactory = dummyRaceFactory;
@@ -37,6 +39,7 @@ public class RaceService {
         this.horseEnrichmentService = horseEnrichmentService;
         this.raceParserService = raceParserService;
         this.trackedRaceUrlRepository = trackedRaceUrlRepository;
+        this.oddsSnapshotService = oddsSnapshotService;
     }
 
     private void trackRaceUrls(Set<String> raceUrls) {
@@ -325,7 +328,9 @@ public class RaceService {
                 horseEnrichmentService.enrichFukuGap(horseList, raceUrl);
                 horseEnrichmentService.applyRaceModel(horseList);
                 sortHorsesByScore(horseList);
+                List<Horse> previousHorses = race.getHorses();
                 race.setHorses(horseList);
+                recordOddsSnapshot(race, previousHorses, horseList);
                 System.out.println("【締切前オッズ再取得】完了: " + race.getDisplayRaceName());
             } catch (Exception e) {
                 System.out.println("【締切前オッズ再取得】失敗: " + race.getDisplayRaceName() + " / " + e.getMessage());
@@ -334,6 +339,15 @@ public class RaceService {
                 // 成功可否によらず1回試行したら完了扱いにする
                 raceCacheService.markOddsRefreshed(raceUrl);
             }
+        }
+    }
+
+    // 10分前時点の予想を前向きの評価用に残す。保存の失敗で予想表示の更新を止めない
+    private void recordOddsSnapshot(RaceInfo race, List<Horse> previousHorses, List<Horse> currentHorses) {
+        try {
+            oddsSnapshotService.record(race, previousHorses, currentHorses);
+        } catch (Exception e) {
+            System.out.println("【締切前オッズ再取得】スナップショット保存に失敗: " + race.getDisplayRaceName() + " / " + e.getMessage());
         }
     }
 

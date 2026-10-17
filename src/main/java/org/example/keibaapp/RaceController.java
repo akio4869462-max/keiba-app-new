@@ -31,6 +31,8 @@ public class RaceController {
     private final RacePayoutRepository racePayoutRepository;
     private final RaceResultStatsService raceResultStatsService;
     private final BettingSimulationService bettingSimulationService;
+    private final OddsSnapshotRepository oddsSnapshotRepository;
+    private final ForwardEvaluationService forwardEvaluationService;
     private final RaceResultCollectionService raceResultCollectionService;
     private final TrackedRaceUrlRepository trackedRaceUrlRepository;
     private final FavoriteHorseService favoriteHorseService;
@@ -44,6 +46,8 @@ public class RaceController {
             RacePayoutRepository racePayoutRepository,
             RaceResultStatsService raceResultStatsService,
             BettingSimulationService bettingSimulationService,
+            OddsSnapshotRepository oddsSnapshotRepository,
+            ForwardEvaluationService forwardEvaluationService,
             RaceResultCollectionService raceResultCollectionService,
             TrackedRaceUrlRepository trackedRaceUrlRepository,
             FavoriteHorseService favoriteHorseService,
@@ -56,6 +60,8 @@ public class RaceController {
         this.racePayoutRepository = racePayoutRepository;
         this.raceResultStatsService = raceResultStatsService;
         this.bettingSimulationService = bettingSimulationService;
+        this.oddsSnapshotRepository = oddsSnapshotRepository;
+        this.forwardEvaluationService = forwardEvaluationService;
         this.raceResultCollectionService = raceResultCollectionService;
         this.trackedRaceUrlRepository = trackedRaceUrlRepository;
         this.favoriteHorseService = favoriteHorseService;
@@ -251,6 +257,16 @@ public class RaceController {
         model.addAttribute("rule", rule);
 
         return "resultsBetting";
+    }
+
+    // 前向きの評価: 発走10分前に残した予想の馬を単勝100円ずつ買っていたら、確定払戻でどうなったか
+    @GetMapping("/results/forward")
+    public String resultsForward(Model model) {
+        model.addAttribute("evaluation", forwardEvaluationService.evaluate(
+                oddsSnapshotRepository.findAll(), racePayoutRepository.findAll()));
+        model.addAttribute("minReliablePicks", ForwardEvaluationService.MIN_RELIABLE_PICKS);
+
+        return "resultsForward";
     }
 
     @GetMapping("/results/races")

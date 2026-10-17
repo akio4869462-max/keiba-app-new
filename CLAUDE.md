@@ -102,6 +102,12 @@ Yahoo!スポーツ競馬 → WebScraper（静的メソッド群・サーキッ�
 - `MODEL_VERSION`は`2026-10-18-market-residual-bias-fuku-v3`。**注意**: 結果収集（`RaceResultCollectionService`）が記録する`overlay`は確定後の再取得ページ由来でギャップを含まないため、`/results/models`の版数比較は「10分前時点の予想」そのものではない
 - 朝のオッズの動き（`mom`、+0.0013）は朝オッズの記録が要るため見送り。回収率は上位5%で0.99、上位2%で1.33（CI [1.00,1.70]）と点推定は良いが信頼区間が広く、100%超の根拠にはならない
 
+### 10分前スナップショットと前向き評価（`OddsSnapshot`、`/results/forward`）
+
+結果収集が記録する`RaceResultRecord`は確定後のページ由来で、買う時点（発走10分前）の予想ではない。そこで`RaceService.refreshOddsNearPost`が10分前の再取得・モデル再計算を終えるたびに、`OddsSnapshotService`が**馬ごとの予想（単勝オッズ・直前の一覧取得時点のオッズ・複勝ギャップ・勝率・市場確率・overlay・人気・推奨フラグ・モデル版数）を`OddsSnapshot`に保存**する（1レース1日1回、保存失敗は握りつぶして予想表示を止めない）。
+`/results/forward`（`ForwardEvaluationService`）は、そのスナップショットの馬を**10分前の時点で**単勝100円ずつ買っていたら確定払戻（`RacePayout`の単勝）でどうなったかを、買い候補（推奨馬）・妙味10%以上（2〜8番人気）・2〜8番人気全部（基準）の3群で出す。後付けの絞り込みが入らないので、バックテスト（上位5%などを検証期間内で切った数字）より実力に近い。先行指標として「実現率」（的中数 ÷ 市場が見込む的中数、控除率20%を踏まえた損益分岐は1.25）も表示する。買い候補が300頭未満の間は参考値の注記を出す。
+`earlierWinOdds`（直前の一覧取得時点＝通常は最大1時間前のオッズ）は、朝オッズの動き`mom`（`MODEL_REVISION.md` §8.12、学習時の定義は「朝」）の代わりの参考値で、定義が違うためそのままモデルには使わない。
+
 ### 市場相対残差(2026-09-20実装、`MODEL_REVISION.md` §8)
 
 `MarketResidualService`が父(`sire`)・騎手(`jockeyName`)・生産者(`breeder`)ごとの市場相対残差テーブルを起動時に`src/main/resources/residuals/*.json`（`keiba_score_search`の`export_residual_tables.py`が書き出したもの）から読み込み、`PredictionService.calculateWinProbabilities`のsoftmaxスコアに`weight · (residual − mean) / sd`の形で加算する。テーブルに名前が無ければ寄与0（安全側のフォールバック。外国産馬の父名がTARGET側は英語表記でYahoo側はカタカナ表記のため一致しないケースがあるが、寄与0になるだけで誤動作はしない）。
