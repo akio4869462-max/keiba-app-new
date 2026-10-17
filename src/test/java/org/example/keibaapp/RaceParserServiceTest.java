@@ -243,4 +243,13 @@ class RaceParserServiceTest {
     void isWithinFinalOddsRefreshWindow_shouldReturnFalseForNull() {
         assertFalse(fixedService.isWithinFinalOddsRefreshWindow(null));
     }
+
+    @Test
+    void extractVenueName_shouldReturnExactVenueWithoutNeighboringCharacters() {
+        // 以前のパターンは「…」(任意の3文字)を含んでいたため、競馬場の直前の3文字(空白を含む)が
+        // 開催場名になり、" 新潟" のように先頭に空白が付いていた
+        assertEquals("新潟", service.extractVenueName("競馬 - 新潟競馬場のレース一覧 - スポーツナビ"));
+        assertEquals("東京", service.extractVenueName("2026年10月17日 東京競馬場のレース"));
+        assertEquals("阪神", service.extractVenueName("阪神競馬場"));
+    }
 }

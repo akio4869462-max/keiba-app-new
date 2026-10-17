@@ -164,6 +164,6 @@ public class ForwardEvaluationService {
     }
 
     private static String raceKey(LocalDate date, String venue, int raceNumber) {
-        return date + "|" + venue + "|" + raceNumber;
+        return date + "|" + (venue == null ? "" : venue.trim()) + "|" + raceNumber;
     }
 }

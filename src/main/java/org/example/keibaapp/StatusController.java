@@ -11,17 +11,20 @@ public class StatusController {
     private final TrackedRaceUrlRepository trackedRaceUrlRepository;
     private final RaceResultRecordRepository raceResultRecordRepository;
     private final RacePayoutRepository racePayoutRepository;
+    private final HorseEnrichmentService horseEnrichmentService;
 
     public StatusController(
             RaceResultCollectionService raceResultCollectionService,
             TrackedRaceUrlRepository trackedRaceUrlRepository,
             RaceResultRecordRepository raceResultRecordRepository,
-            RacePayoutRepository racePayoutRepository) {
+            RacePayoutRepository racePayoutRepository,
+            HorseEnrichmentService horseEnrichmentService) {
 
         this.raceResultCollectionService = raceResultCollectionService;
         this.trackedRaceUrlRepository = trackedRaceUrlRepository;
         this.raceResultRecordRepository = raceResultRecordRepository;
         this.racePayoutRepository = racePayoutRepository;
+        this.horseEnrichmentService = horseEnrichmentService;
     }
 
     @GetMapping("/status")
@@ -34,6 +37,7 @@ public class StatusController {
         model.addAttribute("totalTrackedUrlCount", trackedRaceUrlRepository.count());
         model.addAttribute("totalResultRecords", raceResultRecordRepository.count());
         model.addAttribute("totalPayoutRecords", racePayoutRepository.count());
+        model.addAttribute("lastBoardIssue", horseEnrichmentService.getLastBoardIssue());
         return "status";
     }
 }

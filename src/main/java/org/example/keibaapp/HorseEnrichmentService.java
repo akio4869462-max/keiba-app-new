@@ -80,6 +80,20 @@ public class HorseEnrichmentService {
 
     // 発走10分前の再取得時に、単勝・複勝オッズページから複勝ギャップを付与する。
     // 取得に失敗してもギャップなし(寄与0)で続行する
+    // 発走10分前の板(複勝・馬連・ワイド・馬単)の取得で最後に起きた問題。本番のログを直接見られないため
+    // /statusに表示して、取得失敗か解析結果が空かを切り分けられるようにする
+    private volatile String lastBoardIssue = "なし";
+
+    public String getLastBoardIssue() {
+        return lastBoardIssue;
+    }
+
+    private void noteBoardIssue(String message) {
+        lastBoardIssue = java.time.LocalTime.now(java.time.ZoneId.of("Asia/Tokyo"))
+                .truncatedTo(java.time.temporal.ChronoUnit.SECONDS) + " " + message;
+        System.out.println("板の取得: " + message);
+    }
+
     public void enrichFukuGap(List<Horse> horses, String raceUrl) throws InterruptedException {
         Thread.sleep(500);
 
@@ -89,13 +103,17 @@ public class HorseEnrichmentService {
 
             java.util.Map<Integer, Double> gaps = FukuGapCalculator.compute(odds.win(), odds.placeMid());
 
+            if (gaps.isEmpty()) {
+                noteBoardIssue("複勝ギャップなし(単勝" + odds.win().size() + "頭/複勝" + odds.placeMid().size() + "頭を解析): " + raceUrl);
+            }
+
             for (Horse horse : horses) {
                 if (horse.getUmaban() != null && horse.getUmaban().trim().matches("\\d+")) {
                     horse.setFukuGap(gaps.get(Integer.parseInt(horse.getUmaban().trim())));
                 }
             }
         } catch (java.io.IOException e) {
-            System.out.println("複勝ギャップの取得に失敗(寄与0で続行): " + raceUrl + " / " + e.getMessage());
+            noteBoardIssue("複勝ギャップの取得に失敗: " + raceUrl + " / " + e.getMessage());
         }
     }
 
@@ -126,9 +144,13 @@ public class HorseEnrichmentService {
             List<WebScraper.PairOdds> pairs = WebScraper.parsePairOdds(
                     WebScraper.getHTML(raceUrl.replace("/race/denma/", "/race/odds/" + pool + "/")));
 
+            if (pairs.isEmpty()) {
+                noteBoardIssue("板(" + pool + ")の解析結果が空: " + raceUrl);
+            }
+
             return symmetric ? PoolShareCalculator.symmetricShares(pairs) : PoolShareCalculator.firstShares(pairs);
         } catch (java.io.IOException e) {
-            System.out.println("板の取得に失敗(" + pool + "): " + raceUrl + " / " + e.getMessage());
+            noteBoardIssue("板(" + pool + ")の取得に失敗: " + raceUrl + " / " + e.getMessage());
             return java.util.Map.of();
         }
     }

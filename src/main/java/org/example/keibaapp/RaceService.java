@@ -23,6 +23,8 @@ public class RaceService {
     private final RaceParserService raceParserService;
     private final TrackedRaceUrlRepository trackedRaceUrlRepository;
     private final OddsSnapshotService oddsSnapshotService;
+    // getRaces()の全件取得を同時に1つだけにするためのロック
+    private final Object raceLoadLock = new Object();
 
     public RaceService(
             CsvExporter csvExporter,
@@ -273,22 +275,32 @@ public class RaceService {
             return raceCacheService.getCachedRaces();
         }
 
-        System.out.println("最新データを取得します");
+        // キャッシュが空の間に複数のアクセスが重なると、全件取得(数分かかり、馬ごとに待ち時間を入れる)が
+        // 並列に走ってサイトへの負荷が積み重なり、全部がさらに遅くなる。同時に取得するのは1つだけにし、
+        // 待っていた側は先行した取得の結果(キャッシュ)をそのまま使う
+        synchronized (raceLoadLock) {
+            if (raceCacheService.isRaceCacheValid()) {
+                System.out.println("先行した取得が完了していたのでキャッシュを使用します");
+                return raceCacheService.getCachedRaces();
+            }
 
-        // 曜日をハードコードせず毎日この経路が呼ばれうるため、今日開催がなければ
-        // ダミーを返すだけにし、お気に入り通知チェックに使われるキャッシュには
-        // 書き込まない(非開催日にダミーの馬名でお気に入りが誤反応しないようにするため)
-        if (!hasRaceToday()) {
-            System.out.println("本日は開催がないためダミーデータを返します");
-            return dummyRaceFactory.createDummyRaces();
+            System.out.println("最新データを取得します");
+
+            // 曜日をハードコードせず毎日この経路が呼ばれうるため、今日開催がなければ
+            // ダミーを返すだけにし、お気に入り通知チェックに使われるキャッシュには
+            // 書き込まない(非開催日にダミーの馬名でお気に入りが誤反応しないようにするため)
+            if (!hasRaceToday()) {
+                System.out.println("本日は開催がないためダミーデータを返します");
+                return dummyRaceFactory.createDummyRaces();
+            }
+
+            List<RaceInfo> races = fetchTodayRaces();
+            //        List<RaceInfo> races = fetchHistoricalRaces();
+
+            raceCacheService.cacheRaces(races);
+
+            return races;
         }
-
-        List<RaceInfo> races = fetchTodayRaces();
-//        List<RaceInfo> races = fetchHistoricalRaces();
-
-        raceCacheService.cacheRaces(races);
-
-        return races;
     }
 
     // 予想モデルの妙味(overlay)計算に使う重みは締切10分前オッズで較正されている

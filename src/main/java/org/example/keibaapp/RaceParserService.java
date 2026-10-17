@@ -34,7 +34,7 @@ public class RaceParserService {
         this.clock = clock;
     }
 
-    private static final Pattern VENUE_PATTERN = Pattern.compile("(函館|...)競馬場");
+    private static final Pattern VENUE_PATTERN = Pattern.compile("(札幌|函館|福島|新潟|東京|中山|中京|京都|阪神|小倉)競馬場");
 
     public Set<String> getRaceUrls(Document listDoc) {
         Elements raceLinks =
