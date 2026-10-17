@@ -106,7 +106,7 @@ public class ForwardEvaluationService {
         }
 
         StringBuilder csv = new StringBuilder(
-                "race_date,venue,race_number,umaban,win_odds,earlier_win_odds,fuku_gap,win_probability,"
+                "race_date,venue,race_number,umaban,win_odds,earlier_win_odds,morning_win_odds,morning_minutes_to_post,fuku_gap,win_probability,"
                         + "market_probability,overlay,popularity,recommended,umaren_share,wide_share,"
                         + "exacta_first_share,model_version,captured_at,won,win_payout_yen\n");
 
@@ -118,6 +118,7 @@ public class ForwardEvaluationService {
             csv.append(String.join(",",
                     String.valueOf(s.getRaceDate()), s.getVenue(), String.valueOf(s.getRaceNumber()),
                     String.valueOf(s.getUmaban()), num(s.getWinOdds()), num(s.getEarlierWinOdds()),
+                    num(s.getMorningWinOdds()), String.valueOf(s.getMorningMinutesToPost() == null ? "" : s.getMorningMinutesToPost()),
                     num(s.getFukuGap()), num(s.getWinProbability()), num(s.getMarketProbability()),
                     num(s.getOverlay()), String.valueOf(s.getPopularity()), String.valueOf(s.getRecommended()),
                     num(s.getUmarenShare()), num(s.getWideShare()), num(s.getExactaFirstShare()),

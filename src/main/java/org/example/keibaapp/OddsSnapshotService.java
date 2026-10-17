@@ -19,15 +19,17 @@ public class OddsSnapshotService {
     private static final ZoneId JST = ZoneId.of("Asia/Tokyo");
 
     private final OddsSnapshotRepository repository;
+    private final MorningOddsRepository morningOddsRepository;
     private final Clock clock;
 
     @Autowired
-    public OddsSnapshotService(OddsSnapshotRepository repository) {
-        this(repository, Clock.system(JST));
+    public OddsSnapshotService(OddsSnapshotRepository repository, MorningOddsRepository morningOddsRepository) {
+        this(repository, morningOddsRepository, Clock.system(JST));
     }
 
-    OddsSnapshotService(OddsSnapshotRepository repository, Clock clock) {
+    OddsSnapshotService(OddsSnapshotRepository repository, MorningOddsRepository morningOddsRepository, Clock clock) {
         this.repository = repository;
+        this.morningOddsRepository = morningOddsRepository;
         this.clock = clock;
     }
 
@@ -50,6 +52,13 @@ public class OddsSnapshotService {
             }
         }
 
+        // 当日朝に記録した単勝オッズ(馬番→記録)。朝の記録が無いレースは付けない
+        Map<Integer, MorningOdds> morning = new HashMap<>();
+        for (MorningOdds m : morningOddsRepository.findByRaceDateAndVenueAndRaceNumber(
+                now.toLocalDate(), race.getVenue(), race.getRaceNum())) {
+            morning.put(m.getUmaban(), m);
+        }
+
         List<OddsSnapshot> snapshots = new ArrayList<>();
 
         for (Horse horse : currentHorses) {
@@ -65,11 +74,22 @@ public class OddsSnapshotService {
                     horse.getOdds(), earlierOdds.get(horse.getUmaban()), horse.getFukuGap(),
                     horse.getPredictionScore(), horse.getMarketProbability(), horse.getOverlay(),
                     horse.getPopularity(), horse.isRecommended(), PredictionService.MODEL_VERSION, now)
-                    .withPoolShares(horse.getUmarenShare(), horse.getWideShare(), horse.getExactaFirstShare()));
+                    .withPoolShares(horse.getUmarenShare(), horse.getWideShare(), horse.getExactaFirstShare())
+                    .withMorning(morningOdds(morning, horse), morningMinutes(morning, horse)));
         }
 
         repository.saveAll(snapshots);
 
         return snapshots.size();
+    }
+
+    private static Double morningOdds(Map<Integer, MorningOdds> morning, Horse horse) {
+        MorningOdds m = morning.get(Integer.parseInt(horse.getUmaban().trim()));
+        return m == null ? null : m.getWinOdds();
+    }
+
+    private static Integer morningMinutes(Map<Integer, MorningOdds> morning, Horse horse) {
+        MorningOdds m = morning.get(Integer.parseInt(horse.getUmaban().trim()));
+        return m == null ? null : m.getMinutesToPost();
     }
 }

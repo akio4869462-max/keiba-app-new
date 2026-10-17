@@ -116,6 +116,12 @@ class ForwardEvaluationServiceTest {
         return h;
     }
 
+    private MorningOddsRepository emptyMorning() {
+        MorningOddsRepository morning = mock(MorningOddsRepository.class);
+        when(morning.findByRaceDateAndVenueAndRaceNumber(any(), anyString(), anyInt())).thenReturn(List.of());
+        return morning;
+    }
+
     private RaceInfo race() {
         return new RaceInfo(11, "東京", "テストS", java.time.LocalTime.of(15, 40), "芝", "1600m", List.of());
     }
@@ -124,7 +130,7 @@ class ForwardEvaluationServiceTest {
     void record_shouldSaveValidHorsesWithEarlierOddsAndSkipInvalid() {
         OddsSnapshotRepository repository = mock(OddsSnapshotRepository.class);
         when(repository.existsByRaceDateAndVenueAndRaceNumber(any(), anyString(), anyInt())).thenReturn(false);
-        OddsSnapshotService snapshotService = new OddsSnapshotService(repository, CLOCK);
+        OddsSnapshotService snapshotService = new OddsSnapshotService(repository, emptyMorning(), CLOCK);
 
         Horse invalid = horse("3", 0, 0);   // 取消(オッズ無効 → 人気0)
         Horse valid = horse("2", 6.0, 3);
@@ -149,7 +155,7 @@ class ForwardEvaluationServiceTest {
         OddsSnapshotRepository repository = mock(OddsSnapshotRepository.class);
         when(repository.existsByRaceDateAndVenueAndRaceNumber(DATE, "東京", 11)).thenReturn(true);
 
-        int saved = new OddsSnapshotService(repository, CLOCK).record(race(), List.of(), List.of(horse("1", 3.0, 1)));
+        int saved = new OddsSnapshotService(repository, emptyMorning(), CLOCK).record(race(), List.of(), List.of(horse("1", 3.0, 1)));
 
         assertEquals(0, saved);
         verify(repository, never()).saveAll(any());

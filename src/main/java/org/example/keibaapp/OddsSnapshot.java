@@ -29,6 +29,9 @@ public class OddsSnapshot {
     private Double fukuGap;
     // 10分前の馬連・ワイド・馬単の板から作った馬ごとのシェア(PoolShareCalculator)。
     // 確定時点の板では単勝との食い違いが勝ちを予測した。10分前でも効くかを前向きに確かめるための記録
+    // 当日朝に記録した単勝オッズ(MorningOdds)とその時点の発走までの分数。オッズの動き(10分前との差)の元
+    private Double morningWinOdds;
+    private Integer morningMinutesToPost;
     private Double umarenShare;
     private Double wideShare;
     private Double exactaFirstShare;
@@ -72,6 +75,14 @@ public class OddsSnapshot {
         return this;
     }
 
+    public OddsSnapshot withMorning(Double morningWinOdds, Integer morningMinutesToPost) {
+        this.morningWinOdds = morningWinOdds;
+        this.morningMinutesToPost = morningMinutesToPost;
+        return this;
+    }
+
+    public Double getMorningWinOdds() { return morningWinOdds; }
+    public Integer getMorningMinutesToPost() { return morningMinutesToPost; }
     public Double getUmarenShare() { return umarenShare; }
     public Double getWideShare() { return wideShare; }
     public Double getExactaFirstShare() { return exactaFirstShare; }
