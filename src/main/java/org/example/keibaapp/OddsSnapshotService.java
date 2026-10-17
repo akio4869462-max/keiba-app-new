@@ -1,5 +1,6 @@
 package org.example.keibaapp;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -20,6 +21,7 @@ public class OddsSnapshotService {
     private final OddsSnapshotRepository repository;
     private final Clock clock;
 
+    @Autowired
     public OddsSnapshotService(OddsSnapshotRepository repository) {
         this(repository, Clock.system(JST));
     }
