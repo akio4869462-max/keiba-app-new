@@ -112,6 +112,7 @@ Yahoo!スポーツ競馬 → WebScraper（静的メソッド群・サーキッ�
 さらに、10分前の再取得時に**馬連・ワイド・馬単の板**（`/race/odds/ur`・`wide`・`ut`、各1ページ。`WebScraper.parsePairOdds`、`PoolShareCalculator`）から馬ごとのシェアを作って`umarenShare`/`wideShare`/`exactaFirstShare`に保存する（`HorseEnrichmentService.enrichPoolShares`）。確定板では単勝との食い違いが勝ちを強く予測した（+0.0136）が回収率には直結せず（`MODEL_REVISION.md` §8.14）、10分前の板は過去に遡れないため、**モデルには使わず前向きに記録して効果を確かめる段階**。`/results/forward/export.csv`が、オフライン解析用に的中・単勝払戻つきのCSVを返す（本番DBへ直接アクセスできないための取り出し口）。
 **賭け金の自動算出（ケリー等）は入れない方針**（`MODEL_REVISION.md` §8.15）。買い候補をフラットで買うと回収率は0.99付近で、資金の一定割合を張る方式は優位が無いと資金がほぼ尽きる（シミュレーションで100万円→14万円）。ケリーは較正しても「ほとんど買うな」になる。実現率が1.25を安定して超え、回収率が100%を超えるまでは、画面に「目安額」を出さない。
 **朝オッズの記録**（`MorningOddsService`、`MorningOdds`テーブル）: オッズの動き`mom`（朝→10分前、`MODEL_REVISION.md` §8.12）の元データ。毎日8:05〜11:55に10分おきに、当日の全レースの単勝オッズを**オッズページ（`/race/odds/tfw/{id}`）1レース1枚だけ**取得して保存する（馬の詳細ページは使わない）。全レースを記録し終えたらその日は何もしない。再起動や取得失敗で朝を逃した分も後から補うが、**`minutesToPost`（取得時点から発走まで何分あったか）を残してある**ので、発走直前に取った分は解析側で朝から除く。10分前のスナップショットには`morningWinOdds`/`morningMinutesToPost`として紐づき、CSVに`morning_win_odds`・`morning_minutes_to_post`が出る。数百レース溜まったら、動きを足して10分前のモデルを再評価する。
+**評価スクリプト**: `keiba_score_search/analysis/eval_forward_csv.py`（`python eval_forward_csv.py`で本番のCSVを取得して評価）。板のシェア・朝オッズの動きが、本番モデルの勝率に上乗せで効くか（固定した式とCV再フィット）、回収率に結びつくかを、レース単位ブートCIで出す。30レース未満では評価を中止し、判断の目安は`MODEL_REVISION.md` §8.16。
 `earlierWinOdds`（直前の一覧取得時点＝通常は最大1時間前のオッズ）は、朝オッズの動き`mom`（`MODEL_REVISION.md` §8.12、学習時の定義は「朝」）の代わりの参考値で、定義が違うためそのままモデルには使わない。
 
 ### 市場相対残差(2026-09-20実装、`MODEL_REVISION.md` §8)
