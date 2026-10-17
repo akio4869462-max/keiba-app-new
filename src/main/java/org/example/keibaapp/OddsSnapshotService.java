@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -17,6 +18,9 @@ import java.util.Map;
 public class OddsSnapshotService {
 
     private static final ZoneId JST = ZoneId.of("Asia/Tokyo");
+
+    public static final String PHASE_T10 = "T10";
+    public static final String PHASE_T3 = "T3";
 
     private final OddsSnapshotRepository repository;
     private final MorningOddsRepository morningOddsRepository;
@@ -36,10 +40,17 @@ public class OddsSnapshotService {
     // previousHorsesは再取得前(直前の一覧取得時点)の馬、currentHorsesは再取得・モデル再計算後の馬。
     // 同じレースは1日1回だけ保存する(再取得自体が1日1回のガード付きだが念のため)
     public int record(RaceInfo race, List<Horse> previousHorses, List<Horse> currentHorses) {
-        LocalDateTime now = LocalDateTime.now(clock);
+        return record(race, previousHorses, currentHorses, PHASE_T10);
+    }
 
-        if (race.getRaceNum() <= 0 || race.getVenue() == null
-                || repository.existsByRaceDateAndVenueAndRaceNumber(now.toLocalDate(), race.getVenue(), race.getRaceNum())) {
+    // phaseは"T10"(発走10分前の再取得)か"T3"(発走3分前)。同じレース・同じ段階は1日1回だけ保存する。
+    // 旧行(段階なし)は10分前として扱う
+    public int record(RaceInfo race, List<Horse> previousHorses, List<Horse> currentHorses, String phase) {
+        LocalDateTime now = LocalDateTime.now(clock);
+        Double minutesToPost = race.getRaceTime() == null ? null
+                : Duration.between(now.toLocalTime(), race.getRaceTime()).getSeconds() / 60.0;
+
+        if (race.getRaceNum() <= 0 || race.getVenue() == null || alreadyRecorded(race, now, phase)) {
             return 0;
         }
 
@@ -75,7 +86,8 @@ public class OddsSnapshotService {
                     horse.getPredictionScore(), horse.getMarketProbability(), horse.getOverlay(),
                     horse.getPopularity(), horse.isRecommended(), PredictionService.MODEL_VERSION, now)
                     .withPoolShares(horse.getUmarenShare(), horse.getWideShare(), horse.getExactaFirstShare())
-                    .withMorning(morningOdds(morning, horse), morningMinutes(morning, horse)));
+                    .withMorning(morningOdds(morning, horse), morningMinutes(morning, horse))
+                    .withPhase(phase, minutesToPost));
         }
 
         repository.saveAll(snapshots);
@@ -91,5 +103,15 @@ public class OddsSnapshotService {
     private static Integer morningMinutes(Map<Integer, MorningOdds> morning, Horse horse) {
         MorningOdds m = morning.get(Integer.parseInt(horse.getUmaban().trim()));
         return m == null ? null : m.getMinutesToPost();
+    }
+
+    private boolean alreadyRecorded(RaceInfo race, LocalDateTime now, String phase) {
+        if (PHASE_T3.equals(phase)) {
+            return repository.existsByRaceDateAndVenueAndRaceNumberAndPhase(
+                    now.toLocalDate(), race.getVenue(), race.getRaceNum(), PHASE_T3);
+        }
+
+        // 10分前: 旧行(段階なし)も含め、このレースの記録が何かあれば保存しない
+        return repository.existsByRaceDateAndVenueAndRaceNumber(now.toLocalDate(), race.getVenue(), race.getRaceNum());
     }
 }

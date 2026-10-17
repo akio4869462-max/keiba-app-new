@@ -242,6 +242,15 @@ public class RaceParserService {
         return isWithinRelevantWindow(raceTime, 0, FINAL_ODDS_WINDOW_MINUTES);
     }
 
+    private static final int CLOSE_ODDS_WINDOW_MINUTES = 2;
+
+    // 発走3分前の記録対象か。発走までの分数は切り捨てて判定するので、残りが3分を切った(2分台に入った)
+    // 最初のチェックで対象になる。情報の大半は最後の約3分に到着するため(MODEL_REVISION.md §8.17)、
+    // 締切直前の板とオッズを残して、10分前との差を前向きに評価する
+    public boolean isWithinCloseOddsWindow(LocalTime raceTime) {
+        return isWithinRelevantWindow(raceTime, 0, CLOSE_ODDS_WINDOW_MINUTES);
+    }
+
     private boolean isWithinRelevantWindow(LocalTime raceTime, int pastMinutes, int futureMinutes) {
         if (raceTime == null) {
             return false;

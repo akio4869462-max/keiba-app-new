@@ -252,4 +252,15 @@ class RaceParserServiceTest {
         assertEquals("東京", service.extractVenueName("2026年10月17日 東京競馬場のレース"));
         assertEquals("阪神", service.extractVenueName("阪神競馬場"));
     }
+
+    @Test
+    void isWithinCloseOddsWindow_shouldStartWhenTwoMinutesRemainAndEndAtPostTime() {
+        // 発走までの分数は切り捨てるので、残り3分を切って(2分台に入って)最初のチェックから対象
+        assertFalse(fixedService.isWithinCloseOddsWindow(fromNow(3)));
+        assertTrue(fixedService.isWithinCloseOddsWindow(fromNow(2)));
+        assertTrue(fixedService.isWithinCloseOddsWindow(fromNow(1)));
+        assertTrue(fixedService.isWithinCloseOddsWindow(fromNow(0)));
+        assertFalse(fixedService.isWithinCloseOddsWindow(fromNow(-1)));
+        assertFalse(fixedService.isWithinCloseOddsWindow(null));
+    }
 }

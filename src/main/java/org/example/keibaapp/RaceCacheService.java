@@ -40,6 +40,8 @@ public class RaceCacheService {
     // 本来は衝突しないが、無期限に増え続けないよう他のキャッシュと同様に
     // 日付が変わったらクリアする
     private final Set<String> oddsRefreshedUrls = ConcurrentHashMap.newKeySet();
+    // 発走3分前の記録(段階"T3")を済ませたレース。10分前の再取得とは別に1日1回
+    private final Set<String> closeOddsRecordedUrls = ConcurrentHashMap.newKeySet();
     private LocalDate oddsRefreshedDate;
 
     public HorseDetailInfo getHorseDetail(String key) {
@@ -140,10 +142,21 @@ public class RaceCacheService {
         oddsRefreshedUrls.add(raceUrl);
     }
 
+    public synchronized boolean wasCloseOddsRecorded(String raceUrl) {
+        clearOddsRefreshedIfStale();
+        return closeOddsRecordedUrls.contains(raceUrl);
+    }
+
+    public synchronized void markCloseOddsRecorded(String raceUrl) {
+        clearOddsRefreshedIfStale();
+        closeOddsRecordedUrls.add(raceUrl);
+    }
+
     private void clearOddsRefreshedIfStale() {
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Tokyo"));
         if (!today.equals(oddsRefreshedDate)) {
             oddsRefreshedUrls.clear();
+            closeOddsRecordedUrls.clear();
             oddsRefreshedDate = today;
         }
     }

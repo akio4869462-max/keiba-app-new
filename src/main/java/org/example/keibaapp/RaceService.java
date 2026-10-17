@@ -334,16 +334,7 @@ public class RaceService {
             }
 
             try {
-                Document doc = WebScraper.getHTML(raceUrl);
-                List<Horse> horseList = createTodayHorseList(doc, race.getCourse(), race.getDistance());
-                // 締切10分前の単勝と複勝を見比べる複勝ギャップを付けて、予想モデルを計算し直す
-                horseEnrichmentService.enrichFukuGap(horseList, raceUrl);
-                horseEnrichmentService.enrichPoolShares(horseList, raceUrl);
-                horseEnrichmentService.applyRaceModel(horseList);
-                sortHorsesByScore(horseList);
-                List<Horse> previousHorses = race.getHorses();
-                race.setHorses(horseList);
-                recordOddsSnapshot(race, previousHorses, horseList);
+                refreshRace(race, raceUrl, OddsSnapshotService.PHASE_T10);
                 System.out.println("【締切前オッズ再取得】完了: " + race.getDisplayRaceName());
             } catch (Exception e) {
                 System.out.println("【締切前オッズ再取得】失敗: " + race.getDisplayRaceName() + " / " + e.getMessage());
@@ -355,10 +346,55 @@ public class RaceService {
         }
     }
 
+    // 発走3分前の記録: 情報の大半は最後の約3分に到着し、購入判断は締切に近いほど有利なため
+    // (MODEL_REVISION.md §8.17)、10分前の再取得とは別に、締切直前の板・オッズ・予想を残す。
+    // 同じ手順でモデルを計算し直して表示も更新する(発走直前なので直前のオッズに近づくだけ)
+    @Scheduled(cron = "0 * * * * *", zone = "Asia/Tokyo")
+    public void recordOddsNearClose() {
+        List<RaceInfo> races = raceCacheService.getCachedRaces();
+
+        if (races == null || races.isEmpty()) {
+            return;
+        }
+
+        for (RaceInfo race : races) {
+            String raceUrl = race.getRaceUrl();
+
+            if (raceUrl == null
+                    || !raceParserService.isWithinCloseOddsWindow(race.getRaceTime())
+                    || raceCacheService.wasCloseOddsRecorded(raceUrl)) {
+                continue;
+            }
+
+            try {
+                refreshRace(race, raceUrl, OddsSnapshotService.PHASE_T3);
+                System.out.println("【締切直前の記録】完了: " + race.getDisplayRaceName());
+            } catch (Exception e) {
+                System.out.println("【締切直前の記録】失敗: " + race.getDisplayRaceName() + " / " + e.getMessage());
+            } finally {
+                // 失敗時も毎分リトライしない(窓は1〜2分しか無く、再試行しても間に合わない)
+                raceCacheService.markCloseOddsRecorded(raceUrl);
+            }
+        }
+    }
+
+    // 1レースぶん、denmaページ・複勝ギャップ・板のシェアを取り直してモデルを計算し直し、スナップショットを残す
+    private void refreshRace(RaceInfo race, String raceUrl, String phase) throws Exception {
+        Document doc = WebScraper.getHTML(raceUrl);
+        List<Horse> horseList = createTodayHorseList(doc, race.getCourse(), race.getDistance());
+        horseEnrichmentService.enrichFukuGap(horseList, raceUrl);
+        horseEnrichmentService.enrichPoolShares(horseList, raceUrl);
+        horseEnrichmentService.applyRaceModel(horseList);
+        sortHorsesByScore(horseList);
+        List<Horse> previousHorses = race.getHorses();
+        race.setHorses(horseList);
+        recordOddsSnapshot(race, previousHorses, horseList, phase);
+    }
+
     // 10分前時点の予想を前向きの評価用に残す。保存の失敗で予想表示の更新を止めない
-    private void recordOddsSnapshot(RaceInfo race, List<Horse> previousHorses, List<Horse> currentHorses) {
+    private void recordOddsSnapshot(RaceInfo race, List<Horse> previousHorses, List<Horse> currentHorses, String phase) {
         try {
-            oddsSnapshotService.record(race, previousHorses, currentHorses);
+            oddsSnapshotService.record(race, previousHorses, currentHorses, phase);
         } catch (Exception e) {
             System.out.println("【締切前オッズ再取得】スナップショット保存に失敗: " + race.getDisplayRaceName() + " / " + e.getMessage());
         }

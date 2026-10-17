@@ -44,7 +44,14 @@ public class ForwardEvaluationService {
                              List<GroupResult> groups, boolean smallSample) {
     }
 
-    public Evaluation evaluate(List<OddsSnapshot> snapshots, List<RacePayout> payouts) {
+    // 評価(回収率・実現率)の対象は10分前の記録だけ。3分前の記録(T3)は同じ馬を二重に数えないよう除く
+    // (3分前との比較はオフラインのeval_forward_csv.py --phase T3 で行う)。段階が無い旧行は10分前
+    private static boolean isTenMinuteSnapshot(OddsSnapshot s) {
+        return s.getPhase() == null || OddsSnapshotService.PHASE_T10.equals(s.getPhase());
+    }
+
+    public Evaluation evaluate(List<OddsSnapshot> allSnapshots, List<RacePayout> payouts) {
+        List<OddsSnapshot> snapshots = allSnapshots.stream().filter(ForwardEvaluationService::isTenMinuteSnapshot).toList();
         // (日付|開催場|R) → 馬番 → 単勝払戻額(100円あたり)
         Map<String, Map<Integer, Integer>> winPayouts = new HashMap<>();
 
@@ -108,7 +115,7 @@ public class ForwardEvaluationService {
         StringBuilder csv = new StringBuilder(
                 "race_date,venue,race_number,umaban,win_odds,earlier_win_odds,morning_win_odds,morning_minutes_to_post,fuku_gap,win_probability,"
                         + "market_probability,overlay,popularity,recommended,umaren_share,wide_share,"
-                        + "exacta_first_share,model_version,captured_at,won,win_payout_yen\n");
+                        + "exacta_first_share,model_version,captured_at,phase,minutes_to_post,won,win_payout_yen\n");
 
         for (OddsSnapshot s : snapshots) {
             Map<Integer, Integer> racePayouts = winPayouts.get(raceKey(s.getRaceDate(), s.getVenue(), s.getRaceNumber()));
@@ -122,7 +129,9 @@ public class ForwardEvaluationService {
                     num(s.getFukuGap()), num(s.getWinProbability()), num(s.getMarketProbability()),
                     num(s.getOverlay()), String.valueOf(s.getPopularity()), String.valueOf(s.getRecommended()),
                     num(s.getUmarenShare()), num(s.getWideShare()), num(s.getExactaFirstShare()),
-                    String.valueOf(s.getModelVersion()), String.valueOf(s.getCapturedAt()), won, payout)).append('\n');
+                    String.valueOf(s.getModelVersion()), String.valueOf(s.getCapturedAt()),
+                    s.getPhase() == null ? OddsSnapshotService.PHASE_T10 : s.getPhase(),
+                    num(s.getMinutesToPost()), won, payout)).append('\n');
         }
 
         return csv.toString();

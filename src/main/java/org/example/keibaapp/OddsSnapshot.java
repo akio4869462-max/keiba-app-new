@@ -30,6 +30,10 @@ public class OddsSnapshot {
     // 10分前の馬連・ワイド・馬単の板から作った馬ごとのシェア(PoolShareCalculator)。
     // 確定時点の板では単勝との食い違いが勝ちを予測した。10分前でも効くかを前向きに確かめるための記録
     // 当日朝に記録した単勝オッズ(MorningOdds)とその時点の発走までの分数。オッズの動き(10分前との差)の元
+    // 記録した段階("T10"=発走10分前の再取得、"T3"=発走3分前)と、記録時点から発走まで実際に何分あったか。
+    // 段階が無い(null)旧行は10分前。再起動で記録が遅れた場合に備え、実際の分数を残す
+    private String phase;
+    private Double minutesToPost;
     private Double morningWinOdds;
     private Integer morningMinutesToPost;
     private Double umarenShare;
@@ -74,6 +78,15 @@ public class OddsSnapshot {
         this.exactaFirstShare = exactaFirstShare;
         return this;
     }
+
+    public OddsSnapshot withPhase(String phase, Double minutesToPost) {
+        this.phase = phase;
+        this.minutesToPost = minutesToPost;
+        return this;
+    }
+
+    public String getPhase() { return phase; }
+    public Double getMinutesToPost() { return minutesToPost; }
 
     public OddsSnapshot withMorning(Double morningWinOdds, Integer morningMinutesToPost) {
         this.morningWinOdds = morningWinOdds;

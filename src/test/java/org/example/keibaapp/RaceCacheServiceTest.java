@@ -231,4 +231,31 @@ class RaceCacheServiceTest {
 
         assertFalse(cacheService.wasOddsRefreshed("https://example.com/race/denma/1"));
     }
+
+    @Test
+    void wasCloseOddsRecorded_shouldBeIndependentFromTenMinuteRefresh() {
+        RaceCacheService cacheService = new RaceCacheService();
+        String url = "https://example.com/race/denma/1";
+
+        cacheService.markOddsRefreshed(url);
+
+        // 10分前の再取得を済ませても、3分前の記録は別に1回行う
+        assertFalse(cacheService.wasCloseOddsRecorded(url));
+
+        cacheService.markCloseOddsRecorded(url);
+
+        assertTrue(cacheService.wasCloseOddsRecorded(url));
+        assertTrue(cacheService.wasOddsRefreshed(url));
+    }
+
+    @Test
+    void wasCloseOddsRecorded_shouldBeClearedWhenDateChanges() {
+        RaceCacheService cacheService = new RaceCacheService();
+        String url = "https://example.com/race/denma/1";
+        cacheService.markCloseOddsRecorded(url);
+
+        cacheService.setOddsRefreshedDateForTesting(LocalDate.now().minusDays(1));
+
+        assertFalse(cacheService.wasCloseOddsRecorded(url));
+    }
 }

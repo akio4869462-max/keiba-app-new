@@ -160,4 +160,43 @@ class ForwardEvaluationServiceTest {
         assertEquals(0, saved);
         verify(repository, never()).saveAll(any());
     }
+
+    @Test
+    void record_shouldTagPhaseAndMinutesToPostAndGuardPerPhase() {
+        OddsSnapshotRepository repository = mock(OddsSnapshotRepository.class);
+        // 10分前の記録は済んでいるが、3分前の記録はまだ
+        when(repository.existsByRaceDateAndVenueAndRaceNumber(DATE, "東京", 11)).thenReturn(true);
+        when(repository.existsByRaceDateAndVenueAndRaceNumberAndPhase(DATE, "東京", 11, "T3")).thenReturn(false);
+        // 15:37(発走15:40の3分前)
+        Clock nearClose = Clock.fixed(DATE.atTime(15, 37).atZone(ZoneId.of("Asia/Tokyo")).toInstant(), ZoneId.of("Asia/Tokyo"));
+        OddsSnapshotService snapshotService = new OddsSnapshotService(repository, emptyMorning(), nearClose);
+
+        assertEquals(0, snapshotService.record(race(), List.of(), List.of(horse("1", 3.0, 1))));   // T10は記録済みなので保存しない
+        assertEquals(1, snapshotService.record(race(), List.of(), List.of(horse("1", 3.0, 1)), OddsSnapshotService.PHASE_T3));
+
+        org.mockito.ArgumentCaptor<List<OddsSnapshot>> captor = org.mockito.ArgumentCaptor.forClass(List.class);
+        verify(repository).saveAll(captor.capture());
+        OddsSnapshot snap = captor.getValue().get(0);
+        assertEquals("T3", snap.getPhase());
+        assertEquals(3.0, snap.getMinutesToPost(), 1e-9);
+    }
+
+    @Test
+    void evaluate_shouldIgnoreThreeMinuteSnapshotsButExportKeepsThem() {
+        OddsSnapshot tenMinutes = snapshot(1, 5, 4, 0.2, true, 10.0);                                 // 段階なし(旧行)=10分前
+        OddsSnapshot closing = snapshot(1, 5, 4, 0.2, true, 10.0).withPhase("T3", 3.0);
+        List<RacePayout> payouts = List.of(winPayout(1, 5, 1200));
+
+        ForwardEvaluationService.Evaluation evaluation = service.evaluate(List.of(tenMinutes, closing), payouts);
+
+        // 同じ馬を二重に数えない
+        assertEquals(1, evaluation.groups().get(0).picks());
+
+        String csv = service.exportCsv(List.of(tenMinutes, closing), payouts);
+        String[] lines = csv.split("\n");
+        assertEquals(3, lines.length);
+        assertTrue(lines[0].contains(",captured_at,phase,minutes_to_post,won,win_payout_yen"), lines[0]);
+        assertTrue(lines[1].contains(",T10,"), lines[1]);
+        assertTrue(lines[2].contains(",T3,3.0,"), lines[2]);
+    }
 }
