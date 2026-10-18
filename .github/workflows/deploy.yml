@@ -19,7 +19,14 @@ jobs:
           script: |
             set -e
             cd ~/keiba-app-new
+            # ビルドの前に容量を空ける。ビルドキャッシュ(Mavenの依存を含む)がデプロイのたびに溜まり、
+            # ディスクが満杯になって "No space left on device" でビルドが落ちたことがある(2026-10-18)。
+            # キャッシュを全て捨てても、次のビルドで依存を取り直すだけ(1分程度)。稼働中のコンテナとDBのボリュームは消えない
+            echo "--- before ---"; df -h / | tail -1; docker system df
+            docker builder prune -af
+            docker image prune -f
             git pull origin main
             docker compose up -d --build
             docker image prune -f
-            docker builder prune -f --filter until=24h
+            docker builder prune -af
+            echo "--- after ---"; df -h / | tail -1
