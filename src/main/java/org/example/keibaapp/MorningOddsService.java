@@ -47,6 +47,10 @@ public class MorningOddsService {
     // その日の全レースを記録し終えた日(以後はスキップ)
     private volatile LocalDate completedDate;
 
+    // 開催一覧から数えた、その日のレース数(記録の自己監視で「全レース記録できたか」の比較に使う)
+    private volatile LocalDate targetDate;
+    private volatile int targetCount;
+
     @Autowired
     public MorningOddsService(MorningOddsRepository repository, RaceParserService raceParserService) {
         this(repository, raceParserService, MorningOddsService::fetchFromYahoo, Clock.system(JST));
@@ -65,6 +69,11 @@ public class MorningOddsService {
         return WebScraper.parseWinPlaceOdds(WebScraper.getHTML(oddsUrl)).win();
     }
 
+    // 今日の開催のレース数。まだ一覧を数えていない(再起動直後など)・開催が無い日は0
+    public int getTodayRaceCount(LocalDate today) {
+        return today.equals(targetDate) ? targetCount : 0;
+    }
+
     // 曜日をハードコードせず毎日実行する(非開催日は一覧に今日の日付が無いので何も記録しない)
     @Scheduled(cron = "0 5/10 8-11 * * *", zone = "Asia/Tokyo")
     public void scheduledCapture() {
@@ -76,6 +85,8 @@ public class MorningOddsService {
 
         try {
             List<RaceTarget> targets = collectTodayTargets(now.toLocalDate());
+            targetDate = now.toLocalDate();
+            targetCount = targets.size();
             int saved = capture(targets, now);
             System.out.println("【朝オッズ記録】" + targets.size() + "レース中 " + saved + "レースを新規に記録");
         } catch (Exception e) {

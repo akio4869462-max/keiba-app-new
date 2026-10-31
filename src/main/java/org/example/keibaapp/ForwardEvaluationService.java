@@ -88,15 +88,81 @@ public class ForwardEvaluationService {
             }
         }
 
+        List<GroupResult> groups = buildGroups(evaluable, winPayouts);
+
+        boolean small = groups.get(0).picks() < MIN_RELIABLE_PICKS;
+
+        return new Evaluation(snapshotRaceKeys.size(), evaluatedRaceKeys.size(), first, last, groups, small);
+    }
+
+    // 10分前と3分前の比較。両方の段階の記録があり、払戻金もあるレースだけを対象に、同じ3グループを並べる
+    // (レース集合を揃えないと、時刻の違いなのかレースの違いなのか分からなくなるため)
+    public record Comparison(int races, List<GroupResult> tenMinute, List<GroupResult> close, boolean smallSample) {
+    }
+
+    public Comparison compare(List<OddsSnapshot> allSnapshots, List<RacePayout> payouts) {
+        Map<String, Map<Integer, Integer>> winPayouts = winPayoutMap(payouts);
+        Map<String, java.util.Set<String>> phasesByRace = new HashMap<>();
+
+        for (OddsSnapshot s : allSnapshots) {
+            String phase = s.getPhase() == null ? OddsSnapshotService.PHASE_T10 : s.getPhase();
+            phasesByRace.computeIfAbsent(raceKey(s.getRaceDate(), s.getVenue(), s.getRaceNumber()),
+                    k -> new java.util.HashSet<>()).add(phase);
+        }
+
+        java.util.Set<String> common = new java.util.HashSet<>();
+        for (Map.Entry<String, java.util.Set<String>> entry : phasesByRace.entrySet()) {
+            if (entry.getValue().contains(OddsSnapshotService.PHASE_T10)
+                    && entry.getValue().contains(OddsSnapshotService.PHASE_T3)
+                    && winPayouts.containsKey(entry.getKey())) {
+                common.add(entry.getKey());
+            }
+        }
+
+        List<OddsSnapshot> ten = new ArrayList<>();
+        List<OddsSnapshot> close = new ArrayList<>();
+
+        for (OddsSnapshot s : allSnapshots) {
+            if (!common.contains(raceKey(s.getRaceDate(), s.getVenue(), s.getRaceNumber()))) {
+                continue;
+            }
+
+            if (isTenMinuteSnapshot(s)) {
+                ten.add(s);
+            } else if (OddsSnapshotService.PHASE_T3.equals(s.getPhase())) {
+                close.add(s);
+            }
+        }
+
+        List<GroupResult> tenGroups = buildGroups(ten, winPayouts);
+        List<GroupResult> closeGroups = buildGroups(close, winPayouts);
+        boolean small = Math.min(tenGroups.get(0).picks(), closeGroups.get(0).picks()) < MIN_RELIABLE_PICKS;
+
+        return new Comparison(common.size(), tenGroups, closeGroups, small);
+    }
+
+    // 買い候補(推奨馬)・妙味10%以上の2〜8番人気・2〜8番人気全部(基準)の3グループ
+    private List<GroupResult> buildGroups(List<OddsSnapshot> evaluable, Map<String, Map<Integer, Integer>> winPayouts) {
         List<GroupResult> groups = new ArrayList<>();
         groups.add(group("買い候補(推奨馬)", evaluable, winPayouts, s -> Boolean.TRUE.equals(s.getRecommended())));
         groups.add(group("妙味 " + (int) (TOP_OVERLAY_THRESHOLD * 100) + "%以上・2〜8番人気", evaluable, winPayouts,
                 s -> inPopularityBand(s) && s.getOverlay() != null && s.getOverlay() >= TOP_OVERLAY_THRESHOLD));
         groups.add(group("2〜8番人気 全部(基準)", evaluable, winPayouts, ForwardEvaluationService::inPopularityBand));
+        return groups;
+    }
 
-        boolean small = groups.get(0).picks() < MIN_RELIABLE_PICKS;
+    // (日付|開催場|R) → 馬番 → 単勝払戻額(100円あたり)
+    private static Map<String, Map<Integer, Integer>> winPayoutMap(List<RacePayout> payouts) {
+        Map<String, Map<Integer, Integer>> winPayouts = new HashMap<>();
 
-        return new Evaluation(snapshotRaceKeys.size(), evaluatedRaceKeys.size(), first, last, groups, small);
+        for (RacePayout payout : payouts) {
+            if ("単勝".equals(payout.getBetType()) && payout.getCombination().trim().matches("\\d+")) {
+                winPayouts.computeIfAbsent(raceKey(payout.getRaceDate(), payout.getVenue(), payout.getRaceNumber()),
+                        k -> new HashMap<>()).put(Integer.parseInt(payout.getCombination().trim()), payout.getPayoutYen());
+            }
+        }
+
+        return winPayouts;
     }
 
     // オフライン解析(keiba_score_search側)で、10分前の板から作ったシェアなどの効果を測るためのCSV。

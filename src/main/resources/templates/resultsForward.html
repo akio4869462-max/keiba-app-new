@@ -89,6 +89,48 @@
         </table>
     </div>
 
+    <div th:if="${comparison != null and comparison.races > 0}">
+        <h2 class="h5 mt-4 mb-2">3分前との比較</h2>
+        <p class="text-muted small">
+            10分前と3分前の<strong>両方</strong>が記録され、払戻金もあるレース
+            (<strong th:text="${comparison.races}"></strong>レース)だけで、同じ3グループを並べています。
+            発走が近いほどオッズは確定に近づくので、3分前のほうが回収率が良くなる傾向がないかを見ます。
+        </p>
+        <div class="alert alert-warning py-2 small" th:if="${comparison.smallSample}">
+            サンプル件数が少ないため参考値です。この件数では、10分前と3分前の差は誤差の範囲です。
+        </div>
+        <div class="table-wrapper mb-4">
+            <table class="table race-table mb-0">
+                <thead>
+                <tr>
+                    <th rowspan="2">対象</th>
+                    <th colspan="3" class="text-center">10分前</th>
+                    <th colspan="3" class="text-center">3分前</th>
+                </tr>
+                <tr>
+                    <th class="text-center">購入数</th>
+                    <th class="text-center">実現率</th>
+                    <th class="text-center">回収率</th>
+                    <th class="text-center">購入数</th>
+                    <th class="text-center">実現率</th>
+                    <th class="text-center">回収率</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="g, st : ${comparison.tenMinute}">
+                    <td class="fw-bold" th:text="${g.label}"></td>
+                    <td class="text-center" th:text="${g.picks}"></td>
+                    <td class="text-center" th:text="${#numbers.formatDecimal(g.realizedRatio, 1, 2)}"></td>
+                    <td class="text-center fw-bold" th:text="${#numbers.formatDecimal(g.roi, 1, 1)} + '%'"></td>
+                    <td class="text-center" th:text="${comparison.close[st.index].picks}"></td>
+                    <td class="text-center" th:text="${#numbers.formatDecimal(comparison.close[st.index].realizedRatio, 1, 2)}"></td>
+                    <td class="text-center fw-bold" th:text="${#numbers.formatDecimal(comparison.close[st.index].roi, 1, 1)} + '%'"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <p class="text-muted small">
         ※回収率は100%が収支トントンです。実現率は「的中数 ÷ 市場が見込む的中数」で、控除率(20%)を踏まえると損益分岐は1.25です。
     </p>

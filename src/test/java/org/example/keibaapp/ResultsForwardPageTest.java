@@ -67,4 +67,29 @@ class ResultsForwardPageTest {
                 .andExpect(content().string(containsString("600.0%")))
                 .andExpect(content().string(containsString("サンプル件数が少ない")));
     }
+
+    @Test
+    void 三分前との比較表も描画できる() throws Exception {
+        LocalDate date = LocalDate.of(2026, 10, 17);
+        when(forwardEvaluationService.evaluate(any(), any())).thenReturn(
+                new ForwardEvaluationService.Evaluation(1, 1, date, date, List.of(
+                        new ForwardEvaluationService.GroupResult("買い候補(推奨馬)", 0, 0, 0, 0, 0),
+                        new ForwardEvaluationService.GroupResult("妙味 10%以上・2〜8番人気", 0, 0, 0, 0, 0),
+                        new ForwardEvaluationService.GroupResult("2〜8番人気 全部(基準)", 0, 0, 0, 0, 0)), true));
+        when(forwardEvaluationService.compare(any(), any())).thenReturn(
+                new ForwardEvaluationService.Comparison(12,
+                        List.of(new ForwardEvaluationService.GroupResult("買い候補(推奨馬)", 4, 1, 0.5, 400, 900),
+                                new ForwardEvaluationService.GroupResult("妙味 10%以上・2〜8番人気", 0, 0, 0, 0, 0),
+                                new ForwardEvaluationService.GroupResult("2〜8番人気 全部(基準)", 0, 0, 0, 0, 0)),
+                        List.of(new ForwardEvaluationService.GroupResult("買い候補(推奨馬)", 4, 2, 0.5, 400, 1500),
+                                new ForwardEvaluationService.GroupResult("妙味 10%以上・2〜8番人気", 0, 0, 0, 0, 0),
+                                new ForwardEvaluationService.GroupResult("2〜8番人気 全部(基準)", 0, 0, 0, 0, 0)),
+                        true));
+
+        mockMvc.perform(get("/results/forward"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("3分前との比較")))
+                .andExpect(content().string(containsString("225.0%")))      // 10分前 900/400
+                .andExpect(content().string(containsString("375.0%")));     // 3分前 1500/400
+    }
 }

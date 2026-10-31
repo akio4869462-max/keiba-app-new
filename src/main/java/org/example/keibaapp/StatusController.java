@@ -15,6 +15,7 @@ public class StatusController {
     private final RacePayoutRepository racePayoutRepository;
     private final HorseEnrichmentService horseEnrichmentService;
     private final RecentLogBuffer recentLogBuffer;
+    private final RecordingHealthService recordingHealthService;
 
     public StatusController(
             RaceResultCollectionService raceResultCollectionService,
@@ -22,7 +23,8 @@ public class StatusController {
             RaceResultRecordRepository raceResultRecordRepository,
             RacePayoutRepository racePayoutRepository,
             HorseEnrichmentService horseEnrichmentService,
-            RecentLogBuffer recentLogBuffer) {
+            RecentLogBuffer recentLogBuffer,
+            RecordingHealthService recordingHealthService) {
 
         this.raceResultCollectionService = raceResultCollectionService;
         this.trackedRaceUrlRepository = trackedRaceUrlRepository;
@@ -30,6 +32,7 @@ public class StatusController {
         this.racePayoutRepository = racePayoutRepository;
         this.horseEnrichmentService = horseEnrichmentService;
         this.recentLogBuffer = recentLogBuffer;
+        this.recordingHealthService = recordingHealthService;
     }
 
     // 本番のログへ直接アクセスできないため、アプリが標準出力に出した直近の行を返す(再起動で消える)
@@ -50,6 +53,7 @@ public class StatusController {
         model.addAttribute("totalResultRecords", raceResultRecordRepository.count());
         model.addAttribute("totalPayoutRecords", racePayoutRepository.count());
         model.addAttribute("lastBoardIssue", horseEnrichmentService.getLastBoardIssue());
+        model.addAttribute("recording", recordingHealthService.summarize());
         return "status";
     }
 }

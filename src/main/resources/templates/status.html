@@ -95,6 +95,39 @@
         </div>
     </div>
 
+    <h2 class="h5 mt-4 mb-3">今日の前向き記録（<span th:text="${recording.date}"></span>）</h2>
+    <div class="row g-3 mb-2">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number"
+                     th:text="${recording.morningRaces} + (${recording.expectedRaces} > 0 ? ' / ' + ${recording.expectedRaces} : '')"></div>
+                <div class="stat-label">朝オッズ（レース数 / 開催のレース数）</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number" th:text="${recording.tenMinuteRaces}"></div>
+                <div class="stat-label">10分前の記録（レース数）</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number" th:text="${recording.closeRaces}"></div>
+                <div class="stat-label">3分前の記録（レース数）</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number" style="font-size: 1.1rem"
+                     th:text="${recording.lastSnapshotAt != null} ? ${#temporals.format(recording.lastSnapshotAt, 'M/d HH:mm')} : '—'"></div>
+                <div class="stat-label">最後の記録（全期間）</div>
+            </div>
+        </div>
+    </div>
+    <p class="text-muted small mb-4">
+        開催日に記録が欠けると、30分おきの確認でDiscordに通知します（朝オッズが揃わない、10分前・3分前の記録が無いレース）。
+    </p>
+
     <div class="alert alert-secondary small mt-4 mb-0">
         発走10分前の板(複勝・馬連・ワイド・馬単)の取得で最後に起きた問題:
         <span th:text="${lastBoardIssue}"></span>

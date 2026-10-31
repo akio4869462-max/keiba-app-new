@@ -30,6 +30,8 @@ services:
       SPRING_DATASOURCE_USERNAME: keiba
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-keiba}
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
+      # 破壊的な操作(/results/reset)の管理用トークン。.envに置く。未設定なら常に拒否
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
       JAVA_TOOL_OPTIONS: "-Xms128m -Xmx512m"
       TZ: Asia/Tokyo
     deploy:

@@ -199,4 +199,43 @@ class ForwardEvaluationServiceTest {
         assertTrue(lines[1].contains(",T10,"), lines[1]);
         assertTrue(lines[2].contains(",T3,3.0,"), lines[2]);
     }
+
+    @Test
+    void compare_shouldUseOnlyRacesWithBothPhasesAndPayoutAndKeepRacesAligned() {
+        // 1R: 10分前と3分前の両方あり・払戻あり → 比較の対象。10分前は的中、3分前は別の馬を選んだので外れ
+        OddsSnapshot r1Ten = snapshot(1, 5, 4, 0.2, true, 10.0);
+        OddsSnapshot r1Close = snapshot(1, 6, 5, 0.2, true, 10.0).withPhase("T3", 3.0);
+        // 2R: 10分前しか無い → 対象外
+        OddsSnapshot r2Ten = snapshot(2, 3, 4, 0.2, true, 10.0);
+        // 3R: 両方あるが払戻データが無い → 対象外
+        OddsSnapshot r3Ten = snapshot(3, 1, 4, 0.2, true, 10.0);
+        OddsSnapshot r3Close = snapshot(3, 1, 4, 0.2, true, 10.0).withPhase("T3", 3.0);
+        List<RacePayout> payouts = List.of(winPayout(1, 5, 1200), winPayout(2, 3, 800));
+
+        ForwardEvaluationService.Comparison comparison = service.compare(
+                List.of(r1Ten, r1Close, r2Ten, r3Ten, r3Close), payouts);
+
+        assertEquals(1, comparison.races());
+        ForwardEvaluationService.GroupResult ten = comparison.tenMinute().get(0);
+        ForwardEvaluationService.GroupResult close = comparison.close().get(0);
+        assertEquals(1, ten.picks());
+        assertEquals(1, ten.hits());
+        assertEquals(1200, ten.returnYen());
+        assertEquals(1, close.picks());
+        assertEquals(0, close.hits());
+        assertEquals(0, close.returnYen());
+        assertTrue(comparison.smallSample());
+        // 10分前と3分前で、同じ3グループが同じ順に並ぶ
+        assertEquals(3, comparison.tenMinute().size());
+        assertEquals(comparison.tenMinute().get(2).label(), comparison.close().get(2).label());
+    }
+
+    @Test
+    void compare_shouldBeEmptyWhenNoRaceHasBothPhases() {
+        ForwardEvaluationService.Comparison comparison = service.compare(
+                List.of(snapshot(1, 5, 4, 0.2, true, 10.0)), List.of(winPayout(1, 5, 1200)));
+
+        assertEquals(0, comparison.races());
+        assertEquals(0, comparison.tenMinute().get(0).picks());
+    }
 }

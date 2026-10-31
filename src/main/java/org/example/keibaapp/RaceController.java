@@ -1,8 +1,12 @@
 package org.example.keibaapp;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -76,9 +80,34 @@ public class RaceController {
                 + "しばらくしてから/results/racesや/results/debugで確認してください。";
     }
 
-    @GetMapping("/results/reset")
+    // 管理用トークン(環境変数ADMIN_TOKEN)。破壊的な操作は、これが設定されていて一致するときだけ許可する。
+    // 未設定なら常に拒否する(うっかり誰でも実行できる状態にならないように)
+    @Value("${admin.token:}")
+    private String adminToken;
+
+    private boolean isAdminToken(String token) {
+        return adminToken != null && !adminToken.isBlank() && token != null
+                && java.security.MessageDigest.isEqual(
+                        adminToken.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                        token.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    // トップ(/)は画面が無く404になっていたので、出馬表へ移す
+    @GetMapping("/")
+    public String root() {
+        return "redirect:/races";
+    }
+
+    // 検証結果を全削除する。GETだと、URLを開く・ブラウザの先読みや履歴の補完だけで実行されてしまうため、
+    // POSTにして管理用トークンを必須にした(画面からは使っていない。使うときはcurl -X POST "…/results/reset?token=…")
+    @PostMapping("/results/reset")
     @ResponseBody
-    public String resetResults() {
+    public ResponseEntity<String> resetResults(@RequestParam(required = false) String token) {
+        if (!isAdminToken(token)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("管理用トークンが必要です(サーバーにADMIN_TOKENが設定されていない場合は常に拒否します)");
+        }
+
         long deletedCount = raceResultRecordRepository.count();
         raceResultRecordRepository.deleteAll();
 
@@ -90,8 +119,8 @@ public class RaceController {
 
         trackedRaceUrlRepository.saveAll(trackedUrls);
 
-        return "検証結果をリセットしました（削除件数: " + deletedCount + "件 / "
-                + trackedUrls.size() + "件のURLを再収集対象に戻しました）";
+        return ResponseEntity.ok("検証結果をリセットしました（削除件数: " + deletedCount + "件 / "
+                + trackedUrls.size() + "件のURLを再収集対象に戻しました）");
     }
 
     @GetMapping("/results/debug")
@@ -263,6 +292,8 @@ public class RaceController {
     @GetMapping("/results/forward")
     public String resultsForward(Model model) {
         model.addAttribute("evaluation", forwardEvaluationService.evaluate(
+                oddsSnapshotRepository.findAll(), racePayoutRepository.findAll()));
+        model.addAttribute("comparison", forwardEvaluationService.compare(
                 oddsSnapshotRepository.findAll(), racePayoutRepository.findAll()));
         model.addAttribute("minReliablePicks", ForwardEvaluationService.MIN_RELIABLE_PICKS);
 
