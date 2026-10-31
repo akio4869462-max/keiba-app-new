@@ -61,7 +61,7 @@ AWS無料プランの終了でEC2が止まったため、さくらのVPS（Ubunt
 - **DBの夜間バックアップ**: `deploy/backup-db.sh`が、`/etc/cron.d`のcronで毎日4:15に`pg_dump`し、`~/db-backups/keibadb-YYYYMMDD-HHMM.sql.gz`に14日分残してDiscord（`BACKUP_WEBHOOK_URL`、無ければ`DISCORD_WEBHOOK_URL`）にも送る。ダンプの中身（gzip検証・サイズ・`race_result_record`のCOPY）を確かめ、失敗したらDiscordへ通知する。前向き記録（`OddsSnapshot`等）は過去に遡れず、VPSが壊れると失われるため
 - **前向き記録の自己監視**（`RecordingHealthService`）: 開催日の9:05〜17:35に30分おきに、朝オッズが全レース揃ったか・10分前/3分前の記録が出走済みレースに欠けていないかを調べ、欠けがあればDiscordへ通知する（同じ内容は重複して送らず、送信失敗なら次回再試行）。`/status`にも「今日の前向き記録」として件数を出す
 - **管理用トークン**: 検証結果の全削除`/results/reset`は**POST＋`ADMIN_TOKEN`（VPSの`.env`）必須**に変更（未設定なら常に403）。使うときは`curl -X POST "…/results/reset?token=…"`。`/`は`/races`へリダイレクトする
-- 古いEC2（`184.198.100.197`、アプリ・ボットは停止済み）は、数日動作を見てから**ユーザーの確認を取って**終了する（それまで1日50〜60円）
+- 旧EC2（`184.198.100.197`）は2026-10-31にユーザーが終了済み（インスタンス・Elastic IP・ボリューム）。移行時点のバックアップは開発PCの`Documents/wksp/_aws_backup_20261031/`（秘密情報を含む）。VPSが落ち着いたら削除してよい
 - デプロイ結果の確認: `curl -s "https://api.github.com/repos/akio4869462-max/keiba-app-new/actions/workflows/deploy.yml/runs?per_page=1"`。デプロイ後は、VPS上で`curl localhost:8080/status`が200になることを確認する
 
 ## アーキテクチャ
