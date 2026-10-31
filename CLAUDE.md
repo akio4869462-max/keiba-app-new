@@ -48,11 +48,18 @@ $//" mvnw && chmod +x mvnw && ./mvnw -B test'
 **デプロイ後は`/status`が200になることまで必ず確認する**（Actionsが成功でも、アプリが起動に失敗していることがある）。2026-10-17、コンストラクタが2つあるBeanに`@Autowired`を付け忘れて本番が起動せず、単体テスト・`@WebMvcTest`・CIがすべて通っていた。サービス層をモックするテストでは配線ミスを検出できないため、`ApplicationContextTest`（H2でアプリ全体のコンテキストを起動）を常設した。**コンストラクタが複数あるBeanには、Spring用に`@Autowired`を付ける**（`Clock`差し替え用のpackage-privateコンストラクタを足すとき特に注意）。
 
 
-`main`へpushすると GitHub Actions（`.github/workflows/deploy.yml`）がEC2にSSHし、`git pull` → `docker compose up -d --build` を実行する。ブランチ運用はせず main へ直接pushする方針。
+`main`へpushすると GitHub Actions（`.github/workflows/deploy.yml`）が本番サーバーにSSHし、ビルドキャッシュを片付けてから `git pull` → `docker compose up -d --build` を実行する。ブランチ運用はせず main へ直接pushする方針。
 
-- 本番URL: `http://107.22.107.166:8080`
-- デプロイ結果の確認: `curl -s "https://api.github.com/repos/akio4869462-max/keiba-app-new/actions/workflows/deploy.yml/runs?per_page=1"`
-- **本番DBへ直接アクセスする手段はない**。SQLでの調査が必要なときはユーザーにEC2上での`docker compose exec db psql ...`の実行を依頼する。アシスタント側から本番に触れるのはポート8080のHTTPエンドポイント（`/status`等）のみ。
+### 本番サーバー（2026-10-31にAWS EC2から、さくらのVPSへ移行）
+
+AWS無料プランの終了でEC2が止まったため、さくらのVPS（Ubuntu 24.04、メモリ2GB、大阪第3、管理ユーザー`ubuntu`、IP `133.167.71.49`）に移した。競馬アプリ（`~/keiba-app-new`）とDiscordボット（`~/discord-task-bot`、別リポジトリ）が同居し、どちらもdocker composeで動く。GitHubのSecret名は移行前のまま`EC2_HOST`/`EC2_USER`/`EC2_SSH_KEY`（中身はVPSの値。両方のリポジトリ）。
+
+- **外部に公開するのはSSH(22)だけ**（ufw、鍵認証のみ、fail2ban）。**アプリ(8080)とDB(5432)は`127.0.0.1`にだけ公開**し、自分の端末からは**Tailscale経由**で見る: `http://100.67.46.16:8080`（VPSのホスト名`keiba-vps`。見る端末にTailscaleを入れ、同じアカウントでログインしておく）。VPSの`.env`（`~/keiba-app-new/.env`、gitに入れない）に`APP_BIND=127.0.0.1`・`POSTGRES_PASSWORD`・`DISCORD_WEBHOOK_URL`がある
+- **Dockerはufwを迂回してポートを公開する**。ポートを足すときは必ず`127.0.0.1:`を付ける（`docker-compose.yml`参照）。以前は`5432:5432`（パスワード`keiba`）と、認証なしで`/results/reset`（検証結果の全削除）が開いた8080が全公開だった
+- 本番の調査: VPSへは、この開発PCの`~/.ssh/keiba_aws`でSSHできる（`ssh -i ~/.ssh/keiba_aws ubuntu@133.167.71.49`。パスワードなしのsudo）。DBは`cd ~/keiba-app-new && docker compose exec -T db psql -U keiba -d keibadb`。**ユーザーが許可した範囲でのみ触る**。HTTPは`/status`・`/status/log`（下記）
+- 手順書: `deploy/MIGRATION.md`（移行の記録）、サーバー初期設定: `deploy/setup-vps.sh`
+- 古いEC2（`184.198.100.197`、アプリ・ボットは停止済み）は、数日動作を見てから**ユーザーの確認を取って**終了する（それまで1日50〜60円）
+- デプロイ結果の確認: `curl -s "https://api.github.com/repos/akio4869462-max/keiba-app-new/actions/workflows/deploy.yml/runs?per_page=1"`。デプロイ後は、VPS上で`curl localhost:8080/status`が200になることを確認する
 
 ## アーキテクチャ
 
@@ -188,7 +195,7 @@ RaceResultStatsService でオッズ帯別・スコア帯別・週別・回収率
 
 - `WebScraper.getHTML()`にサーキットブレーカー。非4xxの失敗が3回続くと5分間すべてのスクレイピングを停止する。**4xx（404等）は個別URLの問題なのでブレーカーにカウントしない**（1頭分の404で全体が止まる不具合があったため）
 - 馬・騎手の個別ページ取得ごとに0.5秒sleep
-- `RaceResultCollectionService`は`AtomicBoolean`で多重実行を防止（EC2のメモリが小さいため）
+- `RaceResultCollectionService`は`AtomicBoolean`で多重実行を防止（サーバーのメモリが小さいため）
 
 ### フォールバック
 

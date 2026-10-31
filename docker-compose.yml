@@ -6,9 +6,11 @@ services:
     environment:
       POSTGRES_DB: keibadb
       POSTGRES_USER: keiba
-      POSTGRES_PASSWORD: keiba
+      # 本番(VPS)では.envのPOSTGRES_PASSWORDで強いパスワードにする。未設定ならローカル開発用の既定値
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-keiba}
     ports:
-      - "5432:5432"
+      # 127.0.0.1にだけ公開する(ホストで動かすローカル開発のアプリは使える)。Dockerはufwを迂回するので、全公開にしない
+      - "127.0.0.1:5432:5432"
     deploy:
       resources:
         limits:
@@ -19,13 +21,14 @@ services:
     container_name: keiba-app
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      # 本番(VPS)は.envでAPP_BIND=127.0.0.1にして、Tailscale経由で見る。未設定なら従来どおり全体に公開
+      - "${APP_BIND:-0.0.0.0}:8080:8080"
     depends_on:
       - db
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/keibadb
       SPRING_DATASOURCE_USERNAME: keiba
-      SPRING_DATASOURCE_PASSWORD: keiba
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-keiba}
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
       JAVA_TOOL_OPTIONS: "-Xms128m -Xmx512m"
       TZ: Asia/Tokyo

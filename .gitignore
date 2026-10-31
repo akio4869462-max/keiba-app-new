@@ -35,3 +35,8 @@ build/
 ### Generated Files ###
 prediction_results.csv
 .claude/
+# バックアップ・秘密情報(誤ってコミットしない)
+*.tgz
+*.sql.gz
+*.pem
+.env
