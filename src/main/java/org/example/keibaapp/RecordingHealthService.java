@@ -205,7 +205,7 @@ public class RecordingHealthService {
         System.out.println(message);
 
         try {
-            discordNotificationService.sendMessage(message);
+            discordNotificationService.sendMonitorMessage(message);
         } catch (Exception e) {
             lastAlertSignature = null;      // 送信に失敗したら、次の確認で再送する
             System.out.println("【記録の自己監視】Discord通知に失敗: " + e.getMessage());

@@ -135,11 +135,11 @@ class RecordingHealthServiceTest {
 
         service.check(at(9, 35));
         service.check(at(10, 5));          // 同じ内容
-        verify(discord, times(1)).sendMessage(anyString());
+        verify(discord, times(1)).sendMonitorMessage(anyString());
 
         morning.add(key("東京", 2));       // 内容が変わった(2/3)
         service.check(at(10, 35));
-        verify(discord, times(2)).sendMessage(anyString());
+        verify(discord, times(2)).sendMonitorMessage(anyString());
     }
 
     @Test
@@ -154,18 +154,18 @@ class RecordingHealthServiceTest {
         morning.clear();
         service.check(at(10, 35));         // また発生 → 再通知
 
-        verify(discord, times(2)).sendMessage(anyString());
+        verify(discord, times(2)).sendMonitorMessage(anyString());
     }
 
     @Test
     void check_shouldRetryNextTimeWhenDiscordFails() {
         expectedFromService = 2;
-        doThrow(new RuntimeException("429")).doNothing().when(discord).sendMessage(anyString());
+        doThrow(new RuntimeException("429")).doNothing().when(discord).sendMonitorMessage(anyString());
 
         service.check(at(9, 35));
         service.check(at(10, 5));
 
-        verify(discord, times(2)).sendMessage(anyString());
+        verify(discord, times(2)).sendMonitorMessage(anyString());
     }
 
     @Test
